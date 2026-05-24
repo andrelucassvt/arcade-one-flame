@@ -1,8 +1,9 @@
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+
+const double _starfieldLoopScreens = 100;
 
 class StarfieldComponent extends PositionComponent {
   StarfieldComponent({
@@ -15,7 +16,7 @@ class StarfieldComponent extends PositionComponent {
   final int seed;
 
   final List<_Star> _stars = [];
-  double _offset = 0;
+  double _scrollDistance = 0;
 
   @override
   Future<void> onLoad() async {
@@ -33,7 +34,14 @@ class StarfieldComponent extends PositionComponent {
   }
 
   void advance(double scrollSpeed, double dt) {
-    _offset = (_offset + scrollSpeed * dt) % gameSize.y;
+    _scrollDistance =
+        (_scrollDistance + scrollSpeed * dt) %
+        (gameSize.y * _starfieldLoopScreens);
+  }
+
+  @visibleForTesting
+  List<double> debugStarYs() {
+    return _stars.map(_starY).toList(growable: false);
   }
 
   @override
@@ -48,9 +56,13 @@ class StarfieldComponent extends PositionComponent {
     );
 
     for (final star in _stars) {
-      final y = (star.y + _offset * star.speedFactor) % gameSize.y;
+      final y = _starY(star);
       canvas.drawCircle(Offset(star.x, y), star.radius, starPaint);
     }
+  }
+
+  double _starY(_Star star) {
+    return (star.y + _scrollDistance * star.speedFactor) % gameSize.y;
   }
 }
 

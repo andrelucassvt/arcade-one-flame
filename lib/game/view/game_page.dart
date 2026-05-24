@@ -27,7 +27,7 @@ class GamePage extends StatelessWidget {
           backgroundMusic: Bgm(audioCache: audioCache),
         );
       },
-      child: const Scaffold(body: SafeArea(child: GameView())),
+      child: const Scaffold(body: GameView()),
     );
   }
 }

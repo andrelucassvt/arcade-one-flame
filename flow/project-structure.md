@@ -13,7 +13,7 @@
 
 ## Arquitetura
 
-O projeto usa uma estrutura feature-first em `lib/`, com `app`, `loading`, `title` e `game` separados por responsabilidade. A UI Flutter usa `MaterialApp`, `Navigator`/`MaterialPageRoute` e `flutter_bloc`; o jogo em si fica em `ArcadeOne`, uma classe `FlameGame`, com entidades, behaviors e componentes de Flame. O preload de assets e o controle de audio ficam em Cubits, enquanto assets e l10n sao acessados por codigo gerado.
+O projeto usa uma estrutura feature-first em `lib/`, com `app`, `loading`, `title` e `game` separados por responsabilidade. A UI Flutter usa `MaterialApp`, `Navigator`/`MaterialPageRoute` e `flutter_bloc`; o jogo em si fica em `ArcadeOne`, uma classe `FlameGame`, com entidades e componentes de Flame. O preload de assets e o controle de audio ficam em Cubits, enquanto assets e l10n sao acessados por codigo gerado.
 
 ```text
 main_* -> bootstrap -> App -> LoadingPage -> TitlePage -> GamePage
@@ -63,8 +63,6 @@ Liste os componentes de uso global (fora das features individuais).
 | Localizacao | `l10n.yaml` | Configura entrada ARB e saida em `lib/l10n/gen`. |
 | Bootstrap | `lib/bootstrap.dart` | Configura erros, observer de Bloc, licenca Poppins e startup. |
 | Navegacao | `lib/app/view/app.dart`, `lib/loading/view/loading_page.dart`, `lib/title/view/title_page.dart`, `lib/game/view/game_page.dart` | Usa `home: LoadingPage`, `Navigator.pushReplacement` e rotas `MaterialPageRoute`. |
-| CI | `.github/workflows/main.yaml` | Roda semantic PR, pacote Flutter com bloc lint e spell check via Very Good Workflows. |
-| License check | `.github/workflows/license_check.yaml` | Verifica licencas permitidas quando `pubspec.yaml` ou workflow mudam. |
 
 ## Dependencias Externas Principais
 
@@ -87,7 +85,8 @@ Liste os componentes de uso global (fora das features individuais).
 
 ## Observacoes
 
-- O README declara suporte a iOS, Android, Web e Windows; o reposititorio tambem contem pasta `macos/`, mas os comandos documentados usam flavors Flutter.
+- O README declara suporte a iOS, Android, Web e Windows; o repositorio tambem contem pasta `macos/`, mas os comandos documentados usam flavors Flutter.
+- A pasta `.github/` contem templates e skills locais, mas nao ha workflows de CI versionados neste momento.
 - Os tres entry points de flavor ainda fazem a mesma inicializacao; `bootstrap.dart` contem o comentario `Add cross-flavor configuration here`.
 - A navegacao e manual com `Navigator`, sem pacote de router dedicado.
 - A cobertura de testes acompanha as features principais (`app`, `loading`, `title`, `game`) e inclui testes de Cubit, widgets e entidades/componentes Flame.

@@ -5,7 +5,7 @@ Flutter/Dart game app generated from Very Good CLI, using Bloc/Cubit for UI stat
 ## Stack
 
 - Dart `^3.11.0` and Flutter `^3.41.0`
-- `flutter_bloc`/`bloc` for Cubits, `flame`/`flame_audio`/`flame_behaviors` for gameplay
+- `flutter_bloc`/`bloc` for Cubits, `flame`/`flame_audio` for gameplay
 - Very Good Analysis plus `bloc_lint`; generated files in `lib/gen` and `lib/l10n/gen` are analyzer-excluded
 - Flutter flavors: `development`, `staging`, `production`
 
@@ -16,7 +16,7 @@ Flutter/Dart game app generated from Very Good CLI, using Bloc/Cubit for UI stat
 - `lib/app/` — global providers, theme, l10n delegates, and initial `LoadingPage`
 - `lib/loading/` — asset preload Cubit, loading screen, animated progress bar
 - `lib/title/` — title screen and Start button navigation
-- `lib/game/` — Flame game, audio Cubit, entities, behaviors, HUD components, game page
+- `lib/game/` — Flame game, audio Cubit, entities, obstacle components, HUD components, game page
 - `lib/l10n/` — ARB files, generated localizations, and `context.l10n`
 - `assets/` — audio, image spritesheet, and Poppins license assets
 - `test/` — mirrors feature structure and contains helpers in `test/helpers/`
@@ -43,7 +43,7 @@ Flutter/Dart game app generated from Very Good CLI, using Bloc/Cubit for UI stat
 - All three flavor entry points currently do the same thing; flavor-specific setup belongs in `bootstrap.dart` where the existing comment marks it.
 - `PreloadCubit` loads only `Assets.audio.background`, `Assets.audio.effect`, and `Assets.images.unicornAnimation.path`; new game assets need preload updates if they must be cached before gameplay.
 - `GamePage` expects a `PreloadCubit` above it because it reads the preloaded audio and image caches.
-- The unicorn tap counter is stored directly on `ArcadeOne`, not in Bloc state.
+- The best distance is kept only in the current `ArcadeOne` instance; there is no local persistence yet.
 
 ## Não fazer
 

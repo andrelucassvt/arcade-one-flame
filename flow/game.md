@@ -31,7 +31,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 8. **Mudanca de volume** — `lib/game/cubit/audio/audio_cubit.dart` -> `toggleVolume`
    Alterna entre volume `0` e `1`, aplicando no player de efeito e no player de BGM.
 9. **Load do jogo** — `lib/game/arcade_one.dart` -> `ArcadeOne.onLoad`
-   Chama `_buildRun`, adicionando `StarfieldComponent`, `Ship`, `DriftHudComponent` e a primeira sequencia de quatro pares de asteroides.
+   Chama `_buildRun`, adicionando `StarfieldComponent`, `Ship`, `DriftHudComponent` e a primeira sequencia de sete pares de asteroides, com o primeiro par ja proximo do topo da tela.
 10. **Input de thrust** — `lib/game/arcade_one.dart` -> `onTapDown`, `onDragStart`, `onDragUpdate`
     Enquanto a partida esta ativa, passa a posicao do toque/drag para `Ship.setThrustTarget`.
 11. **Soltar input** — `lib/game/arcade_one.dart` -> `onTapUp`, `onTapCancel`, `onDragEnd`, `onDragCancel`
@@ -41,7 +41,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 13. **Progressao** — `lib/game/arcade_one.dart` -> `ArcadeOne.update`
     Incrementa `distanceKm`, calcula `driftSpeed = 2 + distanceKm * 0.0008`, deriva `scrollSpeed` e avanca o starfield.
 14. **Obstaculos** — `lib/game/components/asteroid_pair_component.dart` e `lib/game/components/loose_meteor_component.dart`
-    `ArcadeOne` mantem apenas uma sequencia ativa por vez. A primeira sequencia e sempre de paredes com pares de asteroides; quando ela sai da tela, a segunda sequencia e de meteoros soltos; depois disso, cada nova sequencia escolhe aleatoriamente entre paredes e meteoros. Cada par de asteroides move para baixo com o scroll, possui um gap central e reduz o gap conforme a dificuldade aumenta. Cada meteoro solto tambem move com o scroll, pode ter drift horizontal leve e usa colisao circular.
+    `ArcadeOne` alterna sequencias de obstaculos sem apagar a sequencia atual. A primeira sequencia e sempre de paredes com sete pares de asteroides; quando a ultima peca dessa sequencia ja chega perto do topo da tela, o jogo cria a proxima sequencia de meteoros soltos com nove ou mais meteoros. Depois disso, cada nova sequencia escolhe aleatoriamente entre paredes e meteoros. A sequencia anterior continua descendo ate sair da tela naturalmente, enquanto a nova e anexada acima da ultima peca existente, preservando o espacamento em vez de reiniciar no mesmo ponto. Cada par de asteroides move para baixo com o scroll, possui um gap central e reduz o gap conforme a dificuldade aumenta. Cada meteoro solto tambem move com o scroll, pode ter drift horizontal leve e usa colisao circular.
 15. **Colisao e bordas** — `lib/game/arcade_one.dart` -> `_checkBounds`, `AsteroidPairComponent.collidesWith` e `LooseMeteorComponent.collidesWith`
     Tocar nas bordas, intersectar um bloco de asteroide ou bater em um meteoro solto chama `ArcadeOne.endRun`.
 16. **Game over** — `lib/game/arcade_one.dart` -> `endRun`
@@ -58,7 +58,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 - **Toque durante game over:** `ArcadeOne.onTapDown` nao aplica thrust; chama `restartRun`.
 - **Soltar o toque durante a partida:** `Ship.clearThrust` desliga a aceleracao, mas a velocidade atual permanece e a nave continua por inercia.
 - **Volume mutado:** `AudioCubit` aplica volume `0` no player de efeito e no player de BGM; eventos ainda chamam `play`, mas sem volume audivel.
-- **Obstaculo fora da tela:** `ArcadeOne.update` remove `AsteroidPairComponent` ou `LooseMeteorComponent` da respectiva lista e da arvore Flame. Quando as duas listas ficam vazias, a proxima sequencia exclusiva e criada.
+- **Troca de sequencia:** `ArcadeOne.update` remove `AsteroidPairComponent` ou `LooseMeteorComponent` apenas quando eles saem da tela. A proxima sequencia nasce quando a ultima peca da onda atual chega perto do topo e usa a posicao dessa ultima peca como ancora para nao sobrepor paredes nem fechar o corredor.
 
 ## Arquivos Envolvidos
 
@@ -91,7 +91,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 - **Velocidade maxima da nave** — `Ship.update` limita `velocity.length` por `maxSpeed`.
 - **Pontuacao por distancia** — `ArcadeOne.update` incrementa `distanceKm` enquanto `isGameOver == false`.
 - **Progressao de velocidade** — `driftSpeed = 2 + distanceKm * 0.0008`; `scrollSpeed` usa esse valor multiplicado por uma escala visual.
-- **Sequencias exclusivas de obstaculos** — a partida comeca com paredes, depois forca uma sequencia de meteoros e, a partir dai, sorteia a proxima sequencia entre paredes e meteoros. Pares de asteroides e meteoros soltos nunca ficam ativos ao mesmo tempo.
+- **Sequencias continuas de obstaculos** — a partida comeca com sete pares de asteroides, depois forca uma sequencia de meteoros e, a partir dai, sorteia a proxima sequencia entre paredes e meteoros. A troca e antecipada para evitar espacos vazios grandes, e obstaculos antigos continuam visiveis ate sair da tela.
 - **Dificuldade por distancia** — `ArcadeOne.difficulty` cresce ate 1 conforme `distanceKm / 3000`; `AsteroidPairComponent` usa isso para reduzir o gap ate `asteroidMinGap`, e `ArcadeOne` usa o mesmo valor para aumentar gradualmente a quantidade, tamanho e drift dos meteoros soltos.
 - **Morte por borda** — se o raio de colisao da nave toca qualquer borda da area de jogo, `ArcadeOne.endRun` e chamado.
 - **Morte por obstaculo** — colisao da nave contra os retangulos de asteroides ou colisao circular contra meteoros soltos encerra a partida.

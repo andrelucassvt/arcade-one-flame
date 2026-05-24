@@ -57,7 +57,8 @@ void main() {
       expect(game.ship, isNotNull);
       expect(game.hud, isNotNull);
       expect(game.starfield, isNotNull);
-      expect(game.obstacles, isNotEmpty);
+      expect(game.obstacles, hasLength(asteroidPairSequenceLength));
+      expect(game.obstacles.first.position.y, greaterThan(-100));
       expect(game.looseMeteors, isEmpty);
     });
 
@@ -72,24 +73,48 @@ void main() {
         game.update(0.1);
 
         expect(game.obstacles, isEmpty);
-        expect(game.looseMeteors, isNotEmpty);
+        expect(game.looseMeteors, hasLength(looseMeteorBaseSequenceLength));
+        expect(game.looseMeteors.first.position.y, greaterThan(-50));
       },
     );
 
     testWithGame(
-      'never keeps walls and loose meteors at the same time',
+      'starts the next sequence before the current one leaves the screen',
+      createGame,
+      (game) async {
+        for (var i = 0; i < game.obstacles.length; i++) {
+          game.obstacles[i].position.y = obstacleSequenceHandoffY + i;
+        }
+
+        game.update(0.1);
+
+        expect(game.obstacles, isNotEmpty);
+        expect(game.looseMeteors, hasLength(looseMeteorBaseSequenceLength));
+        final topMostWallY = game.obstacles
+            .map((obstacle) => obstacle.position.y)
+            .reduce(math.min);
+        expect(
+          game.looseMeteors.first.position.y,
+          lessThan(topMostWallY - looseMeteorSpacing * 0.8),
+        );
+      },
+    );
+
+    testWithGame(
+      'keeps existing obstacles visible during sequence handoff',
       createGame,
       (game) async {
         expect(game.obstacles, isNotEmpty);
         expect(game.looseMeteors, isEmpty);
 
-        for (final obstacle in game.obstacles) {
-          obstacle.position.y = game.playArea.y + obstacle.height + 1;
+        final previousObstacle = game.obstacles.first;
+        for (var i = 0; i < game.obstacles.length; i++) {
+          game.obstacles[i].position.y = obstacleSequenceHandoffY + i;
         }
 
         game.update(0.1);
 
-        expect(game.obstacles, isEmpty);
+        expect(game.obstacles, contains(previousObstacle));
         expect(game.looseMeteors, isNotEmpty);
       },
     );

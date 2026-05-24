@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:arcade_one/game/game_image_assets.dart';
 import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:arcade_one/loading/loading.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -25,7 +26,10 @@ void main() {
         setUp: () {
           images = _MockImages();
           when(
-            () => images.loadAll([Assets.images.unicornAnimation.path]),
+            () => images.loadAll([
+              Assets.images.unicornAnimation.path,
+              ...gameImageAssets,
+            ]),
           ).thenAnswer((invocation) => Future.value(<Image>[]));
 
           audio = _MockAudioCache();
@@ -66,7 +70,10 @@ void main() {
             () => audio.loadAll([Assets.audio.background, Assets.audio.effect]),
           ).called(1);
           verify(
-            () => images.loadAll([Assets.images.unicornAnimation.path]),
+            () => images.loadAll([
+              Assets.images.unicornAnimation.path,
+              ...gameImageAssets,
+            ]),
           ).called(1);
         },
       );

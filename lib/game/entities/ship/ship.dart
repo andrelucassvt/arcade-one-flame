@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +15,7 @@ class Ship extends PositionComponent {
     this.thrustPower = defaultShipThrustPower,
     this.maxSpeed = defaultShipMaxSpeed,
     this.turnSpeed = defaultShipTurnSpeed,
+    this.shipImage,
   }) : super(
          anchor: Anchor.center,
          size: size ?? Vector2(20, 28),
@@ -23,10 +24,12 @@ class Ship extends PositionComponent {
   final double thrustPower;
   final double maxSpeed;
   final double turnSpeed;
+  final ui.Image? shipImage;
 
   final Vector2 velocity = Vector2.zero();
 
   Vector2 _thrustDirection = Vector2.zero();
+  double _thrustAnimationTime = 0;
 
   bool get isThrusting => _thrustDirection.length2 > 0;
 
@@ -58,6 +61,7 @@ class Ship extends PositionComponent {
     super.update(dt);
 
     if (isThrusting) {
+      _thrustAnimationTime += dt * 16;
       velocity.add(_thrustDirection * thrustPower * dt);
       if (velocity.length > maxSpeed) {
         velocity
@@ -66,7 +70,10 @@ class Ship extends PositionComponent {
       }
       _turnTowards(_thrustDirection, dt);
     } else if (velocity.length2 > 1) {
+      _thrustAnimationTime = 0;
       _turnTowards(velocity.normalized(), dt);
+    } else {
+      _thrustAnimationTime = 0;
     }
 
     position.add(velocity * dt);
@@ -75,6 +82,12 @@ class Ship extends PositionComponent {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
+
+    final currentImage = shipImage;
+    if (currentImage != null) {
+      _renderSpriteShip(canvas, currentImage);
+      return;
+    }
 
     final shipPaint = Paint()..color = const Color(0xFFE8F7FF);
     final cockpitPaint = Paint()..color = const Color(0xFF57E4FF);
@@ -109,13 +122,55 @@ class Ship extends PositionComponent {
       );
 
     if (isThrusting) {
-      final flame = Path()
-        ..moveTo(size.x * 0.38, size.y * 0.86)
-        ..lineTo(size.x / 2, size.y * 1.18)
-        ..lineTo(size.x * 0.62, size.y * 0.86)
-        ..close();
-      canvas.drawPath(flame, flamePaint);
+      _drawAnimatedFlame(canvas, flamePaint);
     }
+  }
+
+  void _renderSpriteShip(Canvas canvas, ui.Image image) {
+    final paint = Paint()
+      ..isAntiAlias = false
+      ..filterQuality = FilterQuality.medium;
+
+    canvas.save();
+    if (isThrusting) {
+      final pulse = 1 + math.sin(_thrustAnimationTime) * 0.055;
+      canvas
+        ..translate(size.x / 2, size.y / 2)
+        ..scale(pulse, pulse)
+        ..translate(-size.x / 2, -size.y / 2);
+      _drawAnimatedFlame(
+        canvas,
+        Paint()..color = const Color(0xFFFFB000),
+      );
+    }
+
+    canvas
+      ..drawImageRect(
+        image,
+        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+        Rect.fromLTWH(0, 0, size.x, size.y),
+        paint,
+      )
+      ..restore();
+  }
+
+  void _drawAnimatedFlame(Canvas canvas, Paint flamePaint) {
+    final flicker = 0.82 + math.sin(_thrustAnimationTime * 1.7) * 0.18;
+    final flame = Path()
+      ..moveTo(size.x * 0.36, size.y * 0.84)
+      ..lineTo(size.x / 2, size.y * (1.12 + 0.12 * flicker))
+      ..lineTo(size.x * 0.64, size.y * 0.84)
+      ..close();
+
+    canvas.drawPath(flame, flamePaint);
+
+    final corePaint = Paint()..color = const Color(0xFFFFF1A8);
+    final core = Path()
+      ..moveTo(size.x * 0.43, size.y * 0.87)
+      ..lineTo(size.x / 2, size.y * (1.04 + 0.08 * flicker))
+      ..lineTo(size.x * 0.57, size.y * 0.87)
+      ..close();
+    canvas.drawPath(core, corePaint);
   }
 
   void _turnTowards(Vector2 direction, double dt) {

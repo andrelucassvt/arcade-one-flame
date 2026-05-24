@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:arcade_one/game/entities/entities.dart';
 import 'package:flame/components.dart';
@@ -15,6 +15,7 @@ class LooseMeteorComponent extends PositionComponent {
     required Vector2 position,
     required double radius,
     this.horizontalDrift = 0,
+    this.meteorImage,
   }) : gameSize = gameSize.clone(),
        radius = radius.clamp(looseMeteorMinRadius, looseMeteorMaxRadius),
        super(
@@ -28,6 +29,7 @@ class LooseMeteorComponent extends PositionComponent {
   final Vector2 gameSize;
   final double radius;
   final double horizontalDrift;
+  final ui.Image? meteorImage;
 
   bool get isOffscreen => position.y > gameSize.y + radius;
 
@@ -46,6 +48,12 @@ class LooseMeteorComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
+
+    final image = meteorImage;
+    if (image != null) {
+      _renderSpriteMeteor(canvas, image);
+      return;
+    }
 
     final center = Offset(size.x / 2, size.y / 2);
     final meteorPaint = Paint()..color = const Color(0xFF8A8797);
@@ -80,5 +88,17 @@ class LooseMeteorComponent extends PositionComponent {
         radius * 0.18,
         highlightPaint,
       );
+  }
+
+  void _renderSpriteMeteor(Canvas canvas, ui.Image image) {
+    final paint = Paint()
+      ..isAntiAlias = false
+      ..filterQuality = FilterQuality.medium;
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      Rect.fromLTWH(0, 0, size.x, size.y),
+      paint,
+    );
   }
 }

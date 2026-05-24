@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:arcade_one/game/game_image_assets.dart';
 import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bloc/bloc.dart';
@@ -24,7 +25,10 @@ class PreloadCubit extends Cubit<PreloadState> {
       ),
       PreloadPhase(
         'images',
-        () => images.loadAll([Assets.images.unicornAnimation.path]),
+        () => images.loadAll([
+          Assets.images.unicornAnimation.path,
+          ...gameImageAssets,
+        ]),
       ),
     ];
 

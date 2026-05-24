@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:arcade_one/game/entities/entities.dart';
 import 'package:flame/components.dart';
@@ -15,6 +15,7 @@ class AsteroidPairComponent extends PositionComponent {
     required double y,
     required double difficulty,
     double? gapCenterX,
+    this.asteroidTileImage,
   }) : gameSize = gameSize.clone(),
        difficulty = difficulty.clamp(0, 1),
        gapSize = math.max(
@@ -31,6 +32,7 @@ class AsteroidPairComponent extends PositionComponent {
   final double difficulty;
   final double gapSize;
   final double gapCenterX;
+  final ui.Image? asteroidTileImage;
 
   Rect get leftRect {
     final width = math.max<double>(0, gapCenterX - gapSize / 2);
@@ -66,8 +68,15 @@ class AsteroidPairComponent extends PositionComponent {
     final asteroidPaint = Paint()..color = const Color(0xFF6C6A7C);
     final highlightPaint = Paint()..color = const Color(0xFF9E94B8);
 
-    _drawAsteroidBlock(canvas, leftRect, asteroidPaint, highlightPaint);
-    _drawAsteroidBlock(canvas, rightRect, asteroidPaint, highlightPaint);
+    final tileImage = asteroidTileImage;
+    if (tileImage == null) {
+      _drawAsteroidBlock(canvas, leftRect, asteroidPaint, highlightPaint);
+      _drawAsteroidBlock(canvas, rightRect, asteroidPaint, highlightPaint);
+      return;
+    }
+
+    _drawSpriteBlock(canvas, leftRect, tileImage, asteroidPaint);
+    _drawSpriteBlock(canvas, rightRect, tileImage, asteroidPaint);
   }
 
   void _drawAsteroidBlock(
@@ -90,6 +99,52 @@ class AsteroidPairComponent extends PositionComponent {
         highlightPaint,
       );
     }
+  }
+
+  void _drawSpriteBlock(
+    Canvas canvas,
+    Rect rect,
+    ui.Image image,
+    Paint basePaint,
+  ) {
+    if (rect.width <= 0) {
+      return;
+    }
+
+    final block = RRect.fromRectAndRadius(rect, const Radius.circular(4));
+    final spritePaint = Paint()
+      ..isAntiAlias = false
+      ..filterQuality = FilterQuality.medium;
+    final source = Rect.fromLTWH(
+      0,
+      0,
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
+    final tileSize = height * 1.05;
+
+    canvas
+      ..drawRRect(block, basePaint)
+      ..save()
+      ..clipRRect(block);
+
+    for (
+      var x = rect.left - tileSize * 0.18;
+      x < rect.right;
+      x += tileSize * 0.7
+    ) {
+      final index = ((x - rect.left) / tileSize).round();
+      final yOffset = index.isEven ? -tileSize * 0.12 : tileSize * 0.03;
+      final destination = Rect.fromLTWH(
+        x,
+        rect.top + yOffset,
+        tileSize,
+        tileSize,
+      );
+      canvas.drawImageRect(image, source, destination, spritePaint);
+    }
+
+    canvas.restore();
   }
 
   bool _circleIntersectsRect(Offset center, double radius, Rect rect) {

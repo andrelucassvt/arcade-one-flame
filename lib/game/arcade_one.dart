@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:arcade_one/game/game.dart';
+import 'package:arcade_one/game/game_image_assets.dart';
 import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -57,6 +59,10 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   final List<AsteroidPairComponent> obstacles = [];
   final List<LooseMeteorComponent> looseMeteors = [];
+
+  ui.Image? _asteroidTileImage;
+  ui.Image? _looseMeteorImage;
+  ui.Image? _playerShipImage;
 
   double _nextObstacleY = initialObstacleY;
   double _nextLooseMeteorY = initialLooseMeteorY;
@@ -206,8 +212,13 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   Future<void> _buildRun() async {
     final area = playArea;
 
+    await _loadGameImages();
+
     starfield = StarfieldComponent(gameSize: area);
-    ship = Ship(position: _shipStartPosition());
+    ship = Ship(
+      position: _shipStartPosition(),
+      shipImage: _playerShipImage,
+    );
     hud = DriftHudComponent(position: Vector2(12, 12));
 
     await addAll([
@@ -326,6 +337,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       y: _nextObstacleY,
       difficulty: difficulty,
       gapCenterX: gapCenter,
+      asteroidTileImage: _asteroidTileImage,
     );
     obstacles.add(obstacle);
     final addFuture = add(obstacle);
@@ -354,6 +366,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       ),
       radius: radius,
       horizontalDrift: (_random.nextDouble() * 2 - 1) * (14 + difficulty * 22),
+      meteorImage: _looseMeteorImage,
     );
     looseMeteors.add(meteor);
     final addFuture = add(meteor);
@@ -375,6 +388,41 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
         currentShip.position.y - radius <= 0 ||
         currentShip.position.y + radius >= playArea.y) {
       endRun();
+    }
+  }
+
+  Future<void> _loadGameImages() async {
+    _asteroidTileImage = await _loadGameImage(asteroidTileImageAsset);
+    _looseMeteorImage = await _loadGameImage(looseMeteorImageAsset);
+    _playerShipImage = await _loadGameImage(playerShipImageAsset);
+  }
+
+  Future<ui.Image?> _loadGameImage(String path) async {
+    final cacheKey = _imageCacheKey(path);
+    try {
+      return images.fromCache(cacheKey);
+    } on Object {
+      try {
+        return await images.load(cacheKey);
+      } on Object {
+        return null;
+      }
+    }
+  }
+
+  String _imageCacheKey(String path) {
+    final prefix = _imagePrefix();
+    if (prefix.isEmpty || !path.startsWith(prefix)) {
+      return path;
+    }
+    return path.substring(prefix.length);
+  }
+
+  String _imagePrefix() {
+    try {
+      return (images as dynamic).prefix as String? ?? '';
+    } on Object {
+      return '';
     }
   }
 }

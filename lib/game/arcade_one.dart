@@ -14,6 +14,15 @@ const double initialDriftSpeed = 2;
 const double driftSpeedGrowth = 0.0008;
 const double driftVisualSpeedScale = 42;
 const double obstacleSpacing = 190;
+const double looseMeteorSpacing = 150;
+const int asteroidPairSequenceLength = 4;
+const int looseMeteorBaseSequenceLength = 4;
+const int looseMeteorDifficultyBonus = 2;
+
+enum ObstacleSequence {
+  asteroidPairs,
+  looseMeteors,
+}
 
 class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   ArcadeOne({
@@ -44,8 +53,12 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   StarfieldComponent? starfield;
 
   final List<AsteroidPairComponent> obstacles = [];
+  final List<LooseMeteorComponent> looseMeteors = [];
 
   double _nextObstacleY = -obstacleSpacing;
+  double _nextLooseMeteorY = -obstacleSpacing * 0.75;
+  ObstacleSequence _nextObstacleSequence = ObstacleSequence.asteroidPairs;
+  bool _forceMeteorSequenceAfterFirstWalls = true;
 
   double get driftSpeed => initialDriftSpeed + distanceKm * driftSpeedGrowth;
 
@@ -90,7 +103,19 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       }
     }
 
-    _spawnObstaclesIfNeeded();
+    for (final meteor in looseMeteors.toList()) {
+      meteor.moveByScroll(scrollSpeed, dt);
+      if (ship != null && meteor.collidesWith(ship!)) {
+        endRun();
+        return;
+      }
+      if (meteor.isOffscreen) {
+        looseMeteors.remove(meteor);
+        meteor.removeFromParent();
+      }
+    }
+
+    _spawnNextObstacleSequenceIfNeeded();
     _checkBounds();
   }
 
@@ -164,13 +189,22 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     distanceKm = 0;
     scrollSpeed = initialDriftSpeed * driftVisualSpeedScale;
     _nextObstacleY = -obstacleSpacing;
+    _nextLooseMeteorY = -obstacleSpacing * 0.75;
+    _nextObstacleSequence = ObstacleSequence.asteroidPairs;
+    _forceMeteorSequenceAfterFirstWalls = true;
     ship?.reset(_shipStartPosition());
 
     for (final obstacle in obstacles.toList()) {
       obstacle.removeFromParent();
     }
     obstacles.clear();
-    _spawnInitialObstacles();
+
+    for (final meteor in looseMeteors.toList()) {
+      meteor.removeFromParent();
+    }
+    looseMeteors.clear();
+
+    _spawnNextObstacleSequence();
   }
 
   Future<void> _buildRun() async {
@@ -186,7 +220,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       hud!,
     ]);
 
-    _spawnInitialObstacles();
+    _spawnNextObstacleSequence();
   }
 
   Vector2 _shipStartPosition() {
@@ -194,26 +228,49 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     return Vector2(area.x / 2, area.y * 0.72);
   }
 
-  void _spawnInitialObstacles() {
-    for (var i = 0; i < 4; i++) {
+  void _spawnNextObstacleSequenceIfNeeded() {
+    if (obstacles.isNotEmpty || looseMeteors.isNotEmpty) {
+      return;
+    }
+
+    _spawnNextObstacleSequence();
+  }
+
+  void _spawnNextObstacleSequence() {
+    switch (_nextObstacleSequence) {
+      case ObstacleSequence.asteroidPairs:
+        _spawnAsteroidPairSequence();
+      case ObstacleSequence.looseMeteors:
+        _spawnLooseMeteorSequence();
+    }
+    _nextObstacleSequence = _chooseNextObstacleSequence();
+  }
+
+  ObstacleSequence _chooseNextObstacleSequence() {
+    if (_forceMeteorSequenceAfterFirstWalls) {
+      _forceMeteorSequenceAfterFirstWalls = false;
+      return ObstacleSequence.looseMeteors;
+    }
+
+    return _random.nextBool()
+        ? ObstacleSequence.asteroidPairs
+        : ObstacleSequence.looseMeteors;
+  }
+
+  void _spawnAsteroidPairSequence() {
+    _nextObstacleY = -obstacleSpacing;
+    for (var i = 0; i < asteroidPairSequenceLength; i++) {
       _spawnObstacle();
     }
   }
 
-  void _spawnObstaclesIfNeeded() {
-    if (obstacles.isEmpty) {
-      _nextObstacleY = -obstacleSpacing;
-      _spawnInitialObstacles();
-      return;
-    }
-
-    final topMostY = obstacles
-        .map((obstacle) => obstacle.position.y)
-        .reduce(math.min);
-    _nextObstacleY = math.min(_nextObstacleY, topMostY - obstacleSpacing);
-
-    while (topMostY > -obstacleSpacing * 2 && obstacles.length < 6) {
-      _spawnObstacle();
+  void _spawnLooseMeteorSequence() {
+    _nextLooseMeteorY = -obstacleSpacing * 0.75;
+    final sequenceLength =
+        looseMeteorBaseSequenceLength +
+        (difficulty * looseMeteorDifficultyBonus).round();
+    for (var i = 0; i < sequenceLength; i++) {
+      _spawnLooseMeteor();
     }
   }
 
@@ -234,6 +291,34 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       unawaited(addFuture);
     }
     _nextObstacleY -= obstacleSpacing;
+  }
+
+  void _spawnLooseMeteor() {
+    final area = playArea;
+    final margin = math.min(
+      area.x / 2,
+      looseMeteorSpawnMargin,
+    );
+    final span = math.max(0, area.x - margin * 2);
+    final radiusRange =
+        (looseMeteorMaxRadius - looseMeteorMinRadius) *
+        (0.65 + difficulty * 0.35);
+    final radius = looseMeteorMinRadius + _random.nextDouble() * radiusRange;
+    final meteor = LooseMeteorComponent(
+      gameSize: area,
+      position: Vector2(
+        margin + _random.nextDouble() * span,
+        _nextLooseMeteorY,
+      ),
+      radius: radius,
+      horizontalDrift: (_random.nextDouble() * 2 - 1) * (14 + difficulty * 22),
+    );
+    looseMeteors.add(meteor);
+    final addFuture = add(meteor);
+    if (addFuture is Future<void>) {
+      unawaited(addFuture);
+    }
+    _nextLooseMeteorY -= looseMeteorSpacing;
   }
 
   void _checkBounds() {

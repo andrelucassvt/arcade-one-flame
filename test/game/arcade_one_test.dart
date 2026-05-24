@@ -58,7 +58,41 @@ void main() {
       expect(game.hud, isNotNull);
       expect(game.starfield, isNotNull);
       expect(game.obstacles, isNotEmpty);
+      expect(game.looseMeteors, isEmpty);
     });
+
+    testWithGame(
+      'starts with wall sequence and then spawns meteor sequence',
+      createGame,
+      (game) async {
+        for (final obstacle in game.obstacles) {
+          obstacle.position.y = game.playArea.y + obstacle.height + 1;
+        }
+
+        game.update(0.1);
+
+        expect(game.obstacles, isEmpty);
+        expect(game.looseMeteors, isNotEmpty);
+      },
+    );
+
+    testWithGame(
+      'never keeps walls and loose meteors at the same time',
+      createGame,
+      (game) async {
+        expect(game.obstacles, isNotEmpty);
+        expect(game.looseMeteors, isEmpty);
+
+        for (final obstacle in game.obstacles) {
+          obstacle.position.y = game.playArea.y + obstacle.height + 1;
+        }
+
+        game.update(0.1);
+
+        expect(game.obstacles, isEmpty);
+        expect(game.looseMeteors, isNotEmpty);
+      },
+    );
 
     testWithGame('increases distance and scroll speed over time', createGame, (
       game,
@@ -82,11 +116,40 @@ void main() {
       verify(() => audioPlayer.play(any())).called(1);
     });
 
+    testWithGame('ends run when ship hits a loose meteor', createGame, (
+      game,
+    ) async {
+      for (final obstacle in game.obstacles.toList()) {
+        obstacle.removeFromParent();
+      }
+      game.obstacles.clear();
+      game.update(0.1);
+
+      for (final meteor in game.looseMeteors.toList()) {
+        meteor.removeFromParent();
+      }
+      game.looseMeteors.clear();
+
+      final meteor = LooseMeteorComponent(
+        gameSize: game.playArea,
+        position: game.ship!.position.clone(),
+        radius: 16,
+      );
+      game.looseMeteors.add(meteor);
+      await game.add(meteor);
+
+      game.update(0.1);
+
+      expect(game.isGameOver, isTrue);
+      verify(() => audioPlayer.play(any())).called(1);
+    });
+
     testWithGame('restart resets run and keeps best distance', createGame, (
       game,
     ) async {
       game.distanceKm = 120;
       game.endRun();
+      final previousObstacle = game.obstacles.first;
 
       await game.restartRun();
 
@@ -98,6 +161,8 @@ void main() {
         equals(Vector2(game.playArea.x / 2, game.playArea.y * 0.72)),
       );
       expect(game.obstacles, isNotEmpty);
+      expect(game.looseMeteors, isEmpty);
+      expect(game.obstacles, isNot(contains(previousObstacle)));
     });
   });
 }

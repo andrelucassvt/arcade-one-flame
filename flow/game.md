@@ -1,14 +1,14 @@
 # Flow: Game
 
-> **Resumo:** Monta a partida DRIFT em Flame, toca musica de fundo, permite mutar o audio e controla uma nave com thrust, inercia, obstaculos, pontuacao por distancia, game over e restart.
+> **Resumo:** Monta a partida DRIFT em Flame, toca musica de fundo, permite mutar o audio e controla uma nave com thrust, inercia, pares de asteroides, meteoros soltos, pontuacao por distancia, game over e restart.
 
 ## Visão Geral
 
 O fluxo de Game comeca quando `TitleView` navega para `GamePage.route()`. `GamePage` cria um `AudioCubit` local usando o cache de audio ja carregado pelo `PreloadCubit`, entao renderiza `GameView`.
 
-`GameView` inicia a musica de fundo em `initState`, cria uma instancia de `ArcadeOne` e injeta l10n, player de efeito, estilo de texto e cache de imagens. O jogo Flame monta os componentes principais diretamente na instancia do jogo: `StarfieldComponent`, `Ship`, `DriftHudComponent` e uma sequencia inicial de `AsteroidPairComponent`.
+`GameView` inicia a musica de fundo em `initState`, cria uma instancia de `ArcadeOne` e injeta l10n, player de efeito, estilo de texto e cache de imagens. O jogo Flame monta os componentes principais diretamente na instancia do jogo: `StarfieldComponent`, `Ship`, `DriftHudComponent` e uma sequencia inicial de paredes com `AsteroidPairComponent`.
 
-Durante a partida, toques e drags na tela ligam o thrust da nave em direcao ao ponteiro. Ao soltar, a nave nao para: `Ship` mantem a velocidade acumulada e continua deslizando por inercia. `ArcadeOne.update` incrementa a distancia, calcula a velocidade de scroll, move obstaculos, verifica colisao com asteroides e encerra a partida se a nave tocar as bordas da tela.
+Durante a partida, toques e drags na tela ligam o thrust da nave em direcao ao ponteiro. Ao soltar, a nave nao para: `Ship` mantem a velocidade acumulada e continua deslizando por inercia. `ArcadeOne.update` incrementa a distancia, calcula a velocidade de scroll, move a sequencia ativa de obstaculos, verifica colisao com asteroides ou meteoros soltos e encerra a partida se a nave tocar as bordas da tela.
 
 Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia da sessao, toca o efeito sonoro e o HUD mostra a mensagem de restart. Um novo toque reinicia a mesma tela, reposicionando a nave e recriando os obstaculos.
 
@@ -31,7 +31,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 8. **Mudanca de volume** — `lib/game/cubit/audio/audio_cubit.dart` -> `toggleVolume`
    Alterna entre volume `0` e `1`, aplicando no player de efeito e no player de BGM.
 9. **Load do jogo** — `lib/game/arcade_one.dart` -> `ArcadeOne.onLoad`
-   Chama `_buildRun`, adicionando `StarfieldComponent`, `Ship`, `DriftHudComponent` e quatro pares iniciais de asteroides.
+   Chama `_buildRun`, adicionando `StarfieldComponent`, `Ship`, `DriftHudComponent` e a primeira sequencia de quatro pares de asteroides.
 10. **Input de thrust** — `lib/game/arcade_one.dart` -> `onTapDown`, `onDragStart`, `onDragUpdate`
     Enquanto a partida esta ativa, passa a posicao do toque/drag para `Ship.setThrustTarget`.
 11. **Soltar input** — `lib/game/arcade_one.dart` -> `onTapUp`, `onTapCancel`, `onDragEnd`, `onDragCancel`
@@ -40,10 +40,10 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
     Aplica aceleracao na direcao do thrust, limita a velocidade por `maxSpeed`, rotaciona a nave suavemente e atualiza a posicao.
 13. **Progressao** — `lib/game/arcade_one.dart` -> `ArcadeOne.update`
     Incrementa `distanceKm`, calcula `driftSpeed = 2 + distanceKm * 0.0008`, deriva `scrollSpeed` e avanca o starfield.
-14. **Obstaculos** — `lib/game/components/asteroid_pair_component.dart`
-    Cada par de asteroides move para baixo com o scroll, possui um gap central e reduz o gap conforme a dificuldade aumenta.
-15. **Colisao e bordas** — `lib/game/arcade_one.dart` -> `_checkBounds` e `AsteroidPairComponent.collidesWith`
-    Tocar nas bordas ou intersectar um bloco de asteroide chama `ArcadeOne.endRun`.
+14. **Obstaculos** — `lib/game/components/asteroid_pair_component.dart` e `lib/game/components/loose_meteor_component.dart`
+    `ArcadeOne` mantem apenas uma sequencia ativa por vez. A primeira sequencia e sempre de paredes com pares de asteroides; quando ela sai da tela, a segunda sequencia e de meteoros soltos; depois disso, cada nova sequencia escolhe aleatoriamente entre paredes e meteoros. Cada par de asteroides move para baixo com o scroll, possui um gap central e reduz o gap conforme a dificuldade aumenta. Cada meteoro solto tambem move com o scroll, pode ter drift horizontal leve e usa colisao circular.
+15. **Colisao e bordas** — `lib/game/arcade_one.dart` -> `_checkBounds`, `AsteroidPairComponent.collidesWith` e `LooseMeteorComponent.collidesWith`
+    Tocar nas bordas, intersectar um bloco de asteroide ou bater em um meteoro solto chama `ArcadeOne.endRun`.
 16. **Game over** — `lib/game/arcade_one.dart` -> `endRun`
     Marca `isGameOver`, atualiza `bestDistanceKm`, toca `Assets.audio.effect` e limpa o thrust da nave.
 17. **HUD** — `lib/game/components/drift_hud_component.dart` -> `DriftHudComponent.update`
@@ -58,7 +58,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 - **Toque durante game over:** `ArcadeOne.onTapDown` nao aplica thrust; chama `restartRun`.
 - **Soltar o toque durante a partida:** `Ship.clearThrust` desliga a aceleracao, mas a velocidade atual permanece e a nave continua por inercia.
 - **Volume mutado:** `AudioCubit` aplica volume `0` no player de efeito e no player de BGM; eventos ainda chamam `play`, mas sem volume audivel.
-- **Obstaculo fora da tela:** `ArcadeOne.update` remove o `AsteroidPairComponent` da lista e da arvore Flame.
+- **Obstaculo fora da tela:** `ArcadeOne.update` remove `AsteroidPairComponent` ou `LooseMeteorComponent` da respectiva lista e da arvore Flame. Quando as duas listas ficam vazias, a proxima sequencia exclusiva e criada.
 
 ## Arquivos Envolvidos
 
@@ -70,14 +70,16 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 | Estado | `lib/game/cubit/audio/audio_state.dart` | Guarda o volume atual. |
 | Entidade | `lib/game/entities/ship/ship.dart` | Nave, thrust, inercia, velocidade maxima, rotacao e renderizacao pixelada. |
 | Componente | `lib/game/components/asteroid_pair_component.dart` | Par de asteroides com gap, movimento vertical e colisao simples. |
+| Componente | `lib/game/components/loose_meteor_component.dart` | Meteoro individual com raio, drift horizontal, movimento por scroll, renderizacao em canvas e colisao circular. |
 | Componente | `lib/game/components/starfield_component.dart` | Fundo espacial procedural com duas velocidades de parallax. |
 | Componente | `lib/game/components/drift_hud_component.dart` | HUD de distancia, melhor distancia e mensagens de game over/restart. |
 | Assets gerados | `lib/gen/assets.gen.dart` | Caminhos tipados para audio usado por BGM e efeito de colisao. |
 | L10n | `lib/l10n/arb/app_en.arb` | Define textos de titulo, distancia, melhor distancia, game over e restart. |
 | Barrel | `lib/game/game.dart` | Exporta view, cubit, entidades, componentes e `ArcadeOne`. |
-| Testes | `test/game/arcade_one_test.dart` | Cobre load, distancia, game over por borda e reset. |
+| Testes | `test/game/arcade_one_test.dart` | Cobre load, distancia, meteoros soltos, game over por borda/meteoro e reset. |
 | Testes | `test/game/entities/ship/ship_test.dart` | Cobre thrust, inercia, limite de velocidade e reset da nave. |
 | Testes | `test/game/components/asteroid_pair_component_test.dart` | Cobre gap, movimento e colisao dos obstaculos. |
+| Testes | `test/game/components/loose_meteor_component_test.dart` | Cobre movimento, offscreen e colisao do meteoro solto. |
 | Testes | `test/game/components/drift_hud_component_test.dart` | Cobre textos do HUD vivo e em game over. |
 | Testes | `test/game/view/game_page_test.dart` | Cobre rota, renderizacao da tela e botao de volume. |
 | Testes | `test/game/cubit/audio_cubit_test.dart` | Cobre `AudioCubit`. |
@@ -89,9 +91,10 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 - **Velocidade maxima da nave** — `Ship.update` limita `velocity.length` por `maxSpeed`.
 - **Pontuacao por distancia** — `ArcadeOne.update` incrementa `distanceKm` enquanto `isGameOver == false`.
 - **Progressao de velocidade** — `driftSpeed = 2 + distanceKm * 0.0008`; `scrollSpeed` usa esse valor multiplicado por uma escala visual.
-- **Dificuldade por distancia** — `ArcadeOne.difficulty` cresce ate 1 conforme `distanceKm / 3000`; `AsteroidPairComponent` usa isso para reduzir o gap ate `asteroidMinGap`.
+- **Sequencias exclusivas de obstaculos** — a partida comeca com paredes, depois forca uma sequencia de meteoros e, a partir dai, sorteia a proxima sequencia entre paredes e meteoros. Pares de asteroides e meteoros soltos nunca ficam ativos ao mesmo tempo.
+- **Dificuldade por distancia** — `ArcadeOne.difficulty` cresce ate 1 conforme `distanceKm / 3000`; `AsteroidPairComponent` usa isso para reduzir o gap ate `asteroidMinGap`, e `ArcadeOne` usa o mesmo valor para aumentar gradualmente a quantidade, tamanho e drift dos meteoros soltos.
 - **Morte por borda** — se o raio de colisao da nave toca qualquer borda da area de jogo, `ArcadeOne.endRun` e chamado.
-- **Morte por obstaculo** — colisao circular simples da nave contra os retangulos de asteroides encerra a partida.
+- **Morte por obstaculo** — colisao da nave contra os retangulos de asteroides ou colisao circular contra meteoros soltos encerra a partida.
 - **Game over congela progressao** — `ArcadeOne.update` retorna cedo quando `isGameOver == true`.
 - **Melhor distancia da sessao** — `endRun` atualiza `bestDistanceKm` com o maior valor entre a melhor distancia anterior e a distancia atual.
 - **Restart na mesma tela** — apos game over, `onTapDown` chama `restartRun` e nao navega para outra tela.
@@ -107,6 +110,6 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 
 ## Observações
 
-- O MVP usa formas desenhadas em canvas para nave, asteroides e starfield; nao depende de novos assets visuais.
+- O MVP usa formas desenhadas em canvas para nave, asteroides, meteoros soltos e starfield; nao depende de novos assets visuais.
 - O melhor score fica apenas em memoria na instancia de `ArcadeOne`; ainda nao ha persistencia local.
 - Obstaculos de satelite em orbita, clusters de detritos, zonas visuais, skins, rewarded ads e compras ficaram fora deste MVP.

@@ -1,0 +1,63 @@
+{
+  "@@locale": "en",
+  "startVeryGoodGame": "Start DRIFT",
+  "@startVeryGoodGame": {
+    "description": "The initial start button of the game application"
+  },
+  "titleAppBarTitle": "DRIFT",
+  "@titleAppBarTitle": {
+    "description": "Text shown in the AppBar of the Title Page"
+  },
+  "titleButtonStart": "Launch",
+  "@titleButtonStart": {
+    "description": "Text shown in the start Button of the Title Page"
+  },
+  "loading": "Loading {label}...",
+  "@loading": {
+    "description": "Text for the loading page",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Stuff",
+        "description": "Label for what is being loaded"
+      }
+    }
+  },
+  "loadingPhaseLabel": "{loadingPhase, select, audio{Delightful music} images{Beautiful scenery} other{ }}",
+  "@loadingPhaseLabel": {
+    "description": "Loading phases",
+    "placeholders": {
+      "loadingPhase": {}
+    }
+  },
+  "distanceText": "{distance} km",
+  "@distanceText": {
+    "description": "Text for the current run distance",
+    "placeholders": {
+      "distance": {
+        "type": "int",
+        "example": "320",
+        "description": "The current distance in kilometers"
+      }
+    }
+  },
+  "bestDistanceText": "Best {distance} km",
+  "@bestDistanceText": {
+    "description": "Text for the best distance in the current session",
+    "placeholders": {
+      "distance": {
+        "type": "int",
+        "example": "1200",
+        "description": "The best distance in kilometers"
+      }
+    }
+  },
+  "gameOverTitle": "GAME OVER",
+  "@gameOverTitle": {
+    "description": "Game over title shown after a crash"
+  },
+  "restartHint": "Tap to restart",
+  "@restartHint": {
+    "description": "Hint shown after game over"
+  }
+}

@@ -1,9 +1,12 @@
 import 'package:arcade_one/game/game.dart';
 import 'package:flame/components.dart';
 
+const int driftHudPriority = 1000;
+
 class DriftHudComponent extends PositionComponent
     with HasGameReference<ArcadeOne> {
-  DriftHudComponent({required super.position}) : super(anchor: Anchor.topLeft);
+  DriftHudComponent({required super.position})
+    : super(anchor: Anchor.topLeft, priority: driftHudPriority);
 
   late final TextComponent distanceText;
   late final TextComponent bestText;

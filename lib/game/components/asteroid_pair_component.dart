@@ -75,8 +75,8 @@ class AsteroidPairComponent extends PositionComponent {
       return;
     }
 
-    _drawSpriteBlock(canvas, leftRect, tileImage, asteroidPaint);
-    _drawSpriteBlock(canvas, rightRect, tileImage, asteroidPaint);
+    _drawSpriteBlock(canvas, leftRect, tileImage);
+    _drawSpriteBlock(canvas, rightRect, tileImage);
   }
 
   void _drawAsteroidBlock(
@@ -105,46 +105,44 @@ class AsteroidPairComponent extends PositionComponent {
     Canvas canvas,
     Rect rect,
     ui.Image image,
-    Paint basePaint,
   ) {
     if (rect.width <= 0) {
       return;
     }
 
-    final block = RRect.fromRectAndRadius(rect, const Radius.circular(4));
     final spritePaint = Paint()
       ..isAntiAlias = false
       ..filterQuality = FilterQuality.medium;
-    final source = Rect.fromLTWH(
-      0,
-      0,
-      image.width.toDouble(),
-      image.height.toDouble(),
-    );
-    final tileSize = height * 1.05;
+    final source = _asteroidTileSourceRect(image);
+    final tileHeight = height;
+    final tileWidth = tileHeight * source.width / source.height;
 
     canvas
-      ..drawRRect(block, basePaint)
       ..save()
-      ..clipRRect(block);
+      ..clipRect(rect);
 
-    for (
-      var x = rect.left - tileSize * 0.18;
-      x < rect.right;
-      x += tileSize * 0.7
-    ) {
-      final index = ((x - rect.left) / tileSize).round();
-      final yOffset = index.isEven ? -tileSize * 0.12 : tileSize * 0.03;
+    for (var x = rect.left; x < rect.right; x += tileWidth) {
       final destination = Rect.fromLTWH(
         x,
-        rect.top + yOffset,
-        tileSize,
-        tileSize,
+        rect.top,
+        tileWidth,
+        tileHeight,
       );
       canvas.drawImageRect(image, source, destination, spritePaint);
     }
 
     canvas.restore();
+  }
+
+  Rect _asteroidTileSourceRect(ui.Image image) {
+    final imageWidth = image.width.toDouble();
+    final imageHeight = image.height.toDouble();
+    return Rect.fromLTRB(
+      imageWidth * 0.08,
+      imageHeight * 0.07,
+      imageWidth * 0.91,
+      imageHeight * 0.93,
+    );
   }
 
   bool _circleIntersectsRect(Offset center, double radius, Rect rect) {

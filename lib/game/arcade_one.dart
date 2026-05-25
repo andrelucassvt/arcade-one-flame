@@ -23,6 +23,9 @@ const double obstacleSequenceHandoffY = -32;
 const int asteroidPairSequenceLength = 7;
 const int looseMeteorBaseSequenceLength = 9;
 const int looseMeteorDifficultyBonus = 5;
+const int asteroidPairSequencesBeforeLooseMeteors = 3;
+const int maxConsecutiveLooseMeteorSequences = 2;
+const double looseMeteorSequenceChance = 0.25;
 
 enum ObstacleSequence {
   asteroidPairs,
@@ -67,7 +70,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   double _nextObstacleY = initialObstacleY;
   double _nextLooseMeteorY = initialLooseMeteorY;
   ObstacleSequence _nextObstacleSequence = ObstacleSequence.asteroidPairs;
-  bool _forceMeteorSequenceAfterFirstWalls = true;
+  int _consecutiveAsteroidPairSequences = 0;
+  int _consecutiveLooseMeteorSequences = 0;
 
   double get driftSpeed => initialDriftSpeed + distanceKm * driftSpeedGrowth;
 
@@ -200,7 +204,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     _nextObstacleY = initialObstacleY;
     _nextLooseMeteorY = initialLooseMeteorY;
     _nextObstacleSequence = ObstacleSequence.asteroidPairs;
-    _forceMeteorSequenceAfterFirstWalls = true;
+    _consecutiveAsteroidPairSequences = 0;
+    _consecutiveLooseMeteorSequences = 0;
     ship?.reset(_shipStartPosition());
 
     _removeAsteroidPairs();
@@ -286,24 +291,47 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void _spawnNextObstacleSequence({double? afterY}) {
+    final spawnedSequence = _nextObstacleSequence;
     switch (_nextObstacleSequence) {
       case ObstacleSequence.asteroidPairs:
         _spawnAsteroidPairSequence(afterY: afterY);
       case ObstacleSequence.looseMeteors:
         _spawnLooseMeteorSequence(afterY: afterY);
     }
+    _recordSpawnedObstacleSequence(spawnedSequence);
     _nextObstacleSequence = _chooseNextObstacleSequence();
   }
 
+  void _recordSpawnedObstacleSequence(ObstacleSequence sequence) {
+    switch (sequence) {
+      case ObstacleSequence.asteroidPairs:
+        _consecutiveAsteroidPairSequences++;
+        _consecutiveLooseMeteorSequences = 0;
+      case ObstacleSequence.looseMeteors:
+        _consecutiveLooseMeteorSequences++;
+        _consecutiveAsteroidPairSequences = 0;
+    }
+  }
+
   ObstacleSequence _chooseNextObstacleSequence() {
-    if (_forceMeteorSequenceAfterFirstWalls) {
-      _forceMeteorSequenceAfterFirstWalls = false;
+    if (_consecutiveLooseMeteorSequences >=
+        maxConsecutiveLooseMeteorSequences) {
+      return ObstacleSequence.asteroidPairs;
+    }
+
+    final canStartLooseMeteorRun =
+        _consecutiveAsteroidPairSequences >=
+        asteroidPairSequencesBeforeLooseMeteors;
+    final canContinueLooseMeteorRun = _consecutiveLooseMeteorSequences > 0;
+    if (!canStartLooseMeteorRun && !canContinueLooseMeteorRun) {
+      return ObstacleSequence.asteroidPairs;
+    }
+
+    if (_random.nextDouble() < looseMeteorSequenceChance) {
       return ObstacleSequence.looseMeteors;
     }
 
-    return _random.nextBool()
-        ? ObstacleSequence.asteroidPairs
-        : ObstacleSequence.looseMeteors;
+    return ObstacleSequence.asteroidPairs;
   }
 
   void _spawnAsteroidPairSequence({double? afterY}) {

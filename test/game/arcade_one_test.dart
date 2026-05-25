@@ -19,6 +19,21 @@ class _MockAppLocalizations extends Mock implements AppLocalizations {}
 
 class _MockAudioPlayer extends Mock implements AudioPlayer {}
 
+class _FixedDoubleRandom implements math.Random {
+  const _FixedDoubleRandom(this.value);
+
+  final double value;
+
+  @override
+  bool nextBool() => value < 0.5;
+
+  @override
+  double nextDouble() => value;
+
+  @override
+  int nextInt(int max) => (value * max).floor().clamp(0, max - 1);
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -41,16 +56,35 @@ void main() {
       when(() => audioPlayer.play(any())).thenAnswer((_) async {});
     });
 
-    ArcadeOne createGame() {
+    ArcadeOne createGame({math.Random? random}) {
       final game = ArcadeOne(
         l10n: l10n,
         effectPlayer: audioPlayer,
         textStyle: const TextStyle(),
         images: Images(),
-        random: math.Random(1),
+        random: random ?? math.Random(1),
       );
       game.onGameResize(Vector2(390, 700));
       return game;
+    }
+
+    void removeAsteroidPairs(ArcadeOne game) {
+      for (final obstacle in game.obstacles.toList()) {
+        obstacle.removeFromParent();
+      }
+      game.obstacles.clear();
+    }
+
+    void removeLooseMeteors(ArcadeOne game) {
+      for (final meteor in game.looseMeteors.toList()) {
+        meteor.removeFromParent();
+      }
+      game.looseMeteors.clear();
+    }
+
+    void removeActiveSequences(ArcadeOne game) {
+      removeAsteroidPairs(game);
+      removeLooseMeteors(game);
     }
 
     testWithGame('loads DRIFT components', createGame, (game) async {
@@ -63,13 +97,22 @@ void main() {
     });
 
     testWithGame(
-      'starts with wall sequence and then spawns meteor sequence',
-      createGame,
+      'delays meteor sequences until after enough wall sequences',
+      () => createGame(random: const _FixedDoubleRandom(0)),
       (game) async {
-        for (final obstacle in game.obstacles) {
-          obstacle.position.y = game.playArea.y + obstacle.height + 1;
-        }
+        removeActiveSequences(game);
+        game.update(0.1);
 
+        expect(game.obstacles, hasLength(asteroidPairSequenceLength));
+        expect(game.looseMeteors, isEmpty);
+
+        removeActiveSequences(game);
+        game.update(0.1);
+
+        expect(game.obstacles, hasLength(asteroidPairSequenceLength));
+        expect(game.looseMeteors, isEmpty);
+
+        removeActiveSequences(game);
         game.update(0.1);
 
         expect(game.obstacles, isEmpty);
@@ -79,23 +122,68 @@ void main() {
     );
 
     testWithGame(
-      'starts the next sequence before the current one leaves the screen',
+      'favors walls when meteor sequences are eligible',
+      () => createGame(random: const _FixedDoubleRandom(0.99)),
+      (game) async {
+        removeActiveSequences(game);
+        game.update(0.1);
+        removeActiveSequences(game);
+        game.update(0.1);
+        removeActiveSequences(game);
+        game.update(0.1);
+
+        expect(game.obstacles, hasLength(asteroidPairSequenceLength));
+        expect(game.looseMeteors, isEmpty);
+      },
+    );
+
+    testWithGame(
+      'limits meteor runs to two consecutive sequences',
+      () => createGame(random: const _FixedDoubleRandom(0)),
+      (game) async {
+        removeActiveSequences(game);
+        game.update(0.1);
+        removeActiveSequences(game);
+        game.update(0.1);
+        removeActiveSequences(game);
+        game.update(0.1);
+
+        expect(game.looseMeteors, hasLength(looseMeteorBaseSequenceLength));
+
+        removeActiveSequences(game);
+        game.update(0.1);
+
+        expect(game.looseMeteors, hasLength(looseMeteorBaseSequenceLength));
+
+        removeActiveSequences(game);
+        game.update(0.1);
+
+        expect(game.obstacles, hasLength(asteroidPairSequenceLength));
+        expect(game.looseMeteors, isEmpty);
+      },
+    );
+
+    testWithGame(
+      'starts the next wall sequence before the current one leaves the screen',
       createGame,
       (game) async {
         for (var i = 0; i < game.obstacles.length; i++) {
           game.obstacles[i].position.y = obstacleSequenceHandoffY + i;
         }
+        final previousTopMostWallY = game.obstacles
+            .map((obstacle) => obstacle.position.y)
+            .reduce(math.min);
 
         game.update(0.1);
 
         expect(game.obstacles, isNotEmpty);
-        expect(game.looseMeteors, hasLength(looseMeteorBaseSequenceLength));
-        final topMostWallY = game.obstacles
+        expect(game.looseMeteors, isEmpty);
+        final newTopMostWallY = game.obstacles
             .map((obstacle) => obstacle.position.y)
             .reduce(math.min);
         expect(
-          game.looseMeteors.first.position.y,
-          lessThan(topMostWallY - looseMeteorSpacing * 0.8),
+          newTopMostWallY,
+          lessThan(previousTopMostWallY - obstacleSpacing * 0.8),
         );
       },
     );
@@ -115,7 +203,8 @@ void main() {
         game.update(0.1);
 
         expect(game.obstacles, contains(previousObstacle));
-        expect(game.looseMeteors, isNotEmpty);
+        expect(game.obstacles, hasLength(asteroidPairSequenceLength * 2));
+        expect(game.looseMeteors, isEmpty);
       },
     );
 
@@ -144,16 +233,8 @@ void main() {
     testWithGame('ends run when ship hits a loose meteor', createGame, (
       game,
     ) async {
-      for (final obstacle in game.obstacles.toList()) {
-        obstacle.removeFromParent();
-      }
-      game.obstacles.clear();
-      game.update(0.1);
-
-      for (final meteor in game.looseMeteors.toList()) {
-        meteor.removeFromParent();
-      }
-      game.looseMeteors.clear();
+      removeAsteroidPairs(game);
+      removeLooseMeteors(game);
 
       final meteor = LooseMeteorComponent(
         gameSize: game.playArea,

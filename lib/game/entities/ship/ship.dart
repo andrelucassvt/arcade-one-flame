@@ -18,7 +18,7 @@ class Ship extends PositionComponent {
     this.shipImage,
   }) : super(
          anchor: Anchor.center,
-         size: size ?? Vector2(20, 28),
+         size: size ?? Vector2(30, 38),
        );
 
   final double thrustPower;

@@ -21,8 +21,8 @@ class TitleTopBar extends StatelessWidget {
     };
 
     return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Spacer(),
         PopupMenuButton<Locale>(
           tooltip: l10n.titleLanguageTooltip,
           color: const Color(0xFF101835),
@@ -53,7 +53,7 @@ class TitleTopBar extends StatelessWidget {
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              spacing: 10,
+              spacing: 5,
               children: [
                 Padding(
                   padding: const EdgeInsetsDirectional.only(start: 14),
@@ -66,7 +66,7 @@ class TitleTopBar extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox.square(
+                const SizedBox.square(
                   dimension: 44,
                   child: Center(
                     child: Icon(

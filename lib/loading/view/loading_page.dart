@@ -15,7 +15,7 @@ class _LoadingPageState extends State<LoadingPage> {
   Future<void> onPreloadComplete(NavigatorState navigator) async {
     await Future<void>.delayed(AnimatedProgressBar.intrinsicAnimationDuration);
     if (!mounted) return;
-    await navigator.pushReplacement<void, void>(TitlePage.route());
+    await navigator.pushReplacement<void, void>(TitleView.route());
   }
 
   @override

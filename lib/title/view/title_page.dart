@@ -5,24 +5,19 @@ import 'package:arcade_one/title/content/title_top_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class TitlePage extends StatelessWidget {
-  const TitlePage({super.key});
-
-  static Route<void> route() {
-    return MaterialPageRoute<void>(builder: (_) => const TitlePage());
-  }
+class TitleView extends StatefulWidget {
+  const TitleView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const Scaffold(body: SafeArea(child: TitleView()));
+  State<TitleView> createState() => _TitleViewState();
+
+  static Route<void> route() {
+    return MaterialPageRoute<void>(builder: (_) => const TitleView());
   }
 }
 
-class TitleView extends StatelessWidget {
-  const TitleView({super.key});
-
+class _TitleViewState extends State<TitleView> {
   static const _contentMaxWidth = 1040.0;
-
   @override
   Widget build(BuildContext context) {
     final selectedLocale = context.select<AppLocaleCubit, Locale?>(

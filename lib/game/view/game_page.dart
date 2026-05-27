@@ -39,12 +39,14 @@ class _GameViewState extends State<GameView> {
       context,
     ).textTheme.bodySmall!.copyWith(color: Colors.white, fontSize: 4);
 
+    final audioCubit = context.read<AudioCubit>();
     _game ??=
         widget.game ??
         ArcadeOne(
           l10n: context.l10n,
-          enginePlayer: context.read<AudioCubit>().enginePlayer,
-          deathPlayer: context.read<AudioCubit>().deathPlayer,
+          enginePlayer: audioCubit.enginePlayer,
+          deathPlayer: audioCubit.deathPlayer,
+          playThrustTapSound: audioCubit.playThrustTap,
           textStyle: textStyle,
           images: context.read<PreloadCubit>().images,
           storage: context.read<StorageService>(),

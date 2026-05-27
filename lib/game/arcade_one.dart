@@ -13,6 +13,8 @@ import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/painting.dart';
 
+typedef PlayThrustTapSound = Future<void> Function();
+
 const String gameOverOverlayKey = 'game_over';
 const double initialDriftSpeed = 2;
 const double driftSpeedGrowth = 0.0008;
@@ -44,7 +46,9 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     required Images images,
     required this.storage,
     math.Random? random,
-  }) : _random = random ?? math.Random() {
+    PlayThrustTapSound? playThrustTapSound,
+  }) : playThrustTapSound = playThrustTapSound ?? _playNoThrustTapSound,
+       _random = random ?? math.Random() {
     this.images = images;
   }
 
@@ -55,6 +59,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   final AudioPlayer enginePlayer;
 
   final AudioPlayer deathPlayer;
+
+  final PlayThrustTapSound playThrustTapSound;
 
   final TextStyle textStyle;
 
@@ -174,6 +180,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       return;
     }
 
+    unawaited(playThrustTapSound());
     _startEngineSound();
     ship?.setThrustTarget(event.canvasPosition);
   }
@@ -194,6 +201,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
     if (!isGameOver) {
+      unawaited(playThrustTapSound());
       _startEngineSound();
       ship?.setThrustTarget(event.canvasPosition);
     }
@@ -558,3 +566,5 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     }
   }
 }
+
+Future<void> _playNoThrustTapSound() async {}

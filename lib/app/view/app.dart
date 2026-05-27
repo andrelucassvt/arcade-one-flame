@@ -4,6 +4,7 @@ import 'package:arcade_one/app/cubit/cubit.dart';
 import 'package:arcade_one/common/services/shared_preferences_storage_service.dart';
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/cubit/cubit.dart';
+import 'package:arcade_one/game/game_audio_assets.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:arcade_one/loading/loading.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -48,6 +49,12 @@ class App extends StatelessWidget {
               final cubit = AudioCubit(
                 enginePlayer: AudioPlayer()..audioCache = audioCache,
                 deathPlayer: AudioPlayer()..audioCache = audioCache,
+                thrustTapPool: AudioPool.create(
+                  source: AssetSource(thrustTapAudioAsset),
+                  audioCache: audioCache,
+                  minPlayers: 2,
+                  maxPlayers: 4,
+                ),
                 storage: ctx.read<StorageService>(),
               );
               unawaited(cubit.init());

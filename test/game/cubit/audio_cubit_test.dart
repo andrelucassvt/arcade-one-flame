@@ -8,6 +8,8 @@ import 'package:mocktail/mocktail.dart';
 
 class _MockAudioCache extends Mock implements AudioCache {}
 
+class _MockAudioPool extends Mock implements AudioPool {}
+
 class _MockAudioPlayer extends Mock implements AudioPlayer {}
 
 class _MockStorageService extends Mock implements StorageService {}
@@ -17,12 +19,14 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
 
     late AudioCache audioCache;
+    late AudioPool thrustTapPool;
     late AudioPlayer enginePlayer;
     late AudioPlayer deathPlayer;
     late StorageService storage;
 
     setUp(() {
       audioCache = _MockAudioCache();
+      thrustTapPool = _MockAudioPool();
       enginePlayer = _MockAudioPlayer();
       deathPlayer = _MockAudioPlayer();
       storage = _MockStorageService();
@@ -32,6 +36,10 @@ void main() {
 
       when(enginePlayer.dispose).thenAnswer((_) async {});
       when(deathPlayer.dispose).thenAnswer((_) async {});
+      when(thrustTapPool.dispose).thenAnswer((_) async {});
+      when(
+        () => thrustTapPool.start(volume: any(named: 'volume')),
+      ).thenAnswer((_) async => () async {});
 
       when(() => enginePlayer.setVolume(any())).thenAnswer((_) async {});
       when(() => deathPlayer.setVolume(any())).thenAnswer((_) async {});
@@ -59,8 +67,9 @@ void main() {
     blocTest<AudioCubit, AudioState>(
       'init emite AudioState(volume: 0) quando storage retorna 0.0',
       setUp: () {
-        when(() => storage.getDouble('audio_volume'))
-            .thenAnswer((_) async => 0.0);
+        when(
+          () => storage.getDouble('audio_volume'),
+        ).thenAnswer((_) async => 0.0);
       },
       build: () => AudioCubit(
         enginePlayer: enginePlayer,
@@ -144,6 +153,37 @@ void main() {
       },
     );
 
+    test('playThrustTap starts pooled sound with current volume', () async {
+      final cubit = AudioCubit.test(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+        thrustTapPool: Future.value(thrustTapPool),
+        storage: storage,
+      );
+
+      await cubit.playThrustTap();
+
+      verify(
+        () => thrustTapPool.start(
+          volume: any(named: 'volume', that: equals(1)),
+        ),
+      ).called(1);
+    });
+
+    test('playThrustTap does not start sound when muted', () async {
+      final cubit = AudioCubit.test(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+        thrustTapPool: Future.value(thrustTapPool),
+        storage: storage,
+        volume: 0,
+      );
+
+      await cubit.playThrustTap();
+
+      verifyNever(() => thrustTapPool.start(volume: any(named: 'volume')));
+    });
+
     test('close disposes every audio player', () async {
       final cubit = AudioCubit.test(
         enginePlayer: enginePlayer,
@@ -155,6 +195,19 @@ void main() {
 
       verify(enginePlayer.dispose).called(1);
       verify(deathPlayer.dispose).called(1);
+    });
+
+    test('close disposes thrust tap pool when present', () async {
+      final cubit = AudioCubit.test(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+        thrustTapPool: Future.value(thrustTapPool),
+        storage: storage,
+      );
+
+      await cubit.close();
+
+      verify(thrustTapPool.dispose).called(1);
     });
   });
 }

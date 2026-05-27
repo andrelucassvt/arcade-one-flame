@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:arcade_one/game/game_audio_assets.dart';
 import 'package:arcade_one/game/game_image_assets.dart';
 import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -21,7 +22,11 @@ class PreloadCubit extends Cubit<PreloadState> {
     final phases = [
       PreloadPhase(
         'audio',
-        () => audio.loadAll([Assets.audio.engineFire, Assets.audio.death]),
+        () => audio.loadAll([
+          thrustTapAudioAsset,
+          Assets.audio.engineFire,
+          Assets.audio.death,
+        ]),
       ),
       PreloadPhase(
         'images',

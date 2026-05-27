@@ -48,6 +48,7 @@ void main() {
     late AudioPlayer enginePlayer;
     late AudioPlayer deathPlayer;
     late StorageService storage;
+    late int thrustTapSoundCount;
 
     setUpAll(() {
       registerFallbackValue(_FakeAssetSource());
@@ -64,6 +65,7 @@ void main() {
       enginePlayer = _MockAudioPlayer();
       deathPlayer = _MockAudioPlayer();
       storage = _MockStorageService();
+      thrustTapSoundCount = 0;
       when(() => enginePlayer.play(any())).thenAnswer((_) async {});
       when(() => enginePlayer.stop()).thenAnswer((_) async {});
       when(() => enginePlayer.setReleaseMode(any())).thenAnswer((_) async {});
@@ -77,6 +79,9 @@ void main() {
         l10n: l10n,
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
+        playThrustTapSound: () async {
+          thrustTapSoundCount += 1;
+        },
         textStyle: const TextStyle(),
         images: Images(),
         storage: storage,
@@ -352,6 +357,7 @@ void main() {
       await Future<void>.delayed(engineSoundStartDelay);
       await Future<void>.delayed(Duration.zero);
 
+      expect(thrustTapSoundCount, equals(1));
       verifyNever(() => enginePlayer.setReleaseMode(any()));
       verifyNever(() => enginePlayer.play(any()));
       verifyNever(() => enginePlayer.stop());

@@ -8,7 +8,7 @@ O fluxo de Game comeca quando `TitleView` navega para `GamePage.route()`. O `Aud
 
 `GameView` nao inicia musica de fundo. Ele cria uma instancia de `ArcadeOne`, injeta l10n, players de audio, estilo de texto e cache de imagens, configura o `GameWidget` com overlay de game over e mantem os controles Flutter dentro de `SafeArea`. O jogo Flame carrega os sprites de jogo e os sprites transparentes de marcos espaciais a partir do cache de imagens, entao monta os componentes principais diretamente na instancia do jogo: `SpaceBackgroundComponent`, `Ship`, `DriftHudComponent` e uma sequencia inicial de paredes com `AsteroidPairComponent`.
 
-Durante a partida, toques e drags na tela ligam o thrust da nave em direcao ao ponteiro. O som de motor/fogo entra em loop apenas se o input continuar ativo depois de um pequeno atraso, evitando tocar um trecho cortado em cliques muito rapidos. Enquanto o thrust esta ativo, `Ship` anima o sprite da nave com pulso e chama animada; ao soltar, o som de motor/fogo pendente ou ativo para, mas a nave nao para: `Ship` mantem a velocidade acumulada e continua deslizando por inercia. `ArcadeOne.update` incrementa a distancia, calcula a velocidade de scroll, avanca o background progressivo, move a sequencia ativa de obstaculos, verifica colisao com asteroides ou meteoros soltos e encerra a partida se a nave tocar as bordas da tela.
+Durante a partida, toques e drags na tela ligam o thrust da nave em direcao ao ponteiro. Cada inicio de thrust toca imediatamente um SFX curto via `AudioPool`, para que taps rapidos tenham feedback sem cortar o som. O som longo de motor/fogo entra em loop apenas se o input continuar ativo depois de um pequeno atraso. Enquanto o thrust esta ativo, `Ship` anima o sprite da nave com pulso e chama animada; ao soltar, o som de motor/fogo pendente ou ativo para, mas a nave nao para: `Ship` mantem a velocidade acumulada e continua deslizando por inercia. `ArcadeOne.update` incrementa a distancia, calcula a velocidade de scroll, avanca o background progressivo, move a sequencia ativa de obstaculos, verifica colisao com asteroides ou meteoros soltos e encerra a partida se a nave tocar as bordas da tela.
 
 Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia da sessao, para o som de motor/fogo, toca o som de morte e ativa o overlay Flutter de game over. O popup informa que o jogador morreu, mostra a distancia percorrida em KM e oferece o botao de restart, que reinicia a mesma tela, reposicionando a nave e recriando os obstaculos.
 
@@ -19,13 +19,13 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 2. **Rota** — `lib/game/view/game_page.dart` -> `GamePage.route`
    Cria `MaterialPageRoute<void>` para `GamePage`.
 3. **Audio global** — `lib/app/view/app.dart` -> `App.build`
-   Antes da Game ser aberta, cria `AudioCubit` com dois `AudioPlayer()..audioCache = context.read<PreloadCubit>().audio`: `enginePlayer` para motor/fogo e `deathPlayer` para morte.
+   Antes da Game ser aberta, cria `AudioCubit` com dois `AudioPlayer()..audioCache = context.read<PreloadCubit>().audio`: `enginePlayer` para motor/fogo e `deathPlayer` para morte. Tambem cria um `AudioPool` para `assets/audio/thrust_tap.wav`, usado como SFX curto de inicio de thrust.
 4. **Shell da Game** — `lib/game/view/game_page.dart` -> `GamePage.build`
    Renderiza `Scaffold(body: GameView())`, assumindo que `AudioCubit`, `PreloadCubit` e `StorageService` ja existem acima na arvore.
 5. **Sem musica de fundo** — `lib/game/view/game_page.dart` -> `GameView`
    A tela nao chama `Bgm` nem toca `Assets.audio.background`; o audio so acontece em resposta a input de thrust ou game over.
 6. **Instancia do jogo** — `lib/game/view/game_page.dart` -> `GameView.build`
-   Cria `ArcadeOne` com `context.l10n`, `enginePlayer`, `deathPlayer`, `textStyle` e cache de imagens do `PreloadCubit`, alem de repassar o padding de `SafeArea` para o HUD Flame.
+   Cria `ArcadeOne` com `context.l10n`, `enginePlayer`, `deathPlayer`, callback `AudioCubit.playThrustTap`, `textStyle` e cache de imagens do `PreloadCubit`, alem de repassar o padding de `SafeArea` para o HUD Flame.
 7. **Renderizacao Flame** — `lib/game/view/game_page.dart` -> `GameWidget`
    Renderiza o `FlameGame` dentro de um `Stack`, registra o overlay `gameOverOverlayKey` e mantem o botao de volume sobreposto no canto superior direito dentro de `SafeArea`.
 8. **Botao de volume** — `lib/game/view/game_page.dart` -> `BlocBuilder<AudioCubit, AudioState>`
@@ -35,7 +35,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 10. **Load do jogo** — `lib/game/arcade_one.dart` -> `ArcadeOne.onLoad`
    Le `best_distance_km` do `StorageService` e inicializa `bestDistanceKm` com o valor persistido (ou `0.0` se nunca salvo). Em seguida chama `_buildRun`, carrega sprites e backgrounds, adiciona `SpaceBackgroundComponent`, `Ship`, `DriftHudComponent` e a primeira sequencia de sete pares de asteroides.
 11. **Input de thrust** — `lib/game/arcade_one.dart` -> `onTapDown`, `onDragStart`, `onDragUpdate`
-    Enquanto a partida esta ativa, agenda o inicio de `Assets.audio.engineFire` em loop no `enginePlayer` apos `engineSoundStartDelay` e passa a posicao do toque/drag para `Ship.setThrustTarget`.
+    Enquanto a partida esta ativa, `onTapDown` e `onDragStart` tocam o SFX curto de thrust via callback do `AudioCubit`. Em seguida, o jogo agenda o inicio de `Assets.audio.engineFire` em loop no `enginePlayer` apos `engineSoundStartDelay` e passa a posicao do toque/drag para `Ship.setThrustTarget`. `onDragUpdate` apenas atualiza o alvo e garante que o loop sustentado continue solicitado.
 12. **Soltar input** — `lib/game/arcade_one.dart` -> `onTapUp`, `onTapCancel`, `onDragEnd`, `onDragCancel`
     Cancela o som de motor/fogo se ele ainda estiver pendente, ou para o `enginePlayer` se ele ja estiver tocando, e chama `Ship.clearThrust`, desligando o propulsor sem zerar a velocidade.
 13. **Fisica da nave** — `lib/game/entities/ship/ship.dart` -> `Ship.update`
@@ -55,13 +55,13 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 20. **Restart** — `lib/game/view/game_page.dart` -> `GameOverPopup.onRestart` -> `ArcadeOne.restartRun`
     O botao do popup zera a distancia, remove o overlay, reposiciona a nave, remove obstaculos antigos e cria uma nova leva inicial.
 21. **Dispose** — `lib/game/cubit/audio/audio_cubit.dart`
-    Quando o provider global e descartado, `AudioCubit.close` descarta `enginePlayer` e `deathPlayer`.
+    Quando o provider global e descartado, `AudioCubit.close` descarta `enginePlayer`, `deathPlayer` e o `AudioPool` de SFX curto.
 
 ### Caminhos alternativos
 
 - **Toque durante game over:** `ArcadeOne.onTapDown` nao aplica thrust; o restart fica centralizado no botao do popup.
 - **Soltar o toque durante a partida:** `ArcadeOne` cancela o som de motor/fogo pendente ou para o som ativo, e `Ship.clearThrust` desliga a aceleracao, mas a velocidade atual permanece e a nave continua por inercia.
-- **Volume mutado:** `AudioCubit` aplica volume `0` no player de motor/fogo e no player de morte; eventos ainda chamam `play`, mas sem volume audivel.
+- **Volume mutado:** `AudioCubit` aplica volume `0` no player de motor/fogo e no player de morte; o SFX curto nao inicia quando o volume esta mutado.
 - **Troca de sequencia:** `ArcadeOne.update` remove `AsteroidPairComponent` ou `LooseMeteorComponent` apenas quando eles saem da tela. A proxima sequencia nasce quando a ultima peca da onda atual chega perto do topo e usa a posicao dessa ultima peca como ancora para nao sobrepor paredes nem fechar o corredor.
 
 ## Arquivos Envolvidos
@@ -72,8 +72,9 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 | Apresentacao | `lib/game/view/game_page.dart` | Renderiza `GameWidget`, registra overlay de game over, repassa SafeArea para o HUD e exibe botao de volume usando o `AudioCubit` global. |
 | Servico | `lib/common/services/storage_service.dart` | Interface usada pelo `AudioCubit` (volume) e `ArcadeOne` (melhor distancia) para leitura e escrita de dados persistidos. |
 | Jogo Flame | `lib/game/arcade_one.dart` | Classe principal do jogo, input, progressao, spawn, colisao, game over e restart. |
+| Assets de audio | `lib/game/game_audio_assets.dart` | Define o caminho manual do SFX curto de thrust usado pelo `AudioPool`. |
 | Assets de jogo | `lib/game/game_image_assets.dart` | Define as chaves dos sprites usados pelo cache de imagens do Flame. |
-| Cubit | `lib/game/cubit/audio/audio_cubit.dart` | Controla volume, players de motor/fogo e morte, e dispose. |
+| Cubit | `lib/game/cubit/audio/audio_cubit.dart` | Controla volume, players de motor/fogo e morte, SFX curto de thrust via `AudioPool`, e dispose. |
 | Estado | `lib/game/cubit/audio/audio_state.dart` | Guarda o volume atual. |
 | Entidade | `lib/game/entities/ship/ship.dart` | Nave, thrust, inercia, velocidade maxima, rotacao, sprite e animacao visual de propulsao. |
 | Componente | `lib/game/components/asteroid_pair_component.dart` | Par de asteroides com gap, movimento vertical, sprite opcional e colisao simples. |
@@ -86,6 +87,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 | Widget | `lib/game/widgets/game_over_popup.dart` | Overlay Flutter de game over com mensagem de morte e botao de restart. |
 | Assets gerados | `assets/images/backgrounds/*.png` | Sprites PNG transparentes dos marcos espaciais exibidos sobre o starfield. |
 | Assets gerados | `assets/images/asteroid_tile.png`, `assets/images/loose_meteor.png`, `assets/images/player_ship.png` | Sprites PNG transparentes para paredes de asteroides, meteoros soltos e nave. |
+| Assets gerados | `assets/audio/thrust_tap.wav` | SFX curto de inicio de thrust, derivado do motor e usado para taps rapidos. |
 | Assets gerados | `lib/gen/assets.gen.dart` | Caminhos tipados para audio de motor/fogo, morte e demais assets. |
 | L10n | `lib/l10n/arb/app_en.arb` | Define textos de titulo, distancia, melhor distancia, popup de game over e restart. |
 | Barrel | `lib/game/game.dart` | Exporta view, cubit, entidades, componentes e `ArcadeOne`. |
@@ -100,7 +102,8 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 ## Regras de Negócio Relevantes
 
 - **Thrust direcionado por toque** — `ArcadeOne` envia a posicao do ponteiro para `Ship.setThrustTarget`.
-- **Som de motor/fogo por thrust** — `lib/game/arcade_one.dart`: `ArcadeOne` toca `Assets.audio.engineFire` em loop apenas se o thrust continuar ativo depois de `engineSoundStartDelay`, e cancela/paralisa o som quando o input termina.
+- **SFX curto por inicio de thrust** — `lib/game/arcade_one.dart` + `lib/game/cubit/audio/audio_cubit.dart`: `onTapDown` e `onDragStart` tocam `assets/audio/thrust_tap.wav` via `AudioPool`, para que taps rapidos tenham feedback e possam sobrepor sem cortar o mesmo player.
+- **Som de motor/fogo por thrust sustentado** — `lib/game/arcade_one.dart`: `ArcadeOne` toca `Assets.audio.engineFire` em loop apenas se o thrust continuar ativo depois de `engineSoundStartDelay`, e cancela/paralisa o som quando o input termina.
 - **Animacao de thrust** — `Ship` pulsa o sprite e desenha uma chama animada enquanto `isThrusting == true`.
 - **Inercia real no MVP** — `Ship.clearThrust` nao altera `velocity`; a nave continua deslizando.
 - **Velocidade maxima da nave** — `Ship.update` limita `velocity.length` por `maxSpeed`.
@@ -120,7 +123,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 ## Dependências Externas
 
 - `flame` para `FlameGame`, `GameWidget`, eventos de input, componentes, vetores e renderizacao.
-- `audioplayers` para efeito sonoro.
+- `audioplayers` para `AudioPlayer` e `AudioPool` dos efeitos sonoros.
 - `flutter_bloc` para estado do audio.
 - `equatable` para igualdade de `AudioState`.
 

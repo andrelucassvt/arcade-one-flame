@@ -1,7 +1,6 @@
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'audio_state.dart';
@@ -10,22 +9,27 @@ class AudioCubit extends Cubit<AudioState> {
   AudioCubit({
     required this.enginePlayer,
     required this.deathPlayer,
+    Future<AudioPool>? thrustTapPool,
     StorageService? storage,
-  })  : _storage = storage,
-        super(const AudioState());
+  }) : _thrustTapPool = thrustTapPool,
+       _storage = storage,
+       super(const AudioState());
 
-  @visibleForTesting
   AudioCubit.test({
     required this.enginePlayer,
     required this.deathPlayer,
+    Future<AudioPool>? thrustTapPool,
     StorageService? storage,
     double volume = 1.0,
-  })  : _storage = storage,
-        super(AudioState(volume: volume));
+  }) : _thrustTapPool = thrustTapPool,
+       _storage = storage,
+       super(AudioState(volume: volume));
 
   final AudioPlayer enginePlayer;
 
   final AudioPlayer deathPlayer;
+
+  final Future<AudioPool>? _thrustTapPool;
 
   final StorageService? _storage;
 
@@ -54,10 +58,39 @@ class AudioCubit extends Cubit<AudioState> {
     await _storage?.setDouble(_keyVolume, newVolume);
   }
 
+  Future<void> playThrustTap() async {
+    final poolFuture = _thrustTapPool;
+    if (poolFuture == null || state.volume == 0) {
+      return;
+    }
+
+    try {
+      final pool = await poolFuture;
+      await pool.start(volume: state.volume);
+    } on Exception {
+      // Audio feedback should not interrupt gameplay if the platform fails.
+    }
+  }
+
   @override
   Future<void> close() async {
+    await _disposeThrustTapPool();
     await enginePlayer.dispose();
     await deathPlayer.dispose();
     return super.close();
+  }
+
+  Future<void> _disposeThrustTapPool() async {
+    final poolFuture = _thrustTapPool;
+    if (poolFuture == null) {
+      return;
+    }
+
+    try {
+      final pool = await poolFuture;
+      await pool.dispose();
+    } on Exception {
+      // Ignore disposal failures from optional sound effects.
+    }
   }
 }

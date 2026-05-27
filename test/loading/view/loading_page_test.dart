@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:arcade_one/game/game_audio_assets.dart';
 import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:arcade_one/loading/loading.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -33,9 +34,14 @@ void main() {
       when(() => images.loadAll(any())).thenAnswer((_) async => <Image>[]);
 
       when(
-        () => audio.loadAll([Assets.audio.engineFire, Assets.audio.death]),
+        () => audio.loadAll([
+          thrustTapAudioAsset,
+          Assets.audio.engineFire,
+          Assets.audio.death,
+        ]),
       ).thenAnswer(
         (_) async => [
+          Uri.parse(thrustTapAudioAsset),
           Uri.parse(Assets.audio.engineFire),
           Uri.parse(Assets.audio.death),
         ],

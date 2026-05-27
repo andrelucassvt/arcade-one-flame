@@ -61,6 +61,11 @@ class SpaceBackgroundComponent extends PositionComponent {
     return _starfield.debugStarYs();
   }
 
+  @visibleForTesting
+  ui.Offset debugLandmarkCenter(SpaceLandmark landmark) {
+    return _landmarkCenter(landmark, landmark.progressAt(_distanceKm));
+  }
+
   @override
   void render(Canvas canvas) {
     _starfield.render(canvas);
@@ -107,7 +112,7 @@ class SpaceBackgroundComponent extends PositionComponent {
       height: drawSize.height,
     );
     final paint = Paint()
-      ..filterQuality = FilterQuality.medium
+      ..filterQuality = FilterQuality.low
       ..color = Color.fromARGB((opacity * 255).round(), 255, 255, 255);
 
     canvas.drawImageRect(image, source, destination, paint);
@@ -129,11 +134,10 @@ class SpaceBackgroundComponent extends PositionComponent {
   }
 
   ui.Offset _landmarkCenter(SpaceLandmark landmark, double progress) {
-    final easedProgress = Curves.easeInOut.transform(progress);
     final anchor = ui.Offset.lerp(
       landmark.startAnchor,
       landmark.endAnchor,
-      easedProgress,
+      progress,
     )!;
     final parallaxOffset =
         math.sin(_landmarkScrollDistance * landmark.parallaxFactor * 0.01) *

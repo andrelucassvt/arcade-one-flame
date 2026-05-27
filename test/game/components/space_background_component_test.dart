@@ -48,6 +48,28 @@ void main() {
       );
     });
 
+    test('moves landmarks at a constant visual rate', () async {
+      final background = SpaceBackgroundComponent(gameSize: Vector2(390, 700));
+      await background.onLoad();
+
+      final mars = spaceLandmarks.firstWhere(
+        (landmark) => landmark.id == 'mars',
+      );
+      final midpointDistance = mars.startKm + mars.visibleKm / 2;
+
+      background.advance(0, 0, midpointDistance);
+
+      expect(
+        background.debugLandmarkCenter(mars),
+        equals(
+          Offset(
+            390 * (mars.startAnchor.dx + mars.endAnchor.dx) / 2,
+            700 * (mars.startAnchor.dy + mars.endAnchor.dy) / 2,
+          ),
+        ),
+      );
+    });
+
     test('reset returns to the first landmark', () async {
       final background = SpaceBackgroundComponent(gameSize: Vector2(390, 700));
       await background.onLoad();

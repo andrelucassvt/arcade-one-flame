@@ -22,27 +22,6 @@ class TitleTopBar extends StatelessWidget {
 
     return Row(
       children: [
-        Flexible(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0x55FFFFFF)),
-              borderRadius: BorderRadius.circular(999),
-              color: const Color(0x2217D8FF),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              child: Text(
-                l10n.titleEyebrow,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: const Color(0xFFEAF7FF),
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0,
-                ),
-              ),
-            ),
-          ),
-        ),
         const Spacer(),
         PopupMenuButton<Locale>(
           tooltip: l10n.titleLanguageTooltip,

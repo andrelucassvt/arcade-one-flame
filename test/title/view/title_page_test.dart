@@ -41,6 +41,7 @@ void main() {
 
       await tester.pumpApp(const TitleView(), navigator: navigator);
 
+      await tester.ensureVisible(find.byType(ElevatedButton));
       await tester.tap(find.byType(ElevatedButton));
 
       verify(() => navigator.pushReplacement<void, void>(any())).called(1);

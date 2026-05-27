@@ -30,21 +30,6 @@ class TitleBackdrop extends StatelessWidget {
               ),
             ),
           ),
-          const Align(
-            alignment: Alignment.bottomCenter,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  radius: 1.1,
-                  colors: [
-                    Color(0x3317D8FF),
-                    Color(0x00050816),
-                  ],
-                ),
-              ),
-              child: SizedBox(width: double.infinity, height: 320),
-            ),
-          ),
         ],
       ),
     );

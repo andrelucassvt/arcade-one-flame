@@ -33,30 +33,32 @@ class TitleView extends StatelessWidget {
       type: MaterialType.transparency,
       child: Stack(
         children: [
-          const Positioned.fill(child: TitleBackdrop()),
+          const Positioned.fill(
+            child: TitleBackdrop(),
+          ),
           Positioned.fill(
-            child: SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight:
-                      MediaQuery.sizeOf(context).height -
-                      MediaQuery.paddingOf(context).vertical,
-                ),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxWidth: _contentMaxWidth,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TitleTopBar(selectedLocale: selectedLocale),
-                          const SizedBox(height: 36),
-                          const TitleMainContent(),
-                        ],
-                      ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight:
+                    MediaQuery.sizeOf(context).height -
+                    MediaQuery.paddingOf(context).vertical,
+              ),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: _contentMaxWidth,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TitleTopBar(selectedLocale: selectedLocale),
+                        const Spacer(),
+                        const TitleMainContent(),
+                        const Spacer(),
+                      ],
                     ),
                   ),
                 ),

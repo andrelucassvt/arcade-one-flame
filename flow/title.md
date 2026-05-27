@@ -18,8 +18,8 @@ Os textos sao obtidos via `context.l10n`, usando as chaves geradas a partir dos 
    Renderiza `Scaffold` fullscreen com `SafeArea` e `TitleView`.
 4. **Home** — `lib/title/view/title_page.dart` → `TitleView.build`
    Le `AppLocaleCubit` via `context.select`, monta fundo espacial (`TitleBackdrop`), top bar (`TitleTopBar`) e conteudo principal (`TitleMainContent`).
-5. **Layout responsivo** — `lib/title/content/title_main_content.dart` → `TitleMainContent.build`
-   Usa `LayoutBuilder` para decidir entre layout largo (hero + console lado a lado) e estreito (hero, botao, console empilhados). Instancia `TitleHero`, `TitleMissionConsole` e `TitleStartButton`.
+5. **Layout** — `lib/title/content/title_main_content.dart` → `TitleMainContent.build`
+   Usa `MediaQuery.sizeOf` para passar `isWide` ao `TitleHero` (breakpoint 760px) e renderiza `Column` simples com `TitleHero`, espaco e `TitleStartButton`.
 6. **Idioma** — `lib/title/content/title_top_bar.dart` → `TitleTopBar`
    Mostra `PopupMenuButton<Locale>` com opcoes EN/PT usando `TitleLanguageMenuItem` e chama `AppLocaleCubit.setLocale` ao selecionar uma opcao.
 7. **Acao do usuario** — `lib/title/content/title_start_button.dart` → `TitleStartButton`
@@ -38,8 +38,6 @@ Os textos sao obtidos via `context.l10n`, usando as chaves geradas a partir dos 
 | Apresentacao — Content | `lib/title/content/title_top_bar.dart` | Eyebrow pill e seletor de idioma com `PopupMenuButton`. |
 | Apresentacao — Content | `lib/title/content/title_hero.dart` | Nave, meteoros, headline e subtitulo do hero. |
 | Apresentacao — Content | `lib/title/content/title_main_content.dart` | `LayoutBuilder` responsivo que orquestra hero, console e botao. |
-| Apresentacao — Content | `lib/title/content/title_mission_console.dart` | Painel glassmorphism com metricas da missao. |
-| Apresentacao — Content | `lib/title/content/title_mission_metric.dart` | Linha de metrica com icone, label e valor. |
 | Apresentacao — Content | `lib/title/content/title_start_button.dart` | Botao Launch/Decolar e navegacao para `GamePage`. |
 | Apresentacao — Content | `lib/title/content/title_language_menu_item.dart` | Item do menu de idioma com icone de selecao. |
 | Estado / Cubit | `lib/app/cubit/app_locale_cubit.dart` | Mantem o locale selecionado pelo usuario durante a sessao. |
@@ -61,10 +59,10 @@ Os textos sao obtidos via `context.l10n`, usando as chaves geradas a partir dos 
 
 - Flutter Material para `Scaffold`, `ElevatedButton`, `PopupMenuButton`, `Navigator` e `MaterialPageRoute`.
 - `flutter_bloc` para ler e atualizar `AppLocaleCubit`.
-- `dart:ui` para `ImageFilter.blur` (usado em `TitleMissionConsole`).
+- `dart:ui` — não há mais dependência direta na feature Title.
 
 ## Observações
 
 - Nao ha estado proprio dentro da feature Title; o unico estado consumido e o `AppLocaleCubit` global.
 - Nao ha persistencia do idioma nem selecao de fase antes de iniciar o jogo.
-- O breakpoint de layout responsivo e 760 logical pixels (definido em `TitleMainContent`).
+- O breakpoint de 760px (definido em `TitleMainContent`) apenas controla o `isWide` passado ao `TitleHero` (tamanho de fonte e alinhamento de texto); nao ha mais bifurcacao de layout para o console.

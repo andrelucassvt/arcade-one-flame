@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:arcade_one/app/cubit/cubit.dart';
 import 'package:arcade_one/common/services/shared_preferences_storage_service.dart';
 import 'package:arcade_one/common/services/storage_service.dart';
+import 'package:arcade_one/game/cubit/cubit.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:arcade_one/loading/loading.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -26,8 +27,7 @@ class App extends StatelessWidget {
         providers: [
           BlocProvider(
             create: (ctx) {
-              final cubit =
-                  AppLocaleCubit(storage: ctx.read<StorageService>());
+              final cubit = AppLocaleCubit(storage: ctx.read<StorageService>());
               unawaited(cubit.init());
               return cubit;
             },
@@ -39,6 +39,18 @@ class App extends StatelessWidget {
                 AudioCache(prefix: ''),
               );
               unawaited(cubit.loadSequentially());
+              return cubit;
+            },
+          ),
+          BlocProvider(
+            create: (ctx) {
+              final audioCache = ctx.read<PreloadCubit>().audio;
+              final cubit = AudioCubit(
+                enginePlayer: AudioPlayer()..audioCache = audioCache,
+                deathPlayer: AudioPlayer()..audioCache = audioCache,
+                storage: ctx.read<StorageService>(),
+              );
+              unawaited(cubit.init());
               return cubit;
             },
           ),

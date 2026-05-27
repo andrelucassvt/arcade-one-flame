@@ -1,9 +1,15 @@
+import 'dart:async';
+
+import 'package:arcade_one/game/cubit/cubit.dart';
 import 'package:arcade_one/title/title.dart';
+import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockingjay/mockingjay.dart';
 
 import '../../helpers/helpers.dart';
+
+class _MockAudioCubit extends MockCubit<AudioState> implements AudioCubit {}
 
 void main() {
   group('TitleView', () {
@@ -35,6 +41,35 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Decolar'), findsOneWidget);
+    });
+
+    testWidgets('toggles audio from the title screen', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final audioCubit = _MockAudioCubit();
+      final controller = StreamController<AudioState>();
+      addTearDown(controller.close);
+      when(audioCubit.toggleVolume).thenAnswer((_) async {});
+      whenListen(
+        audioCubit,
+        controller.stream,
+        initialState: const AudioState(),
+      );
+
+      await tester.pumpApp(const TitleView(), audioCubit: audioCubit);
+
+      expect(find.byIcon(Icons.volume_up), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.volume_up));
+      verify(audioCubit.toggleVolume).called(1);
+
+      controller.add(const AudioState(volume: 0));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.volume_off), findsOneWidget);
     });
 
     testWidgets('starts the game when start button is tapped', (tester) async {

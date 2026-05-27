@@ -3,6 +3,7 @@ import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/cubit/cubit.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:arcade_one/loading/loading.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,8 +22,9 @@ StorageService _buildMockStorage() {
   when(() => storage.getInt(any())).thenAnswer((_) async => null);
   when(() => storage.setInt(any(), any())).thenAnswer((_) async {});
   when(() => storage.getBool(any())).thenAnswer((_) async => null);
-  when(() => storage.setBool(any(), value: any(named: 'value')))
-      .thenAnswer((_) async {});
+  when(
+    () => storage.setBool(any(), value: any(named: 'value')),
+  ).thenAnswer((_) async {});
   when(() => storage.remove(any())).thenAnswer((_) async {});
   return storage;
 }
@@ -37,8 +39,13 @@ extension PumpApp on WidgetTester {
     StorageService? storageService,
   }) {
     final storage = storageService ?? _buildMockStorage();
-    final localeCubit =
-        appLocaleCubit ?? AppLocaleCubit(storage: storage);
+    final localeCubit = appLocaleCubit ?? AppLocaleCubit(storage: storage);
+    final resolvedAudioCubit =
+        audioCubit ??
+        AudioCubit.test(
+          enginePlayer: AudioPlayer(),
+          deathPlayer: AudioPlayer(),
+        );
     return pumpWidget(
       RepositoryProvider<StorageService>.value(
         value: storage,
@@ -46,13 +53,13 @@ extension PumpApp on WidgetTester {
           providers: [
             BlocProvider.value(value: localeCubit),
             BlocProvider.value(value: preloadCubit ?? MockPreloadCubit()),
+            BlocProvider.value(value: resolvedAudioCubit),
           ],
           child: BlocBuilder<AppLocaleCubit, Locale?>(
             builder: (context, locale) {
               return MaterialApp(
                 locale: locale,
-                localizationsDelegates:
-                    AppLocalizations.localizationsDelegates,
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
                 supportedLocales: AppLocalizations.supportedLocales,
                 home: navigator != null
                     ? MockNavigatorProvider(

@@ -4,7 +4,6 @@ import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:arcade_one/loading/cubit/cubit.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flame/game.dart' hide Route;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -18,19 +17,7 @@ class GamePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) {
-        final audioCache = context.read<PreloadCubit>().audio;
-        final cubit = AudioCubit(
-          enginePlayer: AudioPlayer()..audioCache = audioCache,
-          deathPlayer: AudioPlayer()..audioCache = audioCache,
-          storage: context.read<StorageService>(),
-        );
-        unawaited(cubit.init());
-        return cubit;
-      },
-      child: const Scaffold(body: GameView()),
-    );
+    return const Scaffold(body: GameView());
   }
 }
 

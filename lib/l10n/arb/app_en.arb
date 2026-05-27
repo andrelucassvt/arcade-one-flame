@@ -36,6 +36,14 @@
   "@titleLanguagePortuguese": {
     "description": "Portuguese language option label"
   },
+  "audioMuteTooltip": "Mute audio",
+  "@audioMuteTooltip": {
+    "description": "Tooltip for the audio mute button"
+  },
+  "audioUnmuteTooltip": "Unmute audio",
+  "@audioUnmuteTooltip": {
+    "description": "Tooltip for the audio unmute button"
+  },
   "titleConsoleTitle": "Mission briefing",
   "@titleConsoleTitle": {
     "description": "Title for the mission status panel on the Title Page"

@@ -12,7 +12,7 @@ class StarfieldComponent extends PositionComponent {
   }) : gameSize = gameSize.clone(),
        super(size: gameSize.clone());
 
-  final Vector2 gameSize;
+  Vector2 gameSize;
   final int seed;
 
   final List<_Star> _stars = [];
@@ -20,6 +20,19 @@ class StarfieldComponent extends PositionComponent {
 
   @override
   Future<void> onLoad() async {
+    _seedStars();
+  }
+
+  void resizeGame(Vector2 gameSize) {
+    this.gameSize = gameSize.clone();
+    size = gameSize.clone();
+    if (_stars.isNotEmpty) {
+      _seedStars();
+    }
+  }
+
+  void _seedStars() {
+    _stars.clear();
     final random = math.Random(seed);
     for (var i = 0; i < 95; i++) {
       _stars.add(
@@ -39,7 +52,6 @@ class StarfieldComponent extends PositionComponent {
         (gameSize.y * _starfieldLoopScreens);
   }
 
-  @visibleForTesting
   List<double> debugStarYs() {
     return _stars.map(_starY).toList(growable: false);
   }

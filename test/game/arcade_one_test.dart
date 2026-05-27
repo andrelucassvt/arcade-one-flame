@@ -90,7 +90,9 @@ void main() {
     testWithGame('loads DRIFT components', createGame, (game) async {
       expect(game.ship, isNotNull);
       expect(game.hud, isNotNull);
+      expect(game.background, isNotNull);
       expect(game.starfield, isNotNull);
+      expect(game.background!.activeLandmark.id, equals('earth_moon'));
       expect(game.obstacles, hasLength(asteroidPairSequenceLength));
       expect(game.obstacles.first.position.y, greaterThan(-100));
       expect(game.looseMeteors, isEmpty);
@@ -219,6 +221,16 @@ void main() {
       expect(game.scrollSpeed, greaterThanOrEqualTo(initialScrollSpeed));
     });
 
+    testWithGame('updates background landmark as distance grows', createGame, (
+      game,
+    ) async {
+      game.distanceKm = 249;
+
+      game.update(1);
+
+      expect(game.background!.activeLandmark.id, equals('mars'));
+    });
+
     testWithGame('ends run when ship touches the edge', createGame, (
       game,
     ) async {
@@ -262,6 +274,7 @@ void main() {
       expect(game.isGameOver, isFalse);
       expect(game.distanceKm, equals(0));
       expect(game.bestDistanceKm, equals(120));
+      expect(game.background!.activeLandmark.id, equals('earth_moon'));
       expect(
         game.ship!.position,
         equals(Vector2(game.playArea.x / 2, game.playArea.y * 0.72)),

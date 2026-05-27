@@ -58,7 +58,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   Ship? ship;
   DriftHudComponent? hud;
-  StarfieldComponent? starfield;
+  SpaceBackgroundComponent? background;
+  StarfieldComponent? get starfield => background?.starfield;
 
   final List<AsteroidPairComponent> obstacles = [];
   final List<LooseMeteorComponent> looseMeteors = [];
@@ -66,6 +67,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   ui.Image? _asteroidTileImage;
   ui.Image? _looseMeteorImage;
   ui.Image? _playerShipImage;
+  final Map<String, ui.Image?> _spaceLandmarkImages = {};
 
   double _nextObstacleY = initialObstacleY;
   double _nextLooseMeteorY = initialLooseMeteorY;
@@ -102,7 +104,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
     distanceKm += driftSpeed * dt;
     scrollSpeed = driftSpeed * driftVisualSpeedScale;
-    starfield?.advance(scrollSpeed, dt);
+    background?.advance(scrollSpeed, dt, distanceKm);
 
     for (final obstacle in obstacles.toList()) {
       obstacle.moveByScroll(scrollSpeed, dt);
@@ -135,6 +137,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
+    background?.resizeGame(size);
     hud?.reposition(size);
   }
 
@@ -207,6 +210,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     _consecutiveAsteroidPairSequences = 0;
     _consecutiveLooseMeteorSequences = 0;
     ship?.reset(_shipStartPosition());
+    background?.reset();
 
     _removeAsteroidPairs();
     _removeLooseMeteors();
@@ -219,7 +223,10 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
     await _loadGameImages();
 
-    starfield = StarfieldComponent(gameSize: area);
+    background = SpaceBackgroundComponent(
+      gameSize: area,
+      landmarkImages: _spaceLandmarkImages,
+    );
     ship = Ship(
       position: _shipStartPosition(),
       shipImage: _playerShipImage,
@@ -227,7 +234,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     hud = DriftHudComponent(position: Vector2(12, 12));
 
     await addAll([
-      starfield!,
+      background!,
       ship!,
       hud!,
     ]);
@@ -423,6 +430,10 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     _asteroidTileImage = await _loadGameImage(asteroidTileImageAsset);
     _looseMeteorImage = await _loadGameImage(looseMeteorImageAsset);
     _playerShipImage = await _loadGameImage(playerShipImageAsset);
+    _spaceLandmarkImages.clear();
+    for (final assetPath in spaceLandmarkAssetPaths) {
+      _spaceLandmarkImages[assetPath] = await _loadGameImage(assetPath);
+    }
   }
 
   Future<ui.Image?> _loadGameImage(String path) async {

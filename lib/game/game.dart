@@ -1,4 +1,5 @@
 export 'arcade_one.dart';
+export 'background/background.dart';
 export 'components/components.dart';
 export 'cubit/cubit.dart';
 export 'entities/entities.dart';

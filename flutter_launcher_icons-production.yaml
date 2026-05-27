@@ -1,0 +1,16 @@
+# Gerado automaticamente por change_icons.sh
+# Para regenerar: ./change_icons.sh --all
+#
+# Flavor: production
+# Ícone: assets/icons/production/icon.png
+flutter_launcher_icons:
+  image_path: "assets/icons/production/icon.png"
+  image_path_ios: "assets/icons/production/icon_ios.jpg"
+
+  android: "launcher_icon"
+  min_sdk_android: 21
+
+  ios: true
+  remove_alpha_ios: false
+
+## Gerado em: 2026-05-27 16:32:06

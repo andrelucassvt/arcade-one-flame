@@ -60,17 +60,17 @@ android {
         create("production") {
             dimension = "default"
             applicationIdSuffix = ""
-            manifestPlaceholders["appName"] = "Arcade One"
+            manifestPlaceholders["appName"] = "Drift Space"
         }
         create("staging") {
             dimension = "default"
             applicationIdSuffix = ".stg"
-            manifestPlaceholders["appName"] = "[STG] Arcade One"
+            manifestPlaceholders["appName"] = "[STG] Drift Space"
         }
         create("development") {
             dimension = "default"
             applicationIdSuffix = ".dev"
-            manifestPlaceholders["appName"] = "[DEV] Arcade One"
+            manifestPlaceholders["appName"] = "[DEV] Drift Space"
         }
     }
 

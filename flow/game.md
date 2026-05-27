@@ -8,7 +8,7 @@ O fluxo de Game comeca quando `TitleView` navega para `GamePage.route()`. O `Aud
 
 `GameView` nao inicia musica de fundo. Ele cria uma instancia de `ArcadeOne`, injeta l10n, players de audio, estilo de texto e cache de imagens, configura o `GameWidget` com overlay de game over e mantem os controles Flutter dentro de `SafeArea`. O jogo Flame carrega os sprites de jogo e os sprites transparentes de marcos espaciais a partir do cache de imagens, entao monta os componentes principais diretamente na instancia do jogo: `SpaceBackgroundComponent`, `Ship`, `DriftHudComponent` e uma sequencia inicial de paredes com `AsteroidPairComponent`.
 
-Durante a partida, toques e drags na tela ligam o thrust da nave em direcao ao ponteiro e iniciam o som de motor/fogo em loop. Enquanto o thrust esta ativo, `Ship` anima o sprite da nave com pulso e chama animada; ao soltar, o som de motor/fogo para, mas a nave nao para: `Ship` mantem a velocidade acumulada e continua deslizando por inercia. `ArcadeOne.update` incrementa a distancia, calcula a velocidade de scroll, avanca o background progressivo, move a sequencia ativa de obstaculos, verifica colisao com asteroides ou meteoros soltos e encerra a partida se a nave tocar as bordas da tela.
+Durante a partida, toques e drags na tela ligam o thrust da nave em direcao ao ponteiro. O som de motor/fogo entra em loop apenas se o input continuar ativo depois de um pequeno atraso, evitando tocar um trecho cortado em cliques muito rapidos. Enquanto o thrust esta ativo, `Ship` anima o sprite da nave com pulso e chama animada; ao soltar, o som de motor/fogo pendente ou ativo para, mas a nave nao para: `Ship` mantem a velocidade acumulada e continua deslizando por inercia. `ArcadeOne.update` incrementa a distancia, calcula a velocidade de scroll, avanca o background progressivo, move a sequencia ativa de obstaculos, verifica colisao com asteroides ou meteoros soltos e encerra a partida se a nave tocar as bordas da tela.
 
 Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia da sessao, para o som de motor/fogo, toca o som de morte e ativa o overlay Flutter de game over. O popup informa que o jogador morreu, mostra a distancia percorrida em KM e oferece o botao de restart, que reinicia a mesma tela, reposicionando a nave e recriando os obstaculos.
 
@@ -35,9 +35,9 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 10. **Load do jogo** — `lib/game/arcade_one.dart` -> `ArcadeOne.onLoad`
    Le `best_distance_km` do `StorageService` e inicializa `bestDistanceKm` com o valor persistido (ou `0.0` se nunca salvo). Em seguida chama `_buildRun`, carrega sprites e backgrounds, adiciona `SpaceBackgroundComponent`, `Ship`, `DriftHudComponent` e a primeira sequencia de sete pares de asteroides.
 11. **Input de thrust** — `lib/game/arcade_one.dart` -> `onTapDown`, `onDragStart`, `onDragUpdate`
-    Enquanto a partida esta ativa, inicia `Assets.audio.engineFire` em loop no `enginePlayer` e passa a posicao do toque/drag para `Ship.setThrustTarget`.
+    Enquanto a partida esta ativa, agenda o inicio de `Assets.audio.engineFire` em loop no `enginePlayer` apos `engineSoundStartDelay` e passa a posicao do toque/drag para `Ship.setThrustTarget`.
 12. **Soltar input** — `lib/game/arcade_one.dart` -> `onTapUp`, `onTapCancel`, `onDragEnd`, `onDragCancel`
-    Para o `enginePlayer` e chama `Ship.clearThrust`, desligando o propulsor sem zerar a velocidade.
+    Cancela o som de motor/fogo se ele ainda estiver pendente, ou para o `enginePlayer` se ele ja estiver tocando, e chama `Ship.clearThrust`, desligando o propulsor sem zerar a velocidade.
 13. **Fisica da nave** — `lib/game/entities/ship/ship.dart` -> `Ship.update`
     Aplica aceleracao na direcao do thrust, limita a velocidade por `maxSpeed`, rotaciona a nave suavemente, atualiza a posicao e avanca o tempo da animacao visual quando o thrust esta ativo.
 14. **Progressao** — `lib/game/arcade_one.dart` -> `ArcadeOne.update`
@@ -60,7 +60,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 ### Caminhos alternativos
 
 - **Toque durante game over:** `ArcadeOne.onTapDown` nao aplica thrust; o restart fica centralizado no botao do popup.
-- **Soltar o toque durante a partida:** `ArcadeOne` para o som de motor/fogo e `Ship.clearThrust` desliga a aceleracao, mas a velocidade atual permanece e a nave continua por inercia.
+- **Soltar o toque durante a partida:** `ArcadeOne` cancela o som de motor/fogo pendente ou para o som ativo, e `Ship.clearThrust` desliga a aceleracao, mas a velocidade atual permanece e a nave continua por inercia.
 - **Volume mutado:** `AudioCubit` aplica volume `0` no player de motor/fogo e no player de morte; eventos ainda chamam `play`, mas sem volume audivel.
 - **Troca de sequencia:** `ArcadeOne.update` remove `AsteroidPairComponent` ou `LooseMeteorComponent` apenas quando eles saem da tela. A proxima sequencia nasce quando a ultima peca da onda atual chega perto do topo e usa a posicao dessa ultima peca como ancora para nao sobrepor paredes nem fechar o corredor.
 
@@ -100,7 +100,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 ## Regras de Negócio Relevantes
 
 - **Thrust direcionado por toque** — `ArcadeOne` envia a posicao do ponteiro para `Ship.setThrustTarget`.
-- **Som de motor/fogo por thrust** — `ArcadeOne` toca `Assets.audio.engineFire` em loop quando o thrust comeca e para o player quando o input termina.
+- **Som de motor/fogo por thrust** — `lib/game/arcade_one.dart`: `ArcadeOne` toca `Assets.audio.engineFire` em loop apenas se o thrust continuar ativo depois de `engineSoundStartDelay`, e cancela/paralisa o som quando o input termina.
 - **Animacao de thrust** — `Ship` pulsa o sprite e desenha uma chama animada enquanto `isThrusting == true`.
 - **Inercia real no MVP** — `Ship.clearThrust` nao altera `velocity`; a nave continua deslizando.
 - **Velocidade maxima da nave** — `Ship.update` limita `velocity.length` por `maxSpeed`.

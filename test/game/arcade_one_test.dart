@@ -324,6 +324,7 @@ void main() {
       game,
     ) async {
       game.onTapDown(tapDown(game));
+      await Future<void>.delayed(engineSoundStartDelay);
       await Future<void>.delayed(Duration.zero);
 
       game.onDragUpdate(dragUpdate(game));
@@ -343,10 +344,24 @@ void main() {
       ).called(1);
     });
 
+    testWithGame('does not play engine fire sound for quick taps', createGame, (
+      game,
+    ) async {
+      game.onTapDown(tapDown(game));
+      game.onTapUp(tapUp(game));
+      await Future<void>.delayed(engineSoundStartDelay);
+      await Future<void>.delayed(Duration.zero);
+
+      verifyNever(() => enginePlayer.setReleaseMode(any()));
+      verifyNever(() => enginePlayer.play(any()));
+      verifyNever(() => enginePlayer.stop());
+    });
+
     testWithGame('stops engine fire sound when thrust ends', createGame, (
       game,
     ) async {
       game.onTapDown(tapDown(game));
+      await Future<void>.delayed(engineSoundStartDelay);
       await Future<void>.delayed(Duration.zero);
 
       game.onTapUp(tapUp(game));
@@ -358,6 +373,7 @@ void main() {
       game,
     ) async {
       game.onTapDown(tapDown(game));
+      await Future<void>.delayed(engineSoundStartDelay);
       await Future<void>.delayed(Duration.zero);
 
       game.endRun();
@@ -396,8 +412,9 @@ void main() {
     testWithGame(
       'carrega bestDistanceKm do storage no onLoad',
       () {
-        when(() => storage.getDouble('best_distance_km'))
-            .thenAnswer((_) async => 3.5);
+        when(
+          () => storage.getDouble('best_distance_km'),
+        ).thenAnswer((_) async => 3.5);
         return createGame();
       },
       (game) async {

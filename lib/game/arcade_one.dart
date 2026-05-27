@@ -28,6 +28,7 @@ const int looseMeteorDifficultyBonus = 5;
 const int asteroidPairSequencesBeforeLooseMeteors = 3;
 const int maxConsecutiveLooseMeteorSequences = 2;
 const double looseMeteorSequenceChance = 0.25;
+const Duration engineSoundStartDelay = Duration(milliseconds: 90);
 
 enum ObstacleSequence {
   asteroidPairs,
@@ -72,6 +73,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   StarfieldComponent? get starfield => background?.starfield;
 
   EdgeInsets _safeAreaPadding = EdgeInsets.zero;
+  Timer? _engineSoundStartTimer;
+  bool _isEngineSoundRequested = false;
   bool _isEngineSoundPlaying = false;
 
   final List<AsteroidPairComponent> obstacles = [];
@@ -256,6 +259,12 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     _spawnNextObstacleSequence();
   }
 
+  @override
+  void onRemove() {
+    _engineSoundStartTimer?.cancel();
+    super.onRemove();
+  }
+
   Future<void> _buildRun() async {
     final area = playArea;
 
@@ -282,22 +291,42 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   }
 
   void _startEngineSound() {
-    if (_isEngineSoundPlaying) {
+    if (_isEngineSoundRequested || _isEngineSoundPlaying) {
       return;
     }
 
-    _isEngineSoundPlaying = true;
+    _isEngineSoundRequested = true;
+    _engineSoundStartTimer?.cancel();
+    _engineSoundStartTimer = Timer(
+      engineSoundStartDelay,
+      _playEngineSoundIfStillRequested,
+    );
+  }
+
+  void _playEngineSoundIfStillRequested() {
+    if (!_isEngineSoundRequested || _isEngineSoundPlaying || isGameOver) {
+      return;
+    }
+
     unawaited(
       enginePlayer.setReleaseMode(ReleaseMode.loop).then((_) {
-        if (!_isEngineSoundPlaying || isGameOver) {
+        if (!_isEngineSoundRequested || isGameOver) {
           return Future<void>.value();
         }
+        _isEngineSoundPlaying = true;
         return enginePlayer.play(AssetSource(Assets.audio.engineFire));
       }),
     );
   }
 
   void _stopEngineSound() {
+    if (!_isEngineSoundRequested && !_isEngineSoundPlaying) {
+      return;
+    }
+
+    _engineSoundStartTimer?.cancel();
+    _engineSoundStartTimer = null;
+    _isEngineSoundRequested = false;
     if (!_isEngineSoundPlaying) {
       return;
     }

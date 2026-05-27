@@ -40,6 +40,10 @@
 #     Android: android/app/src/<flavor>/res/mipmap-*/launcher_icon.png
 #     iOS: ios/Runner/Assets.xcassets/AppIcon-<flavor>.appiconset/
 #   - O .pbxproj do iOS é atualizado com o AppIcon correto por flavor
+#   - O LaunchImage.imageset é atualizado com o ícone do flavor processado
+#     (@1x=150px, @2x=300px, @3x=600px). Por ser compartilhado (o storyboard
+#     referencia "LaunchImage" de forma fixa), no modo --all prevalece o
+#     último flavor processado (production).
 # =============================================================================
 
 set -e
@@ -422,6 +426,36 @@ update_pbxproj_appicon() {
   done
 }
 
+# Atualiza o LaunchImage.imageset com o ícone do flavor selecionado.
+# O storyboard referencia "LaunchImage" de forma estática, então não há
+# flavor-specific imageset — a imagem é substituída in-place.
+# Tamanhos: @1x=150px, @2x=300px, @3x=600px (convenção do projeto).
+generate_ios_launch_image() {
+  local flavor="$1"
+  local icon="$2"
+  local launch_dir="ios/Runner/Assets.xcassets/LaunchImage.imageset"
+
+  if ! command -v sips >/dev/null 2>&1; then
+    log_warn "sips não disponível — LaunchImage não atualizado para '$flavor'"
+    return 0
+  fi
+
+  log_step "Atualizando LaunchImage iOS para '$flavor'..."
+
+  local -a variants=("1x:150" "2x:300" "3x:600")
+  for entry in "${variants[@]}"; do
+    local scale="${entry%%:*}"
+    local size="${entry##*:}"
+    local dest="$launch_dir/LaunchImage@${scale}.png"
+    if ! sips -z "$size" "$size" --setProperty format png "$icon" --out "$dest" >/dev/null 2>&1; then
+      log_warn "  Falha ao gerar LaunchImage@${scale}.png para '$flavor'"
+      return 1
+    fi
+  done
+
+  log_success "  LaunchImage atualizado ($launch_dir)"
+}
+
 # Cria a estrutura de diretórios de exemplo
 create_sample_structure() {
   log_info "Criando estrutura de diretórios de ícones..."
@@ -603,7 +637,7 @@ done
 # --- Exibir configuração Android/iOS ---
 echo ""
 log_info "Android: cada flavor gera @mipmap/$ANDROID_ICON_NAME em android/app/src/<flavor>/res/"
-log_info "iOS: cada flavor gera AppIcon-<flavor>.appiconset e atualiza o .pbxproj"
+log_info "iOS: cada flavor gera AppIcon-<flavor>.appiconset, atualiza o .pbxproj e o LaunchImage"
 
 # --- Executa o gerador de ícones ---
 echo ""
@@ -617,6 +651,12 @@ if dart run flutter_launcher_icons; then
   # Atualiza .pbxproj do iOS com AppIcon correto por flavor
   echo ""
   update_pbxproj_appicon
+
+  # Atualiza LaunchImage.imageset com o ícone do(s) flavor(s) processado(s)
+  echo ""
+  for i in "${!SELECTED_FLAVORS[@]}"; do
+    generate_ios_launch_image "${SELECTED_FLAVORS[$i]}" "${SELECTED_ICONS[$i]}"
+  done
 
   echo ""
   echo -e "  ${CYAN}Flavors processados:${NC}"
@@ -644,6 +684,17 @@ if dart run flutter_launcher_icons; then
       echo "    ⚠️  AppIcon-${flavor}.appiconset não encontrado"
     fi
   done
+
+  # LaunchImage
+  echo ""
+  echo -e "  ${CYAN}iOS LaunchImage:${NC}"
+  launch_dir="ios/Runner/Assets.xcassets/LaunchImage.imageset"
+  if [ -d "$launch_dir" ]; then
+    active_flavor="${SELECTED_FLAVORS[${#SELECTED_FLAVORS[@]}-1]}"
+    echo "    📁 $launch_dir → flavor '$active_flavor' (@1x/@2x/@3x)"
+  else
+    echo "    ⚠️  LaunchImage.imageset não encontrado"
+  fi
 
   # Verifica se .pbxproj foi atualizado
   echo ""

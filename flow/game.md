@@ -10,7 +10,7 @@ O fluxo de Game comeca quando `TitleView` navega para `GamePage.route()`. `GameP
 
 Durante a partida, toques e drags na tela ligam o thrust da nave em direcao ao ponteiro e iniciam o som de motor/fogo em loop. Enquanto o thrust esta ativo, `Ship` anima o sprite da nave com pulso e chama animada; ao soltar, o som de motor/fogo para, mas a nave nao para: `Ship` mantem a velocidade acumulada e continua deslizando por inercia. `ArcadeOne.update` incrementa a distancia, calcula a velocidade de scroll, avanca o background progressivo, move a sequencia ativa de obstaculos, verifica colisao com asteroides ou meteoros soltos e encerra a partida se a nave tocar as bordas da tela.
 
-Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia da sessao, para o som de motor/fogo, toca o som de morte e ativa o overlay Flutter de game over. O popup informa que o jogador morreu e oferece o botao de restart, que reinicia a mesma tela, reposicionando a nave e recriando os obstaculos.
+Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia da sessao, para o som de motor/fogo, toca o som de morte e ativa o overlay Flutter de game over. O popup informa que o jogador morreu, mostra a distancia percorrida em KM e oferece o botao de restart, que reinicia a mesma tela, reposicionando a nave e recriando os obstaculos.
 
 ## Passo a Passo
 
@@ -49,7 +49,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 17. **HUD** — `lib/game/components/drift_hud_component.dart` -> `DriftHudComponent.update`
     Atualiza distancia atual e melhor distancia. As mensagens centrais de game over ficam fora do canvas e sao exibidas pelo overlay Flutter.
 18. **Popup de game over** — `lib/game/widgets/game_over_popup.dart`
-    Exibe `gameOverTitle`, `gameOverMessage` e o botao `restartButtonLabel` dentro de `SafeArea`.
+    Exibe `gameOverTitle`, `gameOverMessage`, a distancia percorrida via `gameOverDistanceText` e o botao `restartButtonLabel` dentro de `SafeArea`.
 19. **Restart** — `lib/game/view/game_page.dart` -> `GameOverPopup.onRestart` -> `ArcadeOne.restartRun`
     O botao do popup zera a distancia, remove o overlay, reposiciona a nave, remove obstaculos antigos e cria uma nova leva inicial.
 20. **Dispose** — `lib/game/cubit/audio/audio_cubit.dart`

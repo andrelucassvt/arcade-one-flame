@@ -69,7 +69,13 @@ class _GameViewState extends State<GameView> {
             game: game,
             overlayBuilderMap: {
               gameOverOverlayKey: (context, game) {
+                final distanceKm = switch (game) {
+                  ArcadeOne(:final distanceKm) => distanceKm.floor(),
+                  _ => 0,
+                };
+
                 return GameOverPopup(
+                  distanceKm: distanceKm,
                   onRestart: () {
                     if (game is ArcadeOne) {
                       unawaited(game.restartRun());

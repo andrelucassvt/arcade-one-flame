@@ -60,6 +60,17 @@
   "@gameOverMessage": {
     "description": "Message shown in the game over popup after the player dies"
   },
+  "gameOverDistanceText": "Distance traveled: {distance} km",
+  "@gameOverDistanceText": {
+    "description": "Distance shown in the game over popup after the player dies",
+    "placeholders": {
+      "distance": {
+        "type": "int",
+        "example": "320",
+        "description": "The distance traveled in kilometers"
+      }
+    }
+  },
   "restartHint": "Tap to restart",
   "@restartHint": {
     "description": "Hint shown after game over"

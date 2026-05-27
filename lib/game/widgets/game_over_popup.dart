@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 
 class GameOverPopup extends StatelessWidget {
   const GameOverPopup({
+    required this.distanceKm,
     required this.onRestart,
     super.key,
   });
 
+  final int distanceKm;
   final VoidCallback onRestart;
 
   @override
@@ -57,6 +59,15 @@ class GameOverPopup extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: textTheme.bodyMedium?.copyWith(
                       color: Colors.white70,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.gameOverDistanceText(distanceKm),
+                    textAlign: TextAlign.center,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 20),

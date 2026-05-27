@@ -209,13 +209,16 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      game.isGameOver = true;
+      game
+        ..distanceKm = 73.8
+        ..isGameOver = true;
       game.overlays.add(gameOverOverlayKey);
       await tester.pump();
       await tester.pump();
 
       expect(find.text('GAME OVER'), findsOneWidget);
       expect(find.text('You died in the drift.'), findsOneWidget);
+      expect(find.text('Distance traveled: 73 km'), findsOneWidget);
       expect(find.text('Restart'), findsOneWidget);
 
       await tester.tap(find.text('Restart'));

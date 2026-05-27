@@ -18,7 +18,8 @@ class _MockAudioPlayer extends Mock implements AudioPlayer {}
 class _ArcadeOne extends ArcadeOne {
   _ArcadeOne({
     required super.l10n,
-    required super.effectPlayer,
+    required super.enginePlayer,
+    required super.deathPlayer,
     required super.textStyle,
     required super.images,
   });
@@ -46,7 +47,8 @@ void main() {
     ArcadeOne createGame() {
       final game = _ArcadeOne(
         l10n: l10n,
-        effectPlayer: _MockAudioPlayer(),
+        enginePlayer: _MockAudioPlayer(),
+        deathPlayer: _MockAudioPlayer(),
         textStyle: const TextStyle(),
         images: Images(),
       );
@@ -64,18 +66,19 @@ void main() {
 
       expect(hud.distanceText.text, equals('42 km'));
       expect(hud.bestText.text, equals('Best 128 km'));
-      expect(hud.gameOverText.text, equals(''));
     });
 
-    testWithGame('shows game over state', createGame, (game) async {
+    testWithGame('keeps game over messaging out of the Flame HUD', createGame, (
+      game,
+    ) async {
       final hud = DriftHudComponent(position: Vector2.zero());
       await game.ensureAdd(hud);
 
       game.isGameOver = true;
       game.update(0.1);
 
-      expect(hud.gameOverText.text, equals('GAME OVER'));
-      expect(hud.restartText.text, equals('Tap to restart'));
+      expect(hud.distanceText.text, equals('0 km'));
+      expect(hud.bestText.text, equals('Best 0 km'));
     });
   });
 }

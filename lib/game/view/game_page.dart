@@ -1,12 +1,10 @@
 import 'dart:async';
 
 import 'package:arcade_one/game/game.dart';
-import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:arcade_one/loading/cubit/cubit.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flame/game.dart' hide Route;
-import 'package:flame_audio/bgm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -23,8 +21,8 @@ class GamePage extends StatelessWidget {
       create: (context) {
         final audioCache = context.read<PreloadCubit>().audio;
         return AudioCubit(
-          audioPlayer: AudioPlayer()..audioCache = audioCache,
-          backgroundMusic: Bgm(audioCache: audioCache),
+          enginePlayer: AudioPlayer()..audioCache = audioCache,
+          deathPlayer: AudioPlayer()..audioCache = audioCache,
         );
       },
       child: const Scaffold(body: GameView()),
@@ -44,21 +42,6 @@ class GameView extends StatefulWidget {
 class _GameViewState extends State<GameView> {
   FlameGame? _game;
 
-  late final Bgm bgm;
-
-  @override
-  void initState() {
-    super.initState();
-    bgm = context.read<AudioCubit>().bgm;
-    unawaited(bgm.play(Assets.audio.background));
-  }
-
-  @override
-  void dispose() {
-    unawaited(bgm.pause());
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final textStyle = Theme.of(
@@ -69,15 +52,32 @@ class _GameViewState extends State<GameView> {
         widget.game ??
         ArcadeOne(
           l10n: context.l10n,
-          effectPlayer: context.read<AudioCubit>().effectPlayer,
+          enginePlayer: context.read<AudioCubit>().enginePlayer,
+          deathPlayer: context.read<AudioCubit>().deathPlayer,
           textStyle: textStyle,
           images: context.read<PreloadCubit>().images,
         );
+    final game = _game!;
+    if (game is ArcadeOne) {
+      game.updateSafeAreaPadding(MediaQuery.paddingOf(context));
+    }
+
     return Stack(
       children: [
         Positioned.fill(
           child: GameWidget(
-            game: _game!,
+            game: game,
+            overlayBuilderMap: {
+              gameOverOverlayKey: (context, game) {
+                return GameOverPopup(
+                  onRestart: () {
+                    if (game is ArcadeOne) {
+                      unawaited(game.restartRun());
+                    }
+                  },
+                );
+              },
+            },
           ),
         ),
         SafeArea(

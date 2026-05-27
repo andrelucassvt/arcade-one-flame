@@ -4,11 +4,14 @@
 import 'dart:math' as math;
 
 import 'package:arcade_one/game/game.dart';
+import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flame/cache.dart';
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame_test/flame_test.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -39,10 +42,12 @@ void main() {
 
   group('ArcadeOne', () {
     late AppLocalizations l10n;
-    late AudioPlayer audioPlayer;
+    late AudioPlayer enginePlayer;
+    late AudioPlayer deathPlayer;
 
     setUpAll(() {
       registerFallbackValue(_FakeAssetSource());
+      registerFallbackValue(ReleaseMode.stop);
     });
 
     setUp(() {
@@ -52,14 +57,19 @@ void main() {
       when(() => l10n.gameOverTitle).thenReturn('GAME OVER');
       when(() => l10n.restartHint).thenReturn('Tap to restart');
 
-      audioPlayer = _MockAudioPlayer();
-      when(() => audioPlayer.play(any())).thenAnswer((_) async {});
+      enginePlayer = _MockAudioPlayer();
+      deathPlayer = _MockAudioPlayer();
+      when(() => enginePlayer.play(any())).thenAnswer((_) async {});
+      when(() => enginePlayer.stop()).thenAnswer((_) async {});
+      when(() => enginePlayer.setReleaseMode(any())).thenAnswer((_) async {});
+      when(() => deathPlayer.play(any())).thenAnswer((_) async {});
     });
 
     ArcadeOne createGame({math.Random? random}) {
       final game = ArcadeOne(
         l10n: l10n,
-        effectPlayer: audioPlayer,
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
         textStyle: const TextStyle(),
         images: Images(),
         random: random ?? math.Random(1),
@@ -85,6 +95,36 @@ void main() {
     void removeActiveSequences(ArcadeOne game) {
       removeAsteroidPairs(game);
       removeLooseMeteors(game);
+    }
+
+    TapDownEvent tapDown(ArcadeOne game) {
+      return TapDownEvent(
+        1,
+        game,
+        TapDownDetails(globalPosition: const Offset(120, 160)),
+      );
+    }
+
+    TapUpEvent tapUp(ArcadeOne game) {
+      return TapUpEvent(
+        1,
+        game,
+        TapUpDetails(
+          globalPosition: const Offset(120, 160),
+          kind: PointerDeviceKind.touch,
+        ),
+      );
+    }
+
+    DragUpdateEvent dragUpdate(ArcadeOne game) {
+      return DragUpdateEvent(
+        1,
+        game,
+        DragUpdateDetails(
+          globalPosition: const Offset(120, 160),
+          delta: const Offset(8, 4),
+        ),
+      );
     }
 
     testWithGame('loads DRIFT components', createGame, (game) async {
@@ -239,7 +279,17 @@ void main() {
       game.update(0.1);
 
       expect(game.isGameOver, isTrue);
-      verify(() => audioPlayer.play(any())).called(1);
+      verify(
+        () => deathPlayer.play(
+          any(
+            that: isA<AssetSource>().having(
+              (source) => source.path,
+              'path',
+              Assets.audio.death,
+            ),
+          ),
+        ),
+      ).called(1);
     });
 
     testWithGame('ends run when ship hits a loose meteor', createGame, (
@@ -259,7 +309,55 @@ void main() {
       game.update(0.1);
 
       expect(game.isGameOver, isTrue);
-      verify(() => audioPlayer.play(any())).called(1);
+      verify(() => deathPlayer.play(any())).called(1);
+    });
+
+    testWithGame('plays engine fire sound while thrusting', createGame, (
+      game,
+    ) async {
+      game.onTapDown(tapDown(game));
+      await Future<void>.delayed(Duration.zero);
+
+      game.onDragUpdate(dragUpdate(game));
+      await Future<void>.delayed(Duration.zero);
+
+      verify(() => enginePlayer.setReleaseMode(ReleaseMode.loop)).called(1);
+      verify(
+        () => enginePlayer.play(
+          any(
+            that: isA<AssetSource>().having(
+              (source) => source.path,
+              'path',
+              Assets.audio.engineFire,
+            ),
+          ),
+        ),
+      ).called(1);
+    });
+
+    testWithGame('stops engine fire sound when thrust ends', createGame, (
+      game,
+    ) async {
+      game.onTapDown(tapDown(game));
+      await Future<void>.delayed(Duration.zero);
+
+      game.onTapUp(tapUp(game));
+
+      verify(() => enginePlayer.stop()).called(1);
+    });
+
+    testWithGame('stops engine fire sound when the run ends', createGame, (
+      game,
+    ) async {
+      game.onTapDown(tapDown(game));
+      await Future<void>.delayed(Duration.zero);
+
+      game.endRun();
+
+      verify(() => enginePlayer.stop()).called(1);
+      verify(() => deathPlayer.play(any())).called(1);
+      game.endRun();
+      verifyNever(() => deathPlayer.play(any()));
     });
 
     testWithGame('restart resets run and keeps best distance', createGame, (
@@ -282,6 +380,7 @@ void main() {
       expect(game.obstacles, isNotEmpty);
       expect(game.looseMeteors, isEmpty);
       expect(game.obstacles, isNot(contains(previousObstacle)));
+      expect(game.overlays.isActive(gameOverOverlayKey), isFalse);
     });
   });
 }

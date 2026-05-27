@@ -1,5 +1,6 @@
 import 'package:arcade_one/game/game.dart';
 import 'package:flame/components.dart';
+import 'package:flutter/painting.dart';
 
 const int driftHudPriority = 1000;
 
@@ -10,9 +11,6 @@ class DriftHudComponent extends PositionComponent
 
   late final TextComponent distanceText;
   late final TextComponent bestText;
-  late final TextComponent gameOverText;
-  late final TextComponent restartText;
-
   @override
   Future<void> onLoad() async {
     final baseRenderer = TextPaint(
@@ -21,24 +19,11 @@ class DriftHudComponent extends PositionComponent
     final secondaryRenderer = TextPaint(
       style: game.textStyle.copyWith(fontSize: 12),
     );
-    final titleRenderer = TextPaint(
-      style: game.textStyle.copyWith(fontSize: 28),
-    );
 
     await addAll([
       distanceText = TextComponent(textRenderer: baseRenderer),
       bestText = TextComponent(
         position: Vector2(0, 24),
-        textRenderer: secondaryRenderer,
-      ),
-      gameOverText = TextComponent(
-        anchor: Anchor.center,
-        position: Vector2(game.size.x / 2, game.size.y / 2 - 20),
-        textRenderer: titleRenderer,
-      ),
-      restartText = TextComponent(
-        anchor: Anchor.center,
-        position: Vector2(game.size.x / 2, game.size.y / 2 + 18),
         textRenderer: secondaryRenderer,
       ),
     ]);
@@ -50,18 +35,15 @@ class DriftHudComponent extends PositionComponent
 
     distanceText.text = game.l10n.distanceText(game.distanceKm.floor());
     bestText.text = game.l10n.bestDistanceText(game.bestDistanceKm.floor());
-
-    if (game.isGameOver) {
-      gameOverText.text = game.l10n.gameOverTitle;
-      restartText.text = game.l10n.restartHint;
-    } else {
-      gameOverText.text = '';
-      restartText.text = '';
-    }
   }
 
-  void reposition(Vector2 gameSize) {
-    gameOverText.position = Vector2(gameSize.x / 2, gameSize.y / 2 - 20);
-    restartText.position = Vector2(gameSize.x / 2, gameSize.y / 2 + 18);
+  void reposition(
+    Vector2 gameSize, {
+    EdgeInsets safeAreaPadding = EdgeInsets.zero,
+  }) {
+    position = Vector2(
+      12 + safeAreaPadding.left,
+      12 + safeAreaPadding.top,
+    );
   }
 }

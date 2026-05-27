@@ -34,11 +34,11 @@ void main() {
 
           audio = _MockAudioCache();
           when(
-            () => audio.loadAll([Assets.audio.background, Assets.audio.effect]),
+            () => audio.loadAll([Assets.audio.engineFire, Assets.audio.death]),
           ).thenAnswer(
             (invocation) async => [
-              Uri.parse(Assets.audio.background),
-              Uri.parse(Assets.audio.effect),
+              Uri.parse(Assets.audio.engineFire),
+              Uri.parse(Assets.audio.death),
             ],
           );
         },
@@ -67,7 +67,7 @@ void main() {
         ],
         verify: (bloc) {
           verify(
-            () => audio.loadAll([Assets.audio.background, Assets.audio.effect]),
+            () => audio.loadAll([Assets.audio.engineFire, Assets.audio.death]),
           ).called(1);
           verify(
             () => images.loadAll([

@@ -33,11 +33,11 @@ void main() {
       when(() => images.loadAll(any())).thenAnswer((_) async => <Image>[]);
 
       when(
-        () => audio.loadAll([Assets.audio.background, Assets.audio.effect]),
+        () => audio.loadAll([Assets.audio.engineFire, Assets.audio.death]),
       ).thenAnswer(
         (_) async => [
-          Uri.parse(Assets.audio.background),
-          Uri.parse(Assets.audio.effect),
+          Uri.parse(Assets.audio.engineFire),
+          Uri.parse(Assets.audio.death),
         ],
       );
     });
@@ -64,7 +64,7 @@ void main() {
 
       await tester.pump();
 
-      expect(textWidgetFinder().data, 'Loading Delightful music...');
+      expect(textWidgetFinder().data, 'Loading Ship sounds...');
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(textWidgetFinder().data, 'Loading Beautiful scenery...');

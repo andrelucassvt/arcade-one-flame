@@ -1,7 +1,6 @@
 import 'package:arcade_one/game/cubit/cubit.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bloc_test/bloc_test.dart';
-import 'package:flame_audio/bgm.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -10,28 +9,23 @@ class _MockAudioCache extends Mock implements AudioCache {}
 
 class _MockAudioPlayer extends Mock implements AudioPlayer {}
 
-class _MockBgm extends Mock implements Bgm {}
-
 void main() {
   group('AudioCubit', () {
     TestWidgetsFlutterBinding.ensureInitialized();
 
     late AudioCache audioCache;
-    late AudioPlayer effectPlayer;
-    late Bgm bgm;
-    late AudioPlayer bgmPlayer;
+    late AudioPlayer enginePlayer;
+    late AudioPlayer deathPlayer;
 
     setUp(() {
       audioCache = _MockAudioCache();
-      effectPlayer = _MockAudioPlayer();
-      bgm = _MockBgm();
-      bgmPlayer = _MockAudioPlayer();
-      when(() => bgm.audioPlayer).thenReturn(bgmPlayer);
-      when(() => effectPlayer.audioCache).thenReturn(audioCache);
+      enginePlayer = _MockAudioPlayer();
+      deathPlayer = _MockAudioPlayer();
+      when(() => enginePlayer.audioCache).thenReturn(audioCache);
+      when(() => deathPlayer.audioCache).thenReturn(audioCache);
 
-      when(bgm.dispose).thenAnswer((_) async {});
-      when(bgmPlayer.dispose).thenAnswer((_) async {});
-      when(effectPlayer.dispose).thenAnswer((_) async {});
+      when(enginePlayer.dispose).thenAnswer((_) async {});
+      when(deathPlayer.dispose).thenAnswer((_) async {});
 
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
@@ -43,7 +37,7 @@ void main() {
     test(
       'can be instantiated',
       () => expect(
-        AudioCubit(audioPlayer: effectPlayer, backgroundMusic: bgm),
+        AudioCubit(enginePlayer: enginePlayer, deathPlayer: deathPlayer),
         isA<AudioCubit>(),
       ),
     );
@@ -51,33 +45,54 @@ void main() {
     blocTest<AudioCubit, AudioState>(
       'toggleVolume mutes the volume when the volume is not 0',
       setUp: () {
-        when(() => effectPlayer.setVolume(any())).thenAnswer((_) async {});
-        when(() => bgmPlayer.setVolume(any())).thenAnswer((_) async {});
+        when(() => enginePlayer.setVolume(any())).thenAnswer((_) async {});
+        when(() => deathPlayer.setVolume(any())).thenAnswer((_) async {});
       },
-      build: () => AudioCubit.test(effectPlayer: effectPlayer, bgm: bgm),
+      build: () {
+        return AudioCubit.test(
+          enginePlayer: enginePlayer,
+          deathPlayer: deathPlayer,
+        );
+      },
       act: (cubit) => cubit.toggleVolume(),
       expect: () => [const AudioState(volume: 0)],
       verify: (_) {
-        verify(() => effectPlayer.setVolume(any(that: equals(0)))).called(1);
-        verify(() => bgmPlayer.setVolume(any(that: equals(0)))).called(1);
+        verify(() => enginePlayer.setVolume(any(that: equals(0)))).called(1);
+        verify(() => deathPlayer.setVolume(any(that: equals(0)))).called(1);
       },
     );
 
     blocTest<AudioCubit, AudioState>(
       'toggleVolume unmutes the volume when the volume is 0',
       setUp: () {
-        when(() => effectPlayer.setVolume(any())).thenAnswer((_) async {});
-        when(() => bgmPlayer.setVolume(any())).thenAnswer((_) async {});
+        when(() => enginePlayer.setVolume(any())).thenAnswer((_) async {});
+        when(() => deathPlayer.setVolume(any())).thenAnswer((_) async {});
       },
       build: () {
-        return AudioCubit.test(effectPlayer: effectPlayer, bgm: bgm, volume: 0);
+        return AudioCubit.test(
+          enginePlayer: enginePlayer,
+          deathPlayer: deathPlayer,
+          volume: 0,
+        );
       },
       act: (cubit) => cubit.toggleVolume(),
       expect: () => [const AudioState()],
       verify: (_) {
-        verify(() => effectPlayer.setVolume(any(that: equals(1)))).called(1);
-        verify(() => bgmPlayer.setVolume(any(that: equals(1)))).called(1);
+        verify(() => enginePlayer.setVolume(any(that: equals(1)))).called(1);
+        verify(() => deathPlayer.setVolume(any(that: equals(1)))).called(1);
       },
     );
+
+    test('close disposes every audio player', () async {
+      final cubit = AudioCubit.test(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+      );
+
+      await cubit.close();
+
+      verify(enginePlayer.dispose).called(1);
+      verify(deathPlayer.dispose).called(1);
+    });
   });
 }

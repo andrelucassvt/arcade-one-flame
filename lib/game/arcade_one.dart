@@ -12,6 +12,7 @@ import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/painting.dart';
 
+const String gameOverOverlayKey = 'game_over';
 const double initialDriftSpeed = 2;
 const double driftSpeedGrowth = 0.0008;
 const double driftVisualSpeedScale = 42;
@@ -35,7 +36,8 @@ enum ObstacleSequence {
 class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   ArcadeOne({
     required this.l10n,
-    required this.effectPlayer,
+    required this.enginePlayer,
+    required this.deathPlayer,
     required this.textStyle,
     required Images images,
     math.Random? random,
@@ -45,7 +47,9 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   final AppLocalizations l10n;
 
-  final AudioPlayer effectPlayer;
+  final AudioPlayer enginePlayer;
+
+  final AudioPlayer deathPlayer;
 
   final TextStyle textStyle;
 
@@ -60,6 +64,9 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   DriftHudComponent? hud;
   SpaceBackgroundComponent? background;
   StarfieldComponent? get starfield => background?.starfield;
+
+  EdgeInsets _safeAreaPadding = EdgeInsets.zero;
+  bool _isEngineSoundPlaying = false;
 
   final List<AsteroidPairComponent> obstacles = [];
   final List<LooseMeteorComponent> looseMeteors = [];
@@ -138,26 +145,37 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
     background?.resizeGame(size);
-    hud?.reposition(size);
+    hud?.reposition(size, safeAreaPadding: _safeAreaPadding);
+  }
+
+  void updateSafeAreaPadding(EdgeInsets padding) {
+    if (_safeAreaPadding == padding) {
+      return;
+    }
+
+    _safeAreaPadding = padding;
+    hud?.reposition(playArea, safeAreaPadding: _safeAreaPadding);
   }
 
   @override
   void onTapDown(TapDownEvent event) {
     if (isGameOver) {
-      unawaited(restartRun());
       return;
     }
 
+    _startEngineSound();
     ship?.setThrustTarget(event.canvasPosition);
   }
 
   @override
   void onTapUp(TapUpEvent event) {
+    _stopEngineSound();
     ship?.clearThrust();
   }
 
   @override
   void onTapCancel(TapCancelEvent event) {
+    _stopEngineSound();
     ship?.clearThrust();
   }
 
@@ -165,6 +183,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
     if (!isGameOver) {
+      _startEngineSound();
       ship?.setThrustTarget(event.canvasPosition);
     }
   }
@@ -172,6 +191,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void onDragUpdate(DragUpdateEvent event) {
     if (!isGameOver) {
+      _startEngineSound();
       ship?.setThrustTarget(event.canvasEndPosition);
     }
   }
@@ -179,12 +199,14 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
+    _stopEngineSound();
     ship?.clearThrust();
   }
 
   @override
   void onDragCancel(DragCancelEvent event) {
     super.onDragCancel(event);
+    _stopEngineSound();
     ship?.clearThrust();
   }
 
@@ -195,13 +217,18 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
     isGameOver = true;
     bestDistanceKm = math.max(bestDistanceKm, distanceKm);
-    unawaited(effectPlayer.play(AssetSource(Assets.audio.effect)));
+    _stopEngineSound();
+    unawaited(deathPlayer.play(AssetSource(Assets.audio.death)));
+    if (overlays.registeredOverlays.contains(gameOverOverlayKey)) {
+      overlays.add(gameOverOverlayKey);
+    }
     ship?.clearThrust();
     ship?.velocity.setZero();
   }
 
   Future<void> restartRun() async {
     isGameOver = false;
+    overlays.remove(gameOverOverlayKey);
     distanceKm = 0;
     scrollSpeed = initialDriftSpeed * driftVisualSpeedScale;
     _nextObstacleY = initialObstacleY;
@@ -240,6 +267,32 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     ]);
 
     _spawnNextObstacleSequence();
+    hud?.reposition(playArea, safeAreaPadding: _safeAreaPadding);
+  }
+
+  void _startEngineSound() {
+    if (_isEngineSoundPlaying) {
+      return;
+    }
+
+    _isEngineSoundPlaying = true;
+    unawaited(
+      enginePlayer.setReleaseMode(ReleaseMode.loop).then((_) {
+        if (!_isEngineSoundPlaying || isGameOver) {
+          return Future<void>.value();
+        }
+        return enginePlayer.play(AssetSource(Assets.audio.engineFire));
+      }),
+    );
+  }
+
+  void _stopEngineSound() {
+    if (!_isEngineSoundPlaying) {
+      return;
+    }
+
+    _isEngineSoundPlaying = false;
+    unawaited(enginePlayer.stop());
   }
 
   Vector2 _shipStartPosition() {

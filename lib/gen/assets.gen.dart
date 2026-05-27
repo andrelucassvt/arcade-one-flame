@@ -17,11 +17,17 @@ class $AssetsAudioGen {
   /// File path: assets/audio/background.mp3
   String get background => 'assets/audio/background.mp3';
 
+  /// File path: assets/audio/death.mp3
+  String get death => 'assets/audio/death.mp3';
+
   /// File path: assets/audio/effect.mp3
   String get effect => 'assets/audio/effect.mp3';
 
+  /// File path: assets/audio/engine_fire.mp3
+  String get engineFire => 'assets/audio/engine_fire.mp3';
+
   /// List of all assets
-  List<String> get values => [background, effect];
+  List<String> get values => [background, death, effect, engineFire];
 }
 
 class $AssetsImagesGen {

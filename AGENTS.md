@@ -1,63 +1,57 @@
-# Base App Flutter — Codex Agent Instructions
+# Arcade One
 
-Este arquivo fornece contexto e regras obrigatórias para o agente ao trabalhar neste projeto Flutter.
+Flutter/Dart game app generated from Very Good CLI, using Bloc/Cubit for UI state and Flame for the playable scene.
 
----
+## Stack
 
-## Arquivos de instrução detalhados
+- Dart `^3.11.0` and Flutter `^3.41.0`
+- `flutter_bloc`/`bloc` for Cubits, `flame`/`flame_audio` for gameplay
+- Very Good Analysis plus `bloc_lint`; generated files in `lib/gen` and `lib/l10n/gen` are analyzer-excluded
+- Flutter flavors: `development`, `staging`, `production`
 
-Antes de gerar ou modificar código, leia o arquivo de arquitetura **sempre** e depois a skill correspondente à camada modificada:
+## Estrutura
 
-| Arquivo | Quando ler |
-|---|---|
-| `.github/instructions/architecture.instructions.md` | **Sempre** — regras gerais de arquitetura |
+- `lib/main_*.dart` — flavor entry points that call `bootstrap(() => const App())`
+- `lib/bootstrap.dart` — global Flutter error logging, Bloc observer, Poppins license registration, `runApp`
+- `lib/app/` — global providers, theme, l10n delegates, and initial `LoadingPage`
+- `lib/loading/` — asset preload Cubit, loading screen, animated progress bar
+- `lib/title/` — title screen and Start button navigation
+- `lib/game/` — Flame game, audio Cubit, entities, obstacle components, HUD components, game page
+- `lib/l10n/` — ARB files, generated localizations, and `context.l10n`
+- `assets/` — audio, image spritesheet, and Poppins license assets
+- `test/` — mirrors feature structure and contains helpers in `test/helpers/`
 
-## 🛠️ Skills especializadas
+## Comandos
 
-Leia o arquivo da skill antes de executar a tarefa correspondente:
+- `flutter run --flavor development --target lib/main_development.dart` — run development flavor
+- `flutter run --flavor staging --target lib/main_staging.dart` — run staging flavor
+- `flutter run --flavor production --target lib/main_production.dart` — run production flavor
+- `flutter test --coverage --test-randomize-ordering-seed random` — run the project test suite as documented
+- `dart run bloc_tools:bloc lint .` — run Bloc-specific lint checks
+- `flutter gen-l10n` — regenerate `lib/l10n/gen` after ARB changes
 
-| Skill | Arquivo | Quando usar |
-|---|---|---|
-| `implement-view` | `.agents/skills/implement-view/SKILL.md` | Ao criar ou modificar Views em `lib/presentation/**/view/**` |
-| `implement-view-model` | `.agents/skills/implement-view-model/SKILL.md` | Ao criar ou modificar Cubits/States em `lib/presentation/**/view_model/**` |
-| `implement-widget` | `.agents/skills/implement-widget/SKILL.md` | Ao criar ou modificar Widgets em `lib/presentation/**/widgets/**` ou `lib/common/widgets/**` |
-| `implement-domain` | `.agents/skills/implement-domain/SKILL.md` | Ao trabalhar em `lib/domain/**` |
-| `implement-data` | `.agents/skills/implement-data/SKILL.md` | Ao trabalhar em `lib/data/**` |
-| `configure-di` | `.agents/skills/configure-di/SKILL.md` | Ao trabalhar em `lib/config/inject/**` |
-| `configure-navigation` | `.agents/skills/configure-navigation/SKILL.md` | Ao trabalhar em `lib/config/routes/**` ou navegação |
-| `analyze-view` | `.agents/skills/analyze-view/SKILL.md` | Ao revisar, auditar ou refatorar arquivos de View |
-| `custom-paint` | `.agents/skills/custom-paint/SKILL.md` | Ao desenhar formas, gráficos, canvas ou animações 2D com CustomPaint |
-| `guideline-apple` | `.agents/skills/guideline-apple/SKILL.md` | Ao preparar ou auditar o app para submissão na App Store |
-| `implement-service` | `.agents/skills/implement-service/SKILL.md` | Ao criar ou modificar Services em `lib/common/services/**` — flags, contadores, gating, onboarding, premium check, ações únicas |
-| `implement-in-app-purchase` | `.agents/skills/implement-in-app-purchase/SKILL.md` | Ao implementar compras in-app, assinaturas ou paywall |
-| `implement-admob` | `.agents/skills/implement-admob/SKILL.md` | Ao trabalhar com anúncios AdMob |
-| `implement-auth-token-flow` | `.agents/skills/implement-auth-token-flow/SKILL.md` | Ao implementar autenticação com Bearer token, login, refresh token ou logout |
-| `implement-firebase-notifications` | `.agents/skills/implement-firebase-notifications/SKILL.md` | Ao implementar ou auditar push notifications via Firebase Cloud Messaging (iOS + Android) |
-| `flutter-isolates` | `.agents/skills/flutter-isolates/SKILL.md` | Ao trabalhar com paralelismo, concorrência, performance de UI, jank ou tarefas CPU-intensivas — compute(), Isolate.spawn, Isolate.run, SendPort, ReceivePort |
-| `flutter-animating-apps` | `.agents/skills/flutter-animating-apps/SKILL.md` | Ao implementar animações visuais, efeitos, transições de tela, hero animations, animações implícitas/explícitas ou physics-based animations |
-| `image-to-code` | `.agents/skills/image-to-code/SKILL.md` | Ao receber uma imagem de referência (mockup, screenshot, protótipo) e pedir para replicar o design em Flutter |
+## Convenções
 
----
+- Use Cubits for state management in the existing style; preload state lives in `loading`, audio state lives in `game`.
+- Navigation is currently manual with `Navigator.pushReplacement` and `MaterialPageRoute`; there is no router package.
+- Add user-facing strings in `lib/l10n/arb/app_en.arb` and access them through `context.l10n`.
+- Keep generated files (`lib/gen/*`, `lib/l10n/gen/*`) treated as generated output, not hand-authored code.
+- Tests should follow the existing mirrored feature structure and reuse `test/helpers/pump_app.dart` for widget setup.
 
-## ⚡ Regras Globais
+## Gotchas
 
-- **Arquitetura**: `presentation` → `domain` ← `data` (Clean Architecture)
-- **Imports**: SEMPRE absolutos — `package:base_app/...` — NUNCA relativos
-- **State management**: Cubit (BLoC) — `flutter_bloc`
-- **Error handling**: `Result<T>` (Ok/Error) — NUNCA relance exceções
-- **DI**: GetIt via `AppInjector` — Cubits → `registerFactory`; resto → `registerLazySingleton`
-- **Navegação**: GoRouter — SEMPRE na View ou `BlocListener`, NUNCA no Cubit
-- **Textos na UI**: SEMPRE `context.l10n.<chave>` — ZERO strings hardcoded
-- **Entities**: `@immutable`, `const`, `final`, `copyWith()`, `==`, `hashCode`
-- **SafeArea**: SEMPRE envolva o conteúdo principal da View com `SafeArea`
-- **Performance**: NUNCA crie `Widget _buildXxx()` nem classes privadas de widget dentro da View — extraia para `widgets/` (reutilizável) ou `content/` (auxiliar específico); dialog/bottomSheet são exceção
-- **Repositories**: SEMPRE envolva chamadas em `try/catch` e retorne `Result.error(...)`
-- **Cubit async**: SEMPRE emita `Loading` primeiro → chame o repository → use `result.when()`
-- **Nunca** crie arquivos `.md` para documentar mudanças de código
+- All three flavor entry points currently do the same thing; flavor-specific setup belongs in `bootstrap.dart` where the existing comment marks it.
+- `PreloadCubit` loads only `Assets.audio.background`, `Assets.audio.effect`, and `Assets.images.unicornAnimation.path`; new game assets need preload updates if they must be cached before gameplay.
+- `GamePage` expects a `PreloadCubit` above it because it reads the preloaded audio and image caches.
+- The best distance is kept only in the current `ArcadeOne` instance; there is no local persistence yet.
 
-## 🧭 Fluxo para nova feature
+## Não fazer
 
-1. **Mínimo obrigatório**: View + Cubit + State + rota + DI
-2. **Dados locais**: injete `StorageService` diretamente no Cubit
-3. **API externa**: crie também Entity + Repository Interface + Model + DataSource + RepositoryImpl
-4. Siga a estrutura de pastas descrita em `architecture.instructions.md`
+- Do not run `flutter pub upgrade` unless explicitly asked.
+- Do not hardcode visible UI strings in widgets; use ARB/l10n.
+- Do not hand-edit generated localization or asset files.
+- Do not replace the current `Navigator` flow with a router package unless the task is specifically about navigation architecture.
+
+## 📖 Documentação de Flows
+
+Para qualquer feature ou fluxo, verifique a pasta `./flow/`: leia os títulos dos arquivos `.md` disponíveis e, se algum for relevante para a tarefa atual, leia-o antes de implementar ou debugar. Use `/flow <nome>` para criar ou atualizar flows individuais.

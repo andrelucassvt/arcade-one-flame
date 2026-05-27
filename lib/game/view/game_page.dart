@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:arcade_one/common/services/ads/ad_config.dart';
 import 'package:arcade_one/common/services/storage_service.dart';
+import 'package:arcade_one/common/widgets/ad_banner_widget.dart';
 import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:arcade_one/loading/cubit/cubit.dart';
@@ -94,6 +96,15 @@ class _GameViewState extends State<GameView> {
                 );
               },
             ),
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: AdBannerWidget(adUnitId: AdConfig.banner),
           ),
         ),
       ],

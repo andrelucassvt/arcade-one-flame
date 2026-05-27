@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:arcade_one/common/services/ads/ad_service.dart';
 import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
@@ -39,6 +40,8 @@ Future<void> bootstrap(
   });
 
   // Add cross-flavor configuration here
+
+  await AdService().initialize();
 
   final prefs = await SharedPreferences.getInstance();
   runApp(await builder(prefs));

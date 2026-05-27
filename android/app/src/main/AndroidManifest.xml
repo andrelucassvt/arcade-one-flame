@@ -2,6 +2,9 @@
     <application
         android:label="${appName}"
         android:icon="@mipmap/launcher_icon">
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3652623512305285~9208698800"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

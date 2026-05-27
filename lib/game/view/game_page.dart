@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:arcade_one/loading/cubit/cubit.dart';
@@ -20,10 +21,13 @@ class GamePage extends StatelessWidget {
     return BlocProvider(
       create: (context) {
         final audioCache = context.read<PreloadCubit>().audio;
-        return AudioCubit(
+        final cubit = AudioCubit(
           enginePlayer: AudioPlayer()..audioCache = audioCache,
           deathPlayer: AudioPlayer()..audioCache = audioCache,
+          storage: context.read<StorageService>(),
         );
+        unawaited(cubit.init());
+        return cubit;
       },
       child: const Scaffold(body: GameView()),
     );
@@ -56,6 +60,7 @@ class _GameViewState extends State<GameView> {
           deathPlayer: context.read<AudioCubit>().deathPlayer,
           textStyle: textStyle,
           images: context.read<PreloadCubit>().images,
+          storage: context.read<StorageService>(),
         );
     final game = _game!;
     if (game is ArcadeOne) {

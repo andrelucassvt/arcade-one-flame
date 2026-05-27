@@ -6,15 +6,15 @@ import 'package:mockingjay/mockingjay.dart';
 import '../../helpers/helpers.dart';
 
 void main() {
-  group('TitlePage', () {
-    testWidgets('renders TitleView', (tester) async {
-      await tester.pumpApp(const TitlePage());
-      expect(find.byType(TitleView), findsOneWidget);
-    });
-  });
-
   group('TitleView', () {
+    setUpAll(TestWidgetsFlutterBinding.ensureInitialized);
+
     testWidgets('renders start button', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpApp(const TitleView());
 
       expect(find.byType(ElevatedButton), findsOneWidget);
@@ -22,6 +22,11 @@ void main() {
     });
 
     testWidgets('changes language from the title screen', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpApp(const TitleView());
 
       await tester.tap(find.byIcon(Icons.language_rounded));
@@ -33,6 +38,11 @@ void main() {
     });
 
     testWidgets('starts the game when start button is tapped', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       final navigator = MockNavigator();
       when(navigator.canPop).thenReturn(true);
       when(

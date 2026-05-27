@@ -31,7 +31,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 8. **Mudanca de volume** — `lib/game/cubit/audio/audio_cubit.dart` -> `toggleVolume`
    Alterna entre volume `0` e `1`, aplicando no player de motor/fogo e no player de morte.
 9. **Load do jogo** — `lib/game/arcade_one.dart` -> `ArcadeOne.onLoad`
-   Chama `_buildRun`, carrega os sprites e backgrounds definidos em `lib/game/game_image_assets.dart`, adiciona `SpaceBackgroundComponent`, `Ship`, `DriftHudComponent` e a primeira sequencia de sete pares de asteroides, com o primeiro par ja proximo do topo da tela.
+   Le `best_distance_km` do `StorageService` e inicializa `bestDistanceKm` com o valor persistido (ou `0.0` se nunca salvo). Em seguida chama `_buildRun`, carrega sprites e backgrounds, adiciona `SpaceBackgroundComponent`, `Ship`, `DriftHudComponent` e a primeira sequencia de sete pares de asteroides.
 10. **Input de thrust** — `lib/game/arcade_one.dart` -> `onTapDown`, `onDragStart`, `onDragUpdate`
     Enquanto a partida esta ativa, inicia `Assets.audio.engineFire` em loop no `enginePlayer` e passa a posicao do toque/drag para `Ship.setThrustTarget`.
 11. **Soltar input** — `lib/game/arcade_one.dart` -> `onTapUp`, `onTapCancel`, `onDragEnd`, `onDragCancel`
@@ -45,7 +45,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 15. **Colisao e bordas** — `lib/game/arcade_one.dart` -> `_checkBounds`, `AsteroidPairComponent.collidesWith` e `LooseMeteorComponent.collidesWith`
     Tocar nas bordas, intersectar um bloco de asteroide ou bater em um meteoro solto chama `ArcadeOne.endRun`.
 16. **Game over** — `lib/game/arcade_one.dart` -> `endRun`
-    Marca `isGameOver`, atualiza `bestDistanceKm`, para o som de motor/fogo, toca `Assets.audio.death`, limpa o thrust da nave, zera a velocidade e ativa o overlay `gameOverOverlayKey`.
+    Marca `isGameOver`. Se `distanceKm > bestDistanceKm`, atualiza `bestDistanceKm` e persiste o novo recorde via `StorageService.setDouble('best_distance_km', ...)`. Para o som de motor/fogo, toca `Assets.audio.death`, limpa o thrust da nave, zera a velocidade e ativa o overlay `gameOverOverlayKey`.
 17. **HUD** — `lib/game/components/drift_hud_component.dart` -> `DriftHudComponent.update`
     Atualiza distancia atual e melhor distancia. As mensagens centrais de game over ficam fora do canvas e sao exibidas pelo overlay Flutter.
 18. **Popup de game over** — `lib/game/widgets/game_over_popup.dart`
@@ -66,7 +66,8 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 
 | Camada | Arquivo | Responsabilidade |
 |--------|---------|------------------|
-| Apresentacao | `lib/game/view/game_page.dart` | Cria o `AudioCubit`, renderiza `GameWidget`, registra overlay de game over, repassa SafeArea para o HUD e exibe botao de volume. |
+| Apresentacao | `lib/game/view/game_page.dart` | Cria o `AudioCubit` (com `StorageService`), renderiza `GameWidget`, registra overlay de game over, repassa SafeArea para o HUD e exibe botao de volume. |
+| Servico | `lib/common/services/storage_service.dart` | Interface usada pelo `AudioCubit` (volume) e `ArcadeOne` (melhor distancia) para leitura e escrita de dados persistidos. |
 | Jogo Flame | `lib/game/arcade_one.dart` | Classe principal do jogo, input, progressao, spawn, colisao, game over e restart. |
 | Assets de jogo | `lib/game/game_image_assets.dart` | Define as chaves dos sprites usados pelo cache de imagens do Flame. |
 | Cubit | `lib/game/cubit/audio/audio_cubit.dart` | Controla volume, players de motor/fogo e morte, e dispose. |
@@ -109,9 +110,9 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 - **Morte por obstaculo** — colisao da nave contra os retangulos de asteroides ou colisao circular contra meteoros soltos encerra a partida.
 - **Som de morte unico** — `ArcadeOne.endRun` ignora chamadas repetidas quando `isGameOver == true`, garantindo que `Assets.audio.death` toque apenas uma vez por morte.
 - **Game over congela progressao** — `ArcadeOne.update` retorna cedo quando `isGameOver == true`.
-- **Melhor distancia da sessao** — `endRun` atualiza `bestDistanceKm` com o maior valor entre a melhor distancia anterior e a distancia atual.
+- **Melhor distancia persistida** — `onLoad` carrega `bestDistanceKm` do storage (chave `best_distance_km`); `endRun` salva apenas quando `distanceKm > bestDistanceKm`, mantendo sempre o maior valor entre sessoes.
 - **Restart na mesma tela** — apos game over, o botao do popup chama `restartRun` e nao navega para outra tela.
-- **Volume binario** — `lib/game/cubit/audio/audio_cubit.dart`: `toggleVolume` alterna apenas entre `0` e `1`.
+- **Volume binario e persistido** — `lib/game/cubit/audio/audio_cubit.dart`: `toggleVolume` alterna apenas entre `0` e `1` e salva o novo valor via `StorageService`; `init()` restaura o volume salvo na criacao do cubit.
 
 ## Dependências Externas
 
@@ -123,6 +124,6 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 ## Observações
 
 - Nave, paredes de asteroides, meteoros soltos e marcos de background usam sprites PNG quando carregados; os componentes mantem fallback procedural em canvas para testes ou falha de carregamento. O starfield continua procedural dentro de `SpaceBackgroundComponent`.
-- O melhor score fica apenas em memoria na instancia de `ArcadeOne`; ainda nao ha persistencia local.
+- O melhor score e persistido em `SharedPreferences` via `StorageService` e sobrevive ao fechamento do app.
 - `assets/audio/background.mp3` ainda pode existir no projeto, mas nao e carregado nem tocado pelo fluxo de game.
 - Obstaculos de satelite em orbita, clusters de detritos, zonas visuais, skins, rewarded ads e compras ficaram fora deste MVP.

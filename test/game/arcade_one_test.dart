@@ -3,6 +3,7 @@
 
 import 'dart:math' as math;
 
+import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:arcade_one/l10n/l10n.dart';
@@ -21,6 +22,8 @@ class _FakeAssetSource extends Fake implements AssetSource {}
 class _MockAppLocalizations extends Mock implements AppLocalizations {}
 
 class _MockAudioPlayer extends Mock implements AudioPlayer {}
+
+class _MockStorageService extends Mock implements StorageService {}
 
 class _FixedDoubleRandom implements math.Random {
   const _FixedDoubleRandom(this.value);
@@ -44,6 +47,7 @@ void main() {
     late AppLocalizations l10n;
     late AudioPlayer enginePlayer;
     late AudioPlayer deathPlayer;
+    late StorageService storage;
 
     setUpAll(() {
       registerFallbackValue(_FakeAssetSource());
@@ -59,10 +63,13 @@ void main() {
 
       enginePlayer = _MockAudioPlayer();
       deathPlayer = _MockAudioPlayer();
+      storage = _MockStorageService();
       when(() => enginePlayer.play(any())).thenAnswer((_) async {});
       when(() => enginePlayer.stop()).thenAnswer((_) async {});
       when(() => enginePlayer.setReleaseMode(any())).thenAnswer((_) async {});
       when(() => deathPlayer.play(any())).thenAnswer((_) async {});
+      when(() => storage.getDouble(any())).thenAnswer((_) async => null);
+      when(() => storage.setDouble(any(), any())).thenAnswer((_) async {});
     });
 
     ArcadeOne createGame({math.Random? random}) {
@@ -72,6 +79,7 @@ void main() {
         deathPlayer: deathPlayer,
         textStyle: const TextStyle(),
         images: Images(),
+        storage: storage,
         random: random ?? math.Random(1),
       );
       game.onGameResize(Vector2(390, 700));
@@ -382,5 +390,51 @@ void main() {
       expect(game.obstacles, isNot(contains(previousObstacle)));
       expect(game.overlays.isActive(gameOverOverlayKey), isFalse);
     });
+
+    // ── Testes de persistência ────────────────────────────────────────────
+
+    testWithGame(
+      'carrega bestDistanceKm do storage no onLoad',
+      () {
+        when(() => storage.getDouble('best_distance_km'))
+            .thenAnswer((_) async => 3.5);
+        return createGame();
+      },
+      (game) async {
+        expect(game.bestDistanceKm, closeTo(3.5, 0.001));
+      },
+    );
+
+    testWithGame(
+      'bestDistanceKm é 0.0 quando storage retorna null',
+      createGame,
+      (game) async {
+        expect(game.bestDistanceKm, equals(0.0));
+      },
+    );
+
+    testWithGame(
+      'endRun salva bestDistanceKm no storage quando distância é maior',
+      createGame,
+      (game) async {
+        game.distanceKm = 10;
+        game.endRun();
+
+        verify(() => storage.setDouble('best_distance_km', 10)).called(1);
+      },
+    );
+
+    testWithGame(
+      'endRun não sobrescreve storage quando distância não supera recorde',
+      createGame,
+      (game) async {
+        // Simula recorde já salvo carregado
+        game.bestDistanceKm = 20;
+        game.distanceKm = 5;
+        game.endRun();
+
+        verifyNever(() => storage.setDouble('best_distance_km', any()));
+      },
+    );
   });
 }

@@ -40,7 +40,8 @@ Os textos sao obtidos via `context.l10n`, usando as chaves geradas a partir dos 
 | Apresentacao — Content | `lib/title/content/title_main_content.dart` | `LayoutBuilder` responsivo que orquestra hero, console e botao. |
 | Apresentacao — Content | `lib/title/content/title_start_button.dart` | Botao Launch/Decolar e navegacao para `GamePage`. |
 | Apresentacao — Content | `lib/title/content/title_language_menu_item.dart` | Item do menu de idioma com icone de selecao. |
-| Estado / Cubit | `lib/app/cubit/app_locale_cubit.dart` | Mantem o locale selecionado pelo usuario durante a sessao. |
+| Estado / Cubit | `lib/app/cubit/app_locale_cubit.dart` | Mantem o locale selecionado pelo usuario; persiste em storage e restaura no proximo lancamento. |
+| Servico | `lib/common/services/storage_service.dart` | Interface de storage usada pelo `AppLocaleCubit` para ler e salvar o locale. |
 | Navegacao | `lib/loading/view/loading_page.dart` | Entra no fluxo de Title apos completar preload. |
 | Navegacao | `lib/game/view/game_page.dart` | Rota de destino quando o usuario inicia o jogo. |
 | L10n | `lib/l10n/arb/app_en.arb` | Define strings em ingles da home. |
@@ -51,7 +52,7 @@ Os textos sao obtidos via `context.l10n`, usando as chaves geradas a partir dos 
 ## Regras de Negócio Relevantes
 
 - **Launch substitui a rota atual** — `lib/title/content/title_start_button.dart`: o jogo e aberto com `pushReplacement`, entao a tela de titulo nao permanece abaixo de `GamePage`.
-- **Idioma muda em memoria** — `lib/app/cubit/app_locale_cubit.dart`: o idioma selecionado atualiza o `MaterialApp`, mas nao e persistido localmente; sem selecao manual, vale o locale resolvido pelo sistema.
+- **Idioma persistido em storage** — `lib/app/cubit/app_locale_cubit.dart`: ao inicializar, `init()` le a chave `app_locale` do `StorageService` e emite o locale salvo; `setLocale` salva o `languageCode` antes de emitir; sem selecao manual o app usa a resolucao padrao do sistema.
 - **Textos localizados** — todos os textos visiveis dependem de `context.l10n`; nenhuma string visivel e hardcoded.
 - **Content nao exportado** — os arquivos em `lib/title/content/` sao auxiliares internos da feature e nao sao expostos pelo barrel `lib/title/title.dart`.
 
@@ -64,5 +65,5 @@ Os textos sao obtidos via `context.l10n`, usando as chaves geradas a partir dos 
 ## Observações
 
 - Nao ha estado proprio dentro da feature Title; o unico estado consumido e o `AppLocaleCubit` global.
-- Nao ha persistencia do idioma nem selecao de fase antes de iniciar o jogo.
+- O idioma escolhido e persistido via `StorageService` e restaurado automaticamente no proximo lancamento.
 - O breakpoint de 760px (definido em `TitleMainContent`) apenas controla o `isWide` passado ao `TitleHero` (tamanho de fonte e alinhamento de texto); nao ha mais bifurcacao de layout para o console.

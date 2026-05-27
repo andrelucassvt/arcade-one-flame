@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:arcade_one/loading/cubit/cubit.dart';
@@ -34,6 +35,8 @@ class _MockImages extends Mock implements Images {}
 class _MockPreloadCubit extends MockCubit<PreloadState>
     implements PreloadCubit {}
 
+class _MockStorageService extends Mock implements StorageService {}
+
 class _OverlayGame extends ArcadeOne {
   _OverlayGame({
     required super.l10n,
@@ -41,6 +44,7 @@ class _OverlayGame extends ArcadeOne {
     required super.deathPlayer,
     required super.textStyle,
     required super.images,
+    required super.storage,
   });
 
   @override
@@ -198,6 +202,7 @@ void main() {
         deathPlayer: deathPlayer,
         textStyle: const TextStyle(),
         images: Images(),
+        storage: _MockStorageService(),
       );
 
       await tester.pumpApp(

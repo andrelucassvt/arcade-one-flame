@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/game/game_image_assets.dart';
 import 'package:arcade_one/gen/assets.gen.dart';
@@ -40,10 +41,13 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     required this.deathPlayer,
     required this.textStyle,
     required Images images,
+    required this.storage,
     math.Random? random,
   }) : _random = random ?? math.Random() {
     this.images = images;
   }
+
+  static const _keyBestDistance = 'best_distance_km';
 
   final AppLocalizations l10n;
 
@@ -54,6 +58,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   final TextStyle textStyle;
 
   final math.Random _random;
+
+  final StorageService storage;
 
   double distanceKm = 0;
   double bestDistanceKm = 0;
@@ -98,6 +104,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   @override
   Future<void> onLoad() async {
+    final saved = await storage.getDouble(_keyBestDistance);
+    bestDistanceKm = saved ?? 0.0;
     await _buildRun();
   }
 
@@ -216,7 +224,10 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     }
 
     isGameOver = true;
-    bestDistanceKm = math.max(bestDistanceKm, distanceKm);
+    if (distanceKm > bestDistanceKm) {
+      bestDistanceKm = distanceKm;
+      unawaited(storage.setDouble(_keyBestDistance, bestDistanceKm));
+    }
     _stopEngineSound();
     unawaited(deathPlayer.play(AssetSource(Assets.audio.death)));
     if (overlays.registeredOverlays.contains(gameOverOverlayKey)) {

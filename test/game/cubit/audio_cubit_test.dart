@@ -1,3 +1,4 @@
+import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/cubit/cubit.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bloc_test/bloc_test.dart';
@@ -9,6 +10,8 @@ class _MockAudioCache extends Mock implements AudioCache {}
 
 class _MockAudioPlayer extends Mock implements AudioPlayer {}
 
+class _MockStorageService extends Mock implements StorageService {}
+
 void main() {
   group('AudioCubit', () {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -16,16 +19,25 @@ void main() {
     late AudioCache audioCache;
     late AudioPlayer enginePlayer;
     late AudioPlayer deathPlayer;
+    late StorageService storage;
 
     setUp(() {
       audioCache = _MockAudioCache();
       enginePlayer = _MockAudioPlayer();
       deathPlayer = _MockAudioPlayer();
+      storage = _MockStorageService();
+
       when(() => enginePlayer.audioCache).thenReturn(audioCache);
       when(() => deathPlayer.audioCache).thenReturn(audioCache);
 
       when(enginePlayer.dispose).thenAnswer((_) async {});
       when(deathPlayer.dispose).thenAnswer((_) async {});
+
+      when(() => enginePlayer.setVolume(any())).thenAnswer((_) async {});
+      when(() => deathPlayer.setVolume(any())).thenAnswer((_) async {});
+
+      when(() => storage.getDouble(any())).thenAnswer((_) async => null);
+      when(() => storage.setDouble(any(), any())).thenAnswer((_) async {});
 
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
@@ -42,18 +54,72 @@ void main() {
       ),
     );
 
+    // ── Testes de persistência ────────────────────────────────────────────
+
+    blocTest<AudioCubit, AudioState>(
+      'init emite AudioState(volume: 0) quando storage retorna 0.0',
+      setUp: () {
+        when(() => storage.getDouble('audio_volume'))
+            .thenAnswer((_) async => 0.0);
+      },
+      build: () => AudioCubit(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+        storage: storage,
+      ),
+      act: (cubit) => cubit.init(),
+      expect: () => [const AudioState(volume: 0)],
+    );
+
+    blocTest<AudioCubit, AudioState>(
+      'init não emite nada quando storage retorna null',
+      build: () => AudioCubit(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+        storage: storage,
+      ),
+      act: (cubit) => cubit.init(),
+      expect: () => <AudioState>[],
+    );
+
+    blocTest<AudioCubit, AudioState>(
+      'toggleVolume salva volume 0 no storage ao mutar',
+      build: () => AudioCubit.test(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+        storage: storage,
+      ),
+      act: (cubit) => cubit.toggleVolume(),
+      expect: () => [const AudioState(volume: 0)],
+      verify: (_) {
+        verify(() => storage.setDouble('audio_volume', 0)).called(1);
+      },
+    );
+
+    blocTest<AudioCubit, AudioState>(
+      'toggleVolume salva volume 1 no storage ao desmutar',
+      build: () => AudioCubit.test(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+        storage: storage,
+        volume: 0,
+      ),
+      act: (cubit) => cubit.toggleVolume(),
+      expect: () => [const AudioState()],
+      verify: (_) {
+        verify(() => storage.setDouble('audio_volume', 1)).called(1);
+      },
+    );
+
+    // ── Testes existentes ─────────────────────────────────────────────────
+
     blocTest<AudioCubit, AudioState>(
       'toggleVolume mutes the volume when the volume is not 0',
-      setUp: () {
-        when(() => enginePlayer.setVolume(any())).thenAnswer((_) async {});
-        when(() => deathPlayer.setVolume(any())).thenAnswer((_) async {});
-      },
-      build: () {
-        return AudioCubit.test(
-          enginePlayer: enginePlayer,
-          deathPlayer: deathPlayer,
-        );
-      },
+      build: () => AudioCubit.test(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+        storage: storage,
+      ),
       act: (cubit) => cubit.toggleVolume(),
       expect: () => [const AudioState(volume: 0)],
       verify: (_) {
@@ -64,17 +130,12 @@ void main() {
 
     blocTest<AudioCubit, AudioState>(
       'toggleVolume unmutes the volume when the volume is 0',
-      setUp: () {
-        when(() => enginePlayer.setVolume(any())).thenAnswer((_) async {});
-        when(() => deathPlayer.setVolume(any())).thenAnswer((_) async {});
-      },
-      build: () {
-        return AudioCubit.test(
-          enginePlayer: enginePlayer,
-          deathPlayer: deathPlayer,
-          volume: 0,
-        );
-      },
+      build: () => AudioCubit.test(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+        storage: storage,
+        volume: 0,
+      ),
       act: (cubit) => cubit.toggleVolume(),
       expect: () => [const AudioState()],
       verify: (_) {
@@ -87,6 +148,7 @@ void main() {
       final cubit = AudioCubit.test(
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
+        storage: storage,
       );
 
       await cubit.close();

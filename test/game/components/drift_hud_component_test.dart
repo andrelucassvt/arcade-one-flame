@@ -1,6 +1,7 @@
 // Make test files more explicit rather than collapsing calls
 // ignore_for_file: cascade_invocations
 
+import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -15,6 +16,8 @@ class _MockAppLocalizations extends Mock implements AppLocalizations {}
 
 class _MockAudioPlayer extends Mock implements AudioPlayer {}
 
+class _MockStorageService extends Mock implements StorageService {}
+
 class _ArcadeOne extends ArcadeOne {
   _ArcadeOne({
     required super.l10n,
@@ -22,6 +25,7 @@ class _ArcadeOne extends ArcadeOne {
     required super.deathPlayer,
     required super.textStyle,
     required super.images,
+    required super.storage,
   });
 
   @override
@@ -51,6 +55,7 @@ void main() {
         deathPlayer: _MockAudioPlayer(),
         textStyle: const TextStyle(),
         images: Images(),
+        storage: _MockStorageService(),
       );
       game.onGameResize(Vector2(390, 700));
       return game;

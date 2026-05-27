@@ -104,7 +104,9 @@ class _GameViewState extends State<GameView> {
           right: 0,
           child: Align(
             alignment: Alignment.bottomCenter,
-            child: AdBannerWidget(adUnitId: AdConfig.banner),
+            child: SafeArea(
+              child: AdBannerWidget(adUnitId: AdConfig.banner),
+            ),
           ),
         ),
       ],

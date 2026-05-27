@@ -1,4 +1,4 @@
-package com.example.verygoodcore.arcade_one
+package com.andre.drift.space
 
 import io.flutter.embedding.android.FlutterActivity
 

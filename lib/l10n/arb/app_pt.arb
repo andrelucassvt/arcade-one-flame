@@ -1,6 +1,6 @@
 {
-  "@@locale": "en",
-  "startVeryGoodGame": "Start DRIFT",
+  "@@locale": "pt",
+  "startVeryGoodGame": "Iniciar DRIFT",
   "@startVeryGoodGame": {
     "description": "The initial start button of the game application"
   },
@@ -8,11 +8,11 @@
   "@titleAppBarTitle": {
     "description": "Text shown in the AppBar of the Title Page"
   },
-  "titleButtonStart": "Launch",
+  "titleButtonStart": "Decolar",
   "@titleButtonStart": {
     "description": "Text shown in the start Button of the Title Page"
   },
-  "titleEyebrow": "Deep space arcade",
+  "titleEyebrow": "Arcade no espaco profundo",
   "@titleEyebrow": {
     "description": "Small label shown at the top of the Title Page"
   },
@@ -20,11 +20,11 @@
   "@titleHeadline": {
     "description": "Main title shown on the Title Page"
   },
-  "titleSubtitle": "Dodge asteroid lanes, ride the engine burn, and push your best run deeper into the galaxy.",
+  "titleSubtitle": "Desvie dos corredores de asteroides, segure o impulso do motor e leve sua melhor partida mais fundo na galaxia.",
   "@titleSubtitle": {
     "description": "Subtitle shown on the Title Page"
   },
-  "titleLanguageTooltip": "Change language",
+  "titleLanguageTooltip": "Mudar idioma",
   "@titleLanguageTooltip": {
     "description": "Tooltip for the language selector on the Title Page"
   },
@@ -36,35 +36,35 @@
   "@titleLanguagePortuguese": {
     "description": "Portuguese language option label"
   },
-  "titleConsoleTitle": "Mission briefing",
+  "titleConsoleTitle": "Briefing da missao",
   "@titleConsoleTitle": {
     "description": "Title for the mission status panel on the Title Page"
   },
-  "titleMissionDistance": "Next sector",
+  "titleMissionDistance": "Proximo setor",
   "@titleMissionDistance": {
     "description": "Label for the next sector status on the Title Page"
   },
-  "titleMissionDistanceValue": "Mars drift",
+  "titleMissionDistanceValue": "Drift em Marte",
   "@titleMissionDistanceValue": {
     "description": "Value for the next sector status on the Title Page"
   },
-  "titleMissionThreat": "Threat",
+  "titleMissionThreat": "Ameaca",
   "@titleMissionThreat": {
     "description": "Label for the threat status on the Title Page"
   },
-  "titleMissionThreatValue": "Asteroid storm",
+  "titleMissionThreatValue": "Tempestade de asteroides",
   "@titleMissionThreatValue": {
     "description": "Value for the threat status on the Title Page"
   },
-  "titleShipStatus": "Ship",
+  "titleShipStatus": "Nave",
   "@titleShipStatus": {
     "description": "Label for the ship status on the Title Page"
   },
-  "titleShipStatusValue": "Ready",
+  "titleShipStatusValue": "Pronta",
   "@titleShipStatusValue": {
     "description": "Value for the ship status on the Title Page"
   },
-  "loading": "Loading {label}...",
+  "loading": "Carregando {label}...",
   "@loading": {
     "description": "Text for the loading page",
     "placeholders": {
@@ -75,7 +75,7 @@
       }
     }
   },
-  "loadingPhaseLabel": "{loadingPhase, select, audio{Ship sounds} images{Beautiful scenery} other{ }}",
+  "loadingPhaseLabel": "{loadingPhase, select, audio{sons da nave} images{cenarios espaciais} other{ }}",
   "@loadingPhaseLabel": {
     "description": "Loading phases",
     "placeholders": {
@@ -93,7 +93,7 @@
       }
     }
   },
-  "bestDistanceText": "Best {distance} km",
+  "bestDistanceText": "Melhor {distance} km",
   "@bestDistanceText": {
     "description": "Text for the best distance in the current session",
     "placeholders": {
@@ -104,15 +104,15 @@
       }
     }
   },
-  "gameOverTitle": "GAME OVER",
+  "gameOverTitle": "FIM DE JOGO",
   "@gameOverTitle": {
     "description": "Game over title shown after a crash"
   },
-  "gameOverMessage": "You died in the drift.",
+  "gameOverMessage": "Voce morreu no drift.",
   "@gameOverMessage": {
     "description": "Message shown in the game over popup after the player dies"
   },
-  "gameOverDistanceText": "Distance traveled: {distance} km",
+  "gameOverDistanceText": "Distancia percorrida: {distance} km",
   "@gameOverDistanceText": {
     "description": "Distance shown in the game over popup after the player dies",
     "placeholders": {
@@ -123,11 +123,11 @@
       }
     }
   },
-  "restartHint": "Tap to restart",
+  "restartHint": "Toque para reiniciar",
   "@restartHint": {
     "description": "Hint shown after game over"
   },
-  "restartButtonLabel": "Restart",
+  "restartButtonLabel": "Reiniciar",
   "@restartButtonLabel": {
     "description": "Button label for restarting the game from the game over popup"
   }

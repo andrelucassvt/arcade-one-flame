@@ -1,6 +1,9 @@
-import 'package:arcade_one/game/game.dart';
-import 'package:arcade_one/l10n/l10n.dart';
+import 'package:arcade_one/app/app.dart';
+import 'package:arcade_one/title/content/title_backdrop.dart';
+import 'package:arcade_one/title/content/title_main_content.dart';
+import 'package:arcade_one/title/content/title_top_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class TitlePage extends StatelessWidget {
   const TitlePage({super.key});
@@ -11,34 +14,56 @@ class TitlePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
-
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.titleAppBarTitle)),
-      body: const SafeArea(child: TitleView()),
-    );
+    return const Scaffold(body: SafeArea(child: TitleView()));
   }
 }
 
 class TitleView extends StatelessWidget {
   const TitleView({super.key});
 
+  static const _contentMaxWidth = 1040.0;
+
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
+    final selectedLocale = context.select<AppLocaleCubit, Locale?>(
+      (cubit) => cubit.state,
+    );
 
-    return Center(
-      child: SizedBox(
-        width: 250,
-        height: 64,
-        child: ElevatedButton(
-          onPressed: () async {
-            await Navigator.of(
-              context,
-            ).pushReplacement<void, void>(GamePage.route());
-          },
-          child: Center(child: Text(l10n.titleButtonStart)),
-        ),
+    return Material(
+      type: MaterialType.transparency,
+      child: Stack(
+        children: [
+          const Positioned.fill(child: TitleBackdrop()),
+          Positioned.fill(
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight:
+                      MediaQuery.sizeOf(context).height -
+                      MediaQuery.paddingOf(context).vertical,
+                ),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: _contentMaxWidth,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TitleTopBar(selectedLocale: selectedLocale),
+                          const SizedBox(height: 36),
+                          const TitleMainContent(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -18,6 +18,18 @@ void main() {
       await tester.pumpApp(const TitleView());
 
       expect(find.byType(ElevatedButton), findsOneWidget);
+      expect(find.text('Launch'), findsOneWidget);
+    });
+
+    testWidgets('changes language from the title screen', (tester) async {
+      await tester.pumpApp(const TitleView());
+
+      await tester.tap(find.byIcon(Icons.language_rounded));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Português').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Decolar'), findsOneWidget);
     });
 
     testWidgets('starts the game when start button is tapped', (tester) async {

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:arcade_one/app/cubit/cubit.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:arcade_one/loading/loading.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -15,6 +16,7 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider(create: (_) => AppLocaleCubit()),
         BlocProvider(
           create: (_) {
             final cubit = PreloadCubit(
@@ -36,29 +38,36 @@ class AppView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: const Color(0xFF2A48DF),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF2A48DF),
-          foregroundColor: Color(0xFFFFFFFF),
-        ),
-        colorScheme: ColorScheme.fromSwatch(
-          accentColor: const Color(0xFF2A48DF),
-        ),
-        scaffoldBackgroundColor: const Color(0xFFFFFFFF),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ButtonStyle(
-            backgroundColor: WidgetStateProperty.all(const Color(0xFF2A48DF)),
-            foregroundColor: WidgetStateProperty.all(Colors.white),
+    return BlocBuilder<AppLocaleCubit, Locale?>(
+      builder: (context, locale) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          locale: locale,
+          theme: ThemeData(
+            primaryColor: const Color(0xFF2A48DF),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color(0xFF2A48DF),
+              foregroundColor: Color(0xFFFFFFFF),
+            ),
+            colorScheme: ColorScheme.fromSwatch(
+              accentColor: const Color(0xFF2A48DF),
+            ),
+            scaffoldBackgroundColor: const Color(0xFFFFFFFF),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ButtonStyle(
+                backgroundColor: WidgetStateProperty.all(
+                  const Color(0xFF2A48DF),
+                ),
+                foregroundColor: WidgetStateProperty.all(Colors.white),
+              ),
+            ),
+            textTheme: GoogleFonts.poppinsTextTheme(),
           ),
-        ),
-        textTheme: GoogleFonts.poppinsTextTheme(),
-      ),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: const LoadingPage(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const LoadingPage(),
+        );
+      },
     );
   }
 }

@@ -3,7 +3,12 @@ import 'package:arcade_one/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
 class TitleStartButton extends StatelessWidget {
-  const TitleStartButton({super.key});
+  const TitleStartButton({
+    required this.controlMode,
+    super.key,
+  });
+
+  final GameControlMode controlMode;
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +21,9 @@ class TitleStartButton extends StatelessWidget {
         onPressed: () async {
           await Navigator.of(
             context,
-          ).pushReplacement<void, void>(GamePage.route());
+          ).pushReplacement<void, void>(
+            GamePage.route(controlMode: controlMode),
+          );
         },
         icon: const Icon(Icons.rocket_launch_rounded),
         label: Text(l10n.titleButtonStart),

@@ -1,0 +1,4 @@
+enum GameControlMode {
+  touch,
+  joystick,
+}

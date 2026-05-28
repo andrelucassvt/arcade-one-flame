@@ -72,6 +72,18 @@
   "@titleShipStatusValue": {
     "description": "Value for the ship status on the Title Page"
   },
+  "titleControlModeLabel": "Controles",
+  "@titleControlModeLabel": {
+    "description": "Label for the gameplay control mode selector on the Title Page"
+  },
+  "titleControlModeTouch": "Toque",
+  "@titleControlModeTouch": {
+    "description": "Gameplay control mode option for touch or click controls"
+  },
+  "titleControlModeJoystick": "Joystick",
+  "@titleControlModeJoystick": {
+    "description": "Gameplay control mode option for virtual joystick controls"
+  },
   "loading": "Carregando {label}...",
   "@loading": {
     "description": "Text for the loading page",

@@ -37,6 +37,10 @@ class Ship extends PositionComponent {
 
   void setThrustTarget(Vector2 target) {
     final direction = target - position;
+    setThrustDirection(direction);
+  }
+
+  void setThrustDirection(Vector2 direction) {
     if (direction.length2 < 0.0001) {
       clearThrust();
       return;

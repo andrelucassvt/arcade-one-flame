@@ -74,7 +74,10 @@ void main() {
       when(() => storage.setDouble(any(), any())).thenAnswer((_) async {});
     });
 
-    ArcadeOne createGame({math.Random? random}) {
+    ArcadeOne createGame({
+      math.Random? random,
+      GameControlMode controlMode = GameControlMode.touch,
+    }) {
       final game = ArcadeOne(
         l10n: l10n,
         enginePlayer: enginePlayer,
@@ -85,6 +88,7 @@ void main() {
         textStyle: const TextStyle(),
         images: Images(),
         storage: storage,
+        controlMode: controlMode,
         random: random ?? math.Random(1),
       );
       game.onGameResize(Vector2(390, 700));
@@ -374,6 +378,43 @@ void main() {
 
       verify(() => enginePlayer.stop()).called(1);
     });
+
+    testWithGame(
+      'uses joystick direction in joystick control mode',
+      () => createGame(controlMode: GameControlMode.joystick),
+      (game) async {
+        expect(game.ship!.thrustPower, equals(joystickShipThrustPower));
+        expect(game.ship!.maxSpeed, equals(joystickShipMaxSpeed));
+        expect(game.ship!.maxSpeed, lessThan(defaultShipMaxSpeed));
+
+        game.onTapDown(tapDown(game));
+
+        expect(thrustTapSoundCount, equals(0));
+        expect(game.ship!.isThrusting, isFalse);
+
+        game.setJoystickDirection(Vector2(1, 0));
+
+        expect(thrustTapSoundCount, equals(1));
+        expect(game.ship!.isThrusting, isTrue);
+
+        game.clearJoystick();
+
+        expect(game.ship!.isThrusting, isFalse);
+      },
+    );
+
+    testWithGame(
+      'ignores joystick direction in touch control mode',
+      createGame,
+      (
+        game,
+      ) async {
+        game.setJoystickDirection(Vector2(1, 0));
+
+        expect(thrustTapSoundCount, equals(0));
+        expect(game.ship!.isThrusting, isFalse);
+      },
+    );
 
     testWithGame('stops engine fire sound when the run ends', createGame, (
       game,

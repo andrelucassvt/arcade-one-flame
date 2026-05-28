@@ -19,6 +19,8 @@ const String gameOverOverlayKey = 'game_over';
 const double initialDriftSpeed = 2;
 const double driftSpeedGrowth = 0.0008;
 const double driftVisualSpeedScale = 42;
+const double joystickShipThrustPower = 360;
+const double joystickShipMaxSpeed = 170;
 const double obstacleSpacing = 145;
 const double looseMeteorSpacing = 95;
 const double initialObstacleY = -42;
@@ -45,6 +47,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     required this.textStyle,
     required Images images,
     required this.storage,
+    this.controlMode = GameControlMode.touch,
     math.Random? random,
     PlayThrustTapSound? playThrustTapSound,
   }) : playThrustTapSound = playThrustTapSound ?? _playNoThrustTapSound,
@@ -68,6 +71,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   final StorageService storage;
 
+  final GameControlMode controlMode;
+
   double distanceKm = 0;
   double bestDistanceKm = 0;
   double scrollSpeed = initialDriftSpeed * driftVisualSpeedScale;
@@ -82,6 +87,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   Timer? _engineSoundStartTimer;
   bool _isEngineSoundRequested = false;
   bool _isEngineSoundPlaying = false;
+  bool _isJoystickActive = false;
 
   final List<AsteroidPairComponent> obstacles = [];
   final List<LooseMeteorComponent> looseMeteors = [];
@@ -176,7 +182,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   @override
   void onTapDown(TapDownEvent event) {
-    if (isGameOver) {
+    if (controlMode != GameControlMode.touch || isGameOver) {
       return;
     }
 
@@ -187,12 +193,20 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   @override
   void onTapUp(TapUpEvent event) {
+    if (controlMode != GameControlMode.touch) {
+      return;
+    }
+
     _stopEngineSound();
     ship?.clearThrust();
   }
 
   @override
   void onTapCancel(TapCancelEvent event) {
+    if (controlMode != GameControlMode.touch) {
+      return;
+    }
+
     _stopEngineSound();
     ship?.clearThrust();
   }
@@ -200,7 +214,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
-    if (!isGameOver) {
+    if (controlMode == GameControlMode.touch && !isGameOver) {
       unawaited(playThrustTapSound());
       _startEngineSound();
       ship?.setThrustTarget(event.canvasPosition);
@@ -209,7 +223,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
-    if (!isGameOver) {
+    if (controlMode == GameControlMode.touch && !isGameOver) {
       _startEngineSound();
       ship?.setThrustTarget(event.canvasEndPosition);
     }
@@ -218,6 +232,10 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
+    if (controlMode != GameControlMode.touch) {
+      return;
+    }
+
     _stopEngineSound();
     ship?.clearThrust();
   }
@@ -225,6 +243,38 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void onDragCancel(DragCancelEvent event) {
     super.onDragCancel(event);
+    if (controlMode != GameControlMode.touch) {
+      return;
+    }
+
+    _stopEngineSound();
+    ship?.clearThrust();
+  }
+
+  void setJoystickDirection(Vector2 direction) {
+    if (controlMode != GameControlMode.joystick || isGameOver) {
+      return;
+    }
+
+    if (direction.length2 < 0.0001) {
+      clearJoystick();
+      return;
+    }
+
+    if (!_isJoystickActive) {
+      unawaited(playThrustTapSound());
+    }
+    _isJoystickActive = true;
+    _startEngineSound();
+    ship?.setThrustDirection(direction);
+  }
+
+  void clearJoystick() {
+    if (controlMode != GameControlMode.joystick) {
+      return;
+    }
+
+    _isJoystickActive = false;
     _stopEngineSound();
     ship?.clearThrust();
   }
@@ -250,6 +300,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   Future<void> restartRun() async {
     isGameOver = false;
+    _isJoystickActive = false;
     overlays.remove(gameOverOverlayKey);
     distanceKm = 0;
     scrollSpeed = initialDriftSpeed * driftVisualSpeedScale;
@@ -284,6 +335,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     );
     ship = Ship(
       position: _shipStartPosition(),
+      thrustPower: _shipThrustPower,
+      maxSpeed: _shipMaxSpeed,
       shipImage: _playerShipImage,
     );
     hud = DriftHudComponent(position: Vector2(12, 12));
@@ -347,6 +400,16 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     final area = playArea;
     return Vector2(area.x / 2, area.y * 0.72);
   }
+
+  double get _shipThrustPower => switch (controlMode) {
+    GameControlMode.touch => defaultShipThrustPower,
+    GameControlMode.joystick => joystickShipThrustPower,
+  };
+
+  double get _shipMaxSpeed => switch (controlMode) {
+    GameControlMode.touch => defaultShipMaxSpeed,
+    GameControlMode.joystick => joystickShipMaxSpeed,
+  };
 
   void _advanceObstacleSequenceIfNeeded() {
     if (obstacles.isEmpty && looseMeteors.isEmpty) {

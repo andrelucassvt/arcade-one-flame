@@ -10,22 +10,39 @@ import 'package:flame/game.dart' hide Route;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class GamePage extends StatelessWidget {
-  const GamePage({super.key});
+const double _bannerReservedHeight = 50;
+const double _joystickBottomSpacing = 16;
 
-  static Route<void> route() {
-    return MaterialPageRoute<void>(builder: (_) => const GamePage());
+class GamePage extends StatelessWidget {
+  const GamePage({
+    this.controlMode = GameControlMode.touch,
+    super.key,
+  });
+
+  final GameControlMode controlMode;
+
+  static Route<void> route({
+    GameControlMode controlMode = GameControlMode.touch,
+  }) {
+    return MaterialPageRoute<void>(
+      builder: (_) => GamePage(controlMode: controlMode),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: GameView());
+    return Scaffold(body: GameView(controlMode: controlMode));
   }
 }
 
 class GameView extends StatefulWidget {
-  const GameView({super.key, this.game});
+  const GameView({
+    this.controlMode = GameControlMode.touch,
+    super.key,
+    this.game,
+  });
 
+  final GameControlMode controlMode;
   final FlameGame? game;
 
   @override
@@ -52,11 +69,16 @@ class _GameViewState extends State<GameView> {
           textStyle: textStyle,
           images: context.read<PreloadCubit>().images,
           storage: context.read<StorageService>(),
+          controlMode: widget.controlMode,
         );
     final game = _game!;
     if (game is ArcadeOne) {
       game.updateSafeAreaPadding(MediaQuery.paddingOf(context));
     }
+    final bannerAdUnitId = AdConfig.maybeBanner;
+    final joystickBottomPadding = bannerAdUnitId == null
+        ? _joystickBottomSpacing
+        : _bannerReservedHeight + _joystickBottomSpacing;
 
     return Stack(
       children: [
@@ -82,6 +104,19 @@ class _GameViewState extends State<GameView> {
             },
           ),
         ),
+        if (game is ArcadeOne && game.controlMode == GameControlMode.joystick)
+          SafeArea(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: joystickBottomPadding),
+                child: GameJoystick(
+                  onDirectionChanged: game.setJoystickDirection,
+                  onReleased: game.clearJoystick,
+                ),
+              ),
+            ),
+          ),
         SafeArea(
           child: Align(
             alignment: Alignment.topRight,
@@ -98,17 +133,18 @@ class _GameViewState extends State<GameView> {
             ),
           ),
         ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              child: AdBannerWidget(adUnitId: AdConfig.banner),
+        if (bannerAdUnitId != null)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: SafeArea(
+                child: AdBannerWidget(adUnitId: bannerAdUnitId),
+              ),
             ),
           ),
-        ),
       ],
     );
   }

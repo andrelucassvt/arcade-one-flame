@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:arcade_one/game/cubit/cubit.dart';
+import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/title/title.dart';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +25,9 @@ void main() {
 
       expect(find.byType(ElevatedButton), findsOneWidget);
       expect(find.text('Launch'), findsOneWidget);
+      expect(find.text('Controls'), findsOneWidget);
+      expect(find.text('Tap'), findsOneWidget);
+      expect(find.text('Joystick'), findsOneWidget);
     });
 
     testWidgets('changes language from the title screen', (tester) async {
@@ -90,6 +93,41 @@ void main() {
       await tester.tap(find.byType(ElevatedButton));
 
       verify(() => navigator.pushReplacement<void, void>(any())).called(1);
+    });
+
+    testWidgets('starts the game with the selected control mode', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final navigator = MockNavigator();
+      when(navigator.canPop).thenReturn(true);
+      when(
+        () => navigator.pushReplacement<void, void>(any()),
+      ).thenAnswer((_) async {});
+
+      await tester.pumpApp(const TitleView(), navigator: navigator);
+
+      await tester.tap(find.text('Joystick'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(ElevatedButton));
+      await tester.tap(find.byType(ElevatedButton));
+
+      final route =
+          verify(
+                () => navigator.pushReplacement<void, void>(captureAny()),
+              ).captured.single
+              as MaterialPageRoute<void>;
+      final page =
+          route.builder(
+                tester.element(find.byType(TitleView)),
+              )
+              as GamePage;
+
+      expect(page.controlMode, equals(GameControlMode.joystick));
     });
   });
 }

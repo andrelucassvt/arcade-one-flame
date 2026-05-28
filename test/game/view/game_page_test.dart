@@ -45,6 +45,7 @@ class _OverlayGame extends ArcadeOne {
     required super.textStyle,
     required super.images,
     required super.storage,
+    super.controlMode,
   });
 
   @override
@@ -115,6 +116,17 @@ void main() {
     testWidgets('renders GameView', (tester) async {
       await tester.pumpApp(const GamePage(), preloadCubit: preloadCubit);
       expect(find.byType(GameView), findsOneWidget);
+    });
+
+    testWidgets('passes the control mode to GameView', (tester) async {
+      await tester.pumpApp(
+        const GamePage(controlMode: GameControlMode.joystick),
+        preloadCubit: preloadCubit,
+      );
+
+      final view = tester.widget<GameView>(find.byType(GameView));
+
+      expect(view.controlMode, equals(GameControlMode.joystick));
     });
   });
 
@@ -231,6 +243,50 @@ void main() {
 
       expect(game.isGameOver, isFalse);
       expect(game.overlays.isActive(gameOverOverlayKey), isFalse);
+    });
+
+    testWidgets('renders joystick controls for joystick games', (tester) async {
+      final l10n = _MockAppLocalizations();
+      when(() => l10n.distanceText(any())).thenReturn('0 km');
+      when(() => l10n.bestDistanceText(any())).thenReturn('Best 0 km');
+      when(() => l10n.gameOverTitle).thenReturn('GAME OVER');
+      when(() => l10n.restartHint).thenReturn('Tap to restart');
+
+      final game = _OverlayGame(
+        l10n: l10n,
+        enginePlayer: _MockAudioPlayer(),
+        deathPlayer: _MockAudioPlayer(),
+        textStyle: const TextStyle(),
+        images: Images(),
+        storage: _MockStorageService(),
+        controlMode: GameControlMode.joystick,
+      );
+
+      await tester.pumpApp(
+        BlocProvider.value(
+          value: audioCubit,
+          child: Material(child: GameView(game: game)),
+        ),
+      );
+
+      expect(find.byType(GameJoystick), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(GameJoystick)),
+        equals(const Size.square(104)),
+      );
+      expect(
+        tester.getCenter(find.byType(GameJoystick)).dx,
+        equals(tester.getCenter(find.byType(GameView)).dx),
+      );
+      expect(
+        tester.getCenter(find.byType(GameJoystick)).dy,
+        greaterThan(tester.getCenter(find.byType(GameView)).dy),
+      );
+      expect(
+        tester.getBottomLeft(find.byType(GameView)).dy -
+            tester.getBottomLeft(find.byType(GameJoystick)).dy,
+        equals(16),
+      );
     });
   });
 }

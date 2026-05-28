@@ -1,4 +1,5 @@
 import 'package:arcade_one/app/app.dart';
+import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/title/content/title_backdrop.dart';
 import 'package:arcade_one/title/content/title_main_content.dart';
 import 'package:arcade_one/title/content/title_top_bar.dart';
@@ -18,11 +19,17 @@ class TitleView extends StatefulWidget {
 
 class _TitleViewState extends State<TitleView> {
   static const _contentMaxWidth = 1040.0;
+
+  GameControlMode _selectedControlMode = GameControlMode.touch;
+
   @override
   Widget build(BuildContext context) {
     final selectedLocale = context.select<AppLocaleCubit, Locale?>(
       (cubit) => cubit.state,
     );
+    final minContentHeight =
+        MediaQuery.sizeOf(context).height -
+        MediaQuery.paddingOf(context).vertical;
 
     return Material(
       type: MaterialType.transparency,
@@ -32,28 +39,30 @@ class _TitleViewState extends State<TitleView> {
             child: TitleBackdrop(),
           ),
           Positioned.fill(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight:
-                    MediaQuery.sizeOf(context).height -
-                    MediaQuery.paddingOf(context).vertical,
-              ),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: _contentMaxWidth,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TitleTopBar(selectedLocale: selectedLocale),
-                        const Spacer(),
-                        const TitleMainContent(),
-                        const Spacer(),
-                      ],
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: minContentHeight),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: _contentMaxWidth,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TitleTopBar(selectedLocale: selectedLocale),
+                          const SizedBox(height: 32),
+                          TitleMainContent(
+                            selectedControlMode: _selectedControlMode,
+                            onControlModeChanged: (mode) {
+                              setState(() => _selectedControlMode = mode);
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

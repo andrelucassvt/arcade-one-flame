@@ -5,11 +5,13 @@ class GameOverPopup extends StatelessWidget {
   const GameOverPopup({
     required this.distanceKm,
     required this.onRestart,
+    required this.onReturnToTitle,
     super.key,
   });
 
   final int distanceKm;
   final VoidCallback onRestart;
+  final VoidCallback onReturnToTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +79,19 @@ class GameOverPopup extends StatelessWidget {
                       onPressed: onRestart,
                       icon: const Icon(Icons.restart_alt_rounded),
                       label: Text(l10n.restartButtonLabel),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: onReturnToTitle,
+                      icon: const Icon(Icons.home_rounded),
+                      label: Text(l10n.returnToTitleButtonLabel),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white38),
+                      ),
                     ),
                   ),
                 ],

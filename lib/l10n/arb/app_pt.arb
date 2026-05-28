@@ -150,5 +150,9 @@
   "restartButtonLabel": "Reiniciar",
   "@restartButtonLabel": {
     "description": "Button label for restarting the game from the game over popup"
+  },
+  "returnToTitleButtonLabel": "Tela inicial",
+  "@returnToTitleButtonLabel": {
+    "description": "Button label for returning to the title screen from the game over popup"
   }
 }

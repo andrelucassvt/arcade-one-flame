@@ -10,7 +10,7 @@ O fluxo de Game comeca quando `TitleView` navega para `GamePage.route(controlMod
 
 Durante a partida em `GameControlMode.touch`, toques e drags na tela ligam o thrust da nave em direcao ao ponteiro. Em `GameControlMode.joystick`, `GameView` sobrepoe `GameJoystick` no `bottomCenter`, com margem inferior que reserva a altura do banner quando ha anuncio configurado; o joystick envia uma direcao normalizada para `ArcadeOne.setJoystickDirection`, que aplica thrust por direcao em vez de alvo de ponteiro. Nesse modo a nave nasce com `joystickShipThrustPower` e `joystickShipMaxSpeed`, deixando a velocidade da nave menor que no modo de toque. Cada inicio de thrust toca imediatamente um SFX curto via `AudioPool`, para que taps rapidos tenham feedback sem cortar o som. O som longo de motor/fogo entra em loop apenas se o input continuar ativo depois de um pequeno atraso. Enquanto o thrust esta ativo, `Ship` anima o sprite da nave com pulso e chama animada; ao soltar, o som de motor/fogo pendente ou ativo para, mas a nave nao para: `Ship` mantem a velocidade acumulada e continua deslizando por inercia. `ArcadeOne.update` incrementa a distancia, calcula a velocidade de scroll, avanca o background progressivo, move a sequencia ativa de obstaculos, verifica colisao com asteroides ou meteoros soltos e encerra a partida se a nave tocar as bordas da tela.
 
-Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia da sessao, para o som de motor/fogo, toca o som de morte e ativa o overlay Flutter de game over. O popup informa que o jogador morreu, mostra a distancia percorrida em KM e oferece o botao de restart, que reinicia a mesma tela, reposicionando a nave e recriando os obstaculos.
+Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia da sessao, para o som de motor/fogo, toca o som de morte e ativa o overlay Flutter de game over. O popup informa que o jogador morreu, mostra a distancia percorrida em KM e oferece botoes para reiniciar a mesma tela ou voltar para a Title.
 
 ## Passo a Passo
 
@@ -55,10 +55,12 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 20. **HUD** — `lib/game/components/drift_hud_component.dart` -> `DriftHudComponent.update`
     Atualiza distancia atual e melhor distancia. As mensagens centrais de game over ficam fora do canvas e sao exibidas pelo overlay Flutter.
 21. **Popup de game over** — `lib/game/widgets/game_over_popup.dart`
-    Exibe `gameOverTitle`, `gameOverMessage`, a distancia percorrida via `gameOverDistanceText` e o botao `restartButtonLabel` dentro de `SafeArea`.
+    Exibe `gameOverTitle`, `gameOverMessage`, a distancia percorrida via `gameOverDistanceText`, o botao `restartButtonLabel` e o botao `returnToTitleButtonLabel` dentro de `SafeArea`.
 22. **Restart** — `lib/game/view/game_page.dart` -> `GameOverPopup.onRestart` -> `ArcadeOne.restartRun`
     O botao do popup zera a distancia, remove o overlay, reposiciona a nave, remove obstaculos antigos e cria uma nova leva inicial.
-23. **Dispose** — `lib/game/cubit/audio/audio_cubit.dart`
+23. **Voltar para Title** — `lib/game/view/game_page.dart` -> `GameOverPopup.onReturnToTitle`
+    O botao de voltar para a tela inicial chama `Navigator.of(context).pushReplacement(TitleView.route())`, removendo a Game da pilha e abrindo a Title novamente.
+24. **Dispose** — `lib/game/cubit/audio/audio_cubit.dart`
     Quando o provider global e descartado, `AudioCubit.close` descarta `enginePlayer`, `deathPlayer` e o `AudioPool` de SFX curto.
 
 ### Caminhos alternativos
@@ -90,12 +92,12 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 | Componente | `lib/game/components/space_background_component.dart` | Fundo progressivo com starfield, imagem ativa, fade entre marcos e fallback procedural. |
 | Componente | `lib/game/components/starfield_component.dart` | Fundo espacial procedural com duas velocidades de parallax. |
 | Componente | `lib/game/components/drift_hud_component.dart` | HUD de distancia e melhor distancia, reposicionado com padding de SafeArea. |
-| Widget | `lib/game/widgets/game_over_popup.dart` | Overlay Flutter de game over com mensagem de morte e botao de restart. |
+| Widget | `lib/game/widgets/game_over_popup.dart` | Overlay Flutter de game over com mensagem de morte, botao de restart e botao para voltar a Title. |
 | Assets gerados | `assets/images/backgrounds/*.png` | Sprites PNG transparentes dos marcos espaciais exibidos sobre o starfield. |
 | Assets gerados | `assets/images/asteroid_tile.png`, `assets/images/loose_meteor.png`, `assets/images/player_ship.png` | Sprites PNG transparentes para paredes de asteroides, meteoros soltos e nave. |
 | Assets gerados | `assets/audio/thrust_tap.wav` | SFX curto de inicio de thrust, derivado do motor e usado para taps rapidos. |
 | Assets gerados | `lib/gen/assets.gen.dart` | Caminhos tipados para audio de motor/fogo, morte e demais assets. |
-| L10n | `lib/l10n/arb/app_en.arb` | Define textos de titulo, distancia, melhor distancia, popup de game over e restart. |
+| L10n | `lib/l10n/arb/app_en.arb` | Define textos de titulo, distancia, melhor distancia, popup de game over, restart e voltar para Title. |
 | Barrel | `lib/game/game.dart` | Exporta view, cubit, entidades, componentes e `ArcadeOne`. |
 | Testes | `test/game/arcade_one_test.dart` | Cobre load, distancia, meteoros soltos, game over por borda/meteoro e reset. |
 | Testes | `test/game/entities/ship/ship_test.dart` | Cobre thrust, inercia, limite de velocidade e reset da nave. |
@@ -128,6 +130,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 - **Game over congela progressao** — `ArcadeOne.update` retorna cedo quando `isGameOver == true`.
 - **Melhor distancia persistida** — `onLoad` carrega `bestDistanceKm` do storage (chave `best_distance_km`); `endRun` salva apenas quando `distanceKm > bestDistanceKm`, mantendo sempre o maior valor entre sessoes.
 - **Restart na mesma tela** — apos game over, o botao do popup chama `restartRun` e nao navega para outra tela.
+- **Voltar para Title no game over** — `lib/game/view/game_page.dart`: o botao secundario do popup chama `pushReplacement(TitleView.route())`, entao a Game atual e removida da pilha.
 - **Volume binario e persistido** — `lib/game/cubit/audio/audio_cubit.dart`: `toggleVolume` alterna apenas entre `0` e `1` e salva o novo valor via `StorageService`; `init()` restaura o volume salvo na criacao do cubit.
 
 ## Dependências Externas

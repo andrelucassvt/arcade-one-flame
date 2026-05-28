@@ -150,5 +150,9 @@
   "restartButtonLabel": "Restart",
   "@restartButtonLabel": {
     "description": "Button label for restarting the game from the game over popup"
+  },
+  "returnToTitleButtonLabel": "Title screen",
+  "@returnToTitleButtonLabel": {
+    "description": "Button label for returning to the title screen from the game over popup"
   }
 }

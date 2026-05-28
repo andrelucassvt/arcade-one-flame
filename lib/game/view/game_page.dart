@@ -6,6 +6,7 @@ import 'package:arcade_one/common/widgets/ad_banner_widget.dart';
 import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:arcade_one/loading/cubit/cubit.dart';
+import 'package:arcade_one/title/title.dart';
 import 'package:flame/game.dart' hide Route;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -98,6 +99,13 @@ class _GameViewState extends State<GameView> {
                     if (game is ArcadeOne) {
                       unawaited(game.restartRun());
                     }
+                  },
+                  onReturnToTitle: () {
+                    unawaited(
+                      Navigator.of(context).pushReplacement<void, void>(
+                        TitleView.route(),
+                      ),
+                    );
                   },
                 );
               },

@@ -9,6 +9,7 @@ import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:arcade_one/loading/cubit/cubit.dart';
+import 'package:arcade_one/title/title.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flame/cache.dart';
@@ -237,12 +238,52 @@ void main() {
       expect(find.text('You died in the drift.'), findsOneWidget);
       expect(find.text('Distance traveled: 73 km'), findsOneWidget);
       expect(find.text('Restart'), findsOneWidget);
+      expect(find.text('Title screen'), findsOneWidget);
 
       await tester.tap(find.text('Restart'));
       await tester.pump();
 
       expect(game.isGameOver, isFalse);
       expect(game.overlays.isActive(gameOverOverlayKey), isFalse);
+    });
+
+    testWidgets('returns to the title screen from game over', (tester) async {
+      final l10n = _MockAppLocalizations();
+      when(() => l10n.distanceText(any())).thenReturn('0 km');
+      when(() => l10n.bestDistanceText(any())).thenReturn('Best 0 km');
+      when(() => l10n.gameOverTitle).thenReturn('GAME OVER');
+      when(() => l10n.restartHint).thenReturn('Tap to restart');
+
+      final game = _OverlayGame(
+        l10n: l10n,
+        enginePlayer: _MockAudioPlayer(),
+        deathPlayer: _MockAudioPlayer(),
+        textStyle: const TextStyle(),
+        images: Images(),
+        storage: _MockStorageService(),
+      );
+
+      await tester.pumpApp(
+        BlocProvider.value(
+          value: audioCubit,
+          child: Material(child: GameView(game: game)),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      game
+        ..distanceKm = 12.4
+        ..isGameOver = true;
+      game.overlays.add(gameOverOverlayKey);
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.text('Title screen'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TitleView), findsOneWidget);
+      expect(find.byType(GameView), findsNothing);
     });
 
     testWidgets('renders joystick controls for joystick games', (tester) async {

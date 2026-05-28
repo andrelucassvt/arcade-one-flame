@@ -4,7 +4,7 @@
 
 ## Visão Geral
 
-O fluxo de Title comeca quando a tela de loading conclui o preload e navega para `TitlePage.route()`. A tela renderiza uma home fullscreen com fundo espacial, nave, meteoros, seletor de controles e botao principal de partida.
+O fluxo de Title comeca quando a tela de loading conclui o preload e navega para `TitlePage.route()`. Ele tambem pode ser reaberto pela tela de game over quando o usuario escolhe voltar para a tela inicial. A tela renderiza uma home fullscreen com fundo espacial, nave, meteoros, seletor de controles e botao principal de partida.
 
 Os textos sao obtidos via `context.l10n`, usando as chaves geradas a partir dos ARBs. O seletor de idioma no topo aciona `AppLocaleCubit.setLocale`, que atualiza o `Locale` do `MaterialApp`; antes da selecao manual, o app usa o locale resolvido pelo sistema. A top bar tambem exibe o botao de volume ligado ao `AudioCubit` global, permitindo alternar entre audio ligado e mutado antes de iniciar a partida.
 
@@ -14,6 +14,8 @@ O modo de controle da gameplay fica em estado local de `TitleView`, com `GameCon
 
 1. **Origem** — `lib/loading/view/loading_page.dart` → `onPreloadComplete`
    Apos o preload, chama `navigator.pushReplacement(TitlePage.route())`.
+   **Origem alternativa:** `lib/game/view/game_page.dart` → `GameOverPopup.onReturnToTitle`
+   A partir do game over, chama `Navigator.pushReplacement(TitleView.route())`.
 2. **Rota** — `lib/title/view/title_page.dart` → `TitlePage.route`
    Cria uma `MaterialPageRoute<void>` para `TitlePage`.
 3. **Tela** — `lib/title/view/title_page.dart` → `TitlePage.build`

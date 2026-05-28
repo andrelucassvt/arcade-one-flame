@@ -95,6 +95,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   ui.Image? _asteroidTileImage;
   ui.Image? _looseMeteorImage;
   ui.Image? _playerShipImage;
+  final Map<String, ui.Image?> _asteroidTileImages = {};
   final Map<String, ui.Image?> _spaceLandmarkImages = {};
 
   double _nextObstacleY = initialObstacleY;
@@ -536,7 +537,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       y: _nextObstacleY,
       difficulty: difficulty,
       gapCenterX: gapCenter,
-      asteroidTileImage: _asteroidTileImage,
+      asteroidTileImage: _asteroidTileImageForDistance(distanceKm),
     );
     obstacles.add(obstacle);
     final addFuture = add(obstacle);
@@ -592,12 +593,21 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   Future<void> _loadGameImages() async {
     _asteroidTileImage = await _loadGameImage(asteroidTileImageAsset);
+    _asteroidTileImages.clear();
+    for (final entry in asteroidTileImageAssetsByLandmarkId.entries) {
+      _asteroidTileImages[entry.key] = await _loadGameImage(entry.value);
+    }
     _looseMeteorImage = await _loadGameImage(looseMeteorImageAsset);
     _playerShipImage = await _loadGameImage(playerShipImageAsset);
     _spaceLandmarkImages.clear();
     for (final assetPath in spaceLandmarkAssetPaths) {
       _spaceLandmarkImages[assetPath] = await _loadGameImage(assetPath);
     }
+  }
+
+  ui.Image? _asteroidTileImageForDistance(double distanceKm) {
+    final landmarkId = landmarkForDistance(distanceKm).id;
+    return _asteroidTileImages[landmarkId] ?? _asteroidTileImage;
   }
 
   Future<ui.Image?> _loadGameImage(String path) async {

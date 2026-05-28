@@ -1,4 +1,5 @@
 import 'package:arcade_one/game/game.dart';
+import 'package:arcade_one/game/game_image_assets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -17,6 +18,15 @@ void main() {
         }
 
         expect(landmark.startKm, greaterThan(spaceLandmarks[i - 1].startKm));
+      }
+    });
+
+    test('has a matching asteroid tile asset for each landmark', () {
+      for (final landmark in spaceLandmarks) {
+        final asteroidAsset = asteroidTileImageAssetsByLandmarkId[landmark.id];
+
+        expect(asteroidAsset, isNotNull);
+        expect(gameImageAssets, contains(asteroidAsset));
       }
     });
 

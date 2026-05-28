@@ -10,7 +10,34 @@ Quando `ArcadeOne.onLoad` chama `_buildRun`, o jogo carrega os sprites principai
 
 Durante a partida, `ArcadeOne.update` incrementa `distanceKm`, recalcula `scrollSpeed` e chama `background.advance(scrollSpeed, dt, distanceKm)`. O componente avanca o `StarfieldComponent` interno e consulta `visibleLandmarksForDistance(distanceKm)` para descobrir quais sprites devem estar visiveis naquele trecho. Cada marco tem uma janela de KM, ancora de entrada, ancora de saida, escala, opacidade e fator de parallax; com isso a Terra, planetas e outros objetos aparecem no fundo, descem lentamente e somem sem substituir o campo de estrelas. Se alguma imagem nao estiver disponivel, o componente desenha um fallback procedural translucido.
 
+O mesmo marco ativo tambem influencia a cor das paredes de asteroides. `ArcadeOne._spawnObstacle` consulta `landmarkForDistance(distanceKm)` e usa o tile correspondente em `asteroidTileImageAssetsByLandmarkId`, mantendo a geometria do obstaculo igual, mas trocando a paleta para combinar com o trecho do background.
+
 No restart, `ArcadeOne.restartRun` zera a distancia e chama `background.reset()`, voltando o marco ativo para Terra/Lua sem recriar a tela.
+
+## Marcos por KM
+
+Esta e a lista direta para conferir em quantos KM cada planeta/objeto aparece no background. Os valores vêm de `spaceLandmarks` em `lib/game/background/space_landmark_catalog.dart`. A coluna "Visivel ate" e calculada por `startKm + visibleKm`; o limite final tambem conta, porque `SpaceLandmark.isVisibleAt` usa `<=`.
+
+| Ordem | Marco | ID | Aparece a partir de | Visivel ate | Janela visivel | Asset |
+|-------|-------|----|---------------------|-------------|----------------|-------|
+| 1 | Terra/Lua | `earth_moon` | `-80 km` internamente; na pratica ja aparece em `0 km` | `420 km` | `500 km` | `assets/images/backgrounds/space_earth_moon.png` |
+| 2 | Marte | `mars` | `250 km` | `720 km` | `470 km` | `assets/images/backgrounds/space_mars.png` |
+| 3 | Cintura de asteroides | `asteroid_belt` | `600 km` | `1120 km` | `520 km` | `assets/images/backgrounds/space_asteroid_belt.png` |
+| 4 | Jupiter | `jupiter` | `1000 km` | `1620 km` | `620 km` | `assets/images/backgrounds/space_jupiter.png` |
+| 5 | Saturno | `saturn` | `1500 km` | `2150 km` | `650 km` | `assets/images/backgrounds/space_saturn.png` |
+| 6 | Urano/Netuno | `ice_giants` | `2100 km` | `2660 km` | `560 km` | `assets/images/backgrounds/space_ice_giants.png` |
+| 7 | Cintura de Kuiper | `kuiper_belt` | `2800 km` | `3400 km` | `600 km` | `assets/images/backgrounds/space_kuiper_belt.png` |
+| 8 | Nebulosa de Orion | `orion_nebula` | `3600 km` | `4320 km` | `720 km` | `assets/images/backgrounds/space_orion_nebula.png` |
+| 9 | Pilares da Criacao | `pillars_creation` | `4500 km` | `5220 km` | `720 km` | `assets/images/backgrounds/space_pillars_creation.png` |
+| 10 | Buraco negro | `black_hole` | `5600 km` | `6360 km` | `760 km` | `assets/images/backgrounds/space_black_hole.png` |
+| 11 | Andromeda | `andromeda` | `7000 km` | `7860 km` | `860 km` | `assets/images/backgrounds/space_andromeda.png` |
+| 12 | Quasar distante | `deep_quasar` | `8500 km` | `9420 km` | `920 km` | `assets/images/backgrounds/space_deep_quasar.png` |
+
+Observacoes de leitura da tabela:
+
+- Alguns marcos se sobrepoem por alguns KM; nesses trechos `visibleLandmarksForDistance` retorna mais de um item e o componente desenha todos os visiveis.
+- `landmarkForDistance(distanceKm)` considera como marco ativo o ultimo item cujo `startKm` ja foi atingido, mesmo quando a janela visual de outro marco ainda esta terminando.
+- Depois de `9420 km`, nenhum marco fica visivel pela regra atual; o starfield procedural continua rodando normalmente.
 
 ## Passo a Passo
 
@@ -23,7 +50,7 @@ No restart, `ArcadeOne.restartRun` zera a distancia e chama `background.reset()`
 4. **Catalogo por KM** — `lib/game/background/space_landmark_catalog.dart` -> `spaceLandmarks`
    Mantem a tabela ordenada dos marcos e expõe `landmarkForDistance(distanceKm)` e `visibleLandmarksForDistance(distanceKm)`.
 5. **Load do jogo** — `lib/game/arcade_one.dart` -> `ArcadeOne._loadGameImages`
-   Busca cada asset de `spaceLandmarkAssetPaths` no cache de imagens e guarda em `_spaceLandmarkImages`; se falhar, guarda `null` para ativar fallback visual.
+   Busca cada asset de `spaceLandmarkAssetPaths` no cache de imagens e guarda em `_spaceLandmarkImages`; tambem carrega os tiles de asteroide por marco em `_asteroidTileImages`. Se falhar, guarda `null` para ativar fallback visual.
 6. **Criacao do componente** — `lib/game/arcade_one.dart` -> `ArcadeOne._buildRun`
    Cria `SpaceBackgroundComponent(gameSize: area, landmarkImages: _spaceLandmarkImages)` e adiciona antes de `Ship` e `DriftHudComponent`.
 7. **Avanco por frame** — `lib/game/arcade_one.dart` -> `ArcadeOne.update`
@@ -53,7 +80,8 @@ No restart, `ArcadeOne.restartRun` zera a distancia e chama `background.reset()`
 | Componente | `lib/game/components/space_background_component.dart` | Renderiza starfield, sprites visiveis, movimento por KM, fade de entrada/saida e fallback procedural. |
 | Componente | `lib/game/components/starfield_component.dart` | Mantem estrelas procedurais com parallax continuo. |
 | Assets | `assets/images/backgrounds/*.png` | Sprites PNG transparentes dos marcos espaciais. |
-| Configuracao | `pubspec.yaml` | Registra `assets/images/backgrounds/` no bundle Flutter. |
+| Assets | `assets/images/asteroids/*.png` | Variações recoloridas do tile de asteroide, uma por marco espacial. |
+| Configuracao | `pubspec.yaml` | Registra `assets/images/backgrounds/` e `assets/images/asteroids/` no bundle Flutter. |
 | Testes | `test/game/background/space_landmark_catalog_test.dart` | Cobre ordenacao, duplicidade e bordas de selecao por KM. |
 | Testes | `test/game/components/space_background_component_test.dart` | Cobre continuidade do starfield, troca de marco, fade e reset. |
 | Testes | `test/game/arcade_one_test.dart` | Cobre criacao do background, avanco por distancia e reset integrado. |
@@ -62,7 +90,8 @@ No restart, `ArcadeOne.restartRun` zera a distancia e chama `background.reset()`
 
 - **Selecao por distancia** — `lib/game/background/space_landmark_catalog.dart`: o marco ativo e o ultimo item de `spaceLandmarks` cujo `startKm` e menor ou igual a `distanceKm`.
 - **Visibilidade por janela** — `lib/game/background/space_landmark.dart`: cada marco fica visivel entre `startKm` e `startKm + visibleKm`.
-- **Faixas iniciais** — `lib/game/background/space_landmark_catalog.dart`: 0 Terra/Lua, 250 Marte, 600 Cintura de asteroides, 1000 Jupiter, 1500 Saturno, 2100 Urano/Netuno, 2800 Cintura de Kuiper, 3600 Nebulosa de Orion, 4500 Pilares da Criacao, 5600 Buraco negro, 7000 Andromeda, 8500 Quasar.
+- **Faixas de KM** — `lib/game/background/space_landmark_catalog.dart`: a tabela "Marcos por KM" acima detalha inicio, fim e janela visivel de cada planeta/objeto.
+- **Tile de asteroide por marco** — `lib/game/arcade_one.dart`: cada nova parede usa o tile de `asteroidTileImageAssetsByLandmarkId[landmarkForDistance(distanceKm).id]`, com fallback para `asteroid_tile.png`; Terra/Lua preserva o visual original e os proximos marcos mudam a paleta.
 - **Entrada e saida visual** — `lib/game/components/space_background_component.dart`: cada sprite interpola de `startAnchor` para `endAnchor` e usa fade curto no inicio/fim da sua janela.
 - **Background nao interfere no gameplay** — `lib/game/components/space_background_component.dart`: o componente tem prioridade `-100` e nao participa de colisao, spawn ou HUD.
 - **Fallback visual** — `lib/game/components/space_background_component.dart`: ausencia de PNG nao quebra a partida; o componente renderiza uma forma procedural translucida.

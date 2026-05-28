@@ -6,7 +6,7 @@
 
 O fluxo de obstaculos vive dentro de `ArcadeOne`, a classe `FlameGame` principal. Durante o load da partida, o jogo carrega os sprites de asteroide, meteoro e nave, adiciona os componentes base (`StarfieldComponent`, `Ship` e `DriftHudComponent`) e cria a primeira sequencia de obstaculos.
 
-Hoje existem dois tipos de obstaculo. O primeiro e `AsteroidPairComponent`, que desenha duas paredes laterais de asteroides e deixa um gap central para a nave passar. O segundo e `LooseMeteorComponent`, que representa meteoros individuais espalhados pela tela, com raio proprio e drift horizontal opcional.
+Hoje existem dois tipos de obstaculo. O primeiro e `AsteroidPairComponent`, que desenha duas paredes laterais de asteroides e deixa um gap central para a nave passar. O sprite dessas paredes muda de cor conforme o marco espacial ativo em `flow/background.md`, usando uma variação de tile por planeta/objeto. O segundo e `LooseMeteorComponent`, que representa meteoros individuais espalhados pela tela, com raio proprio e drift horizontal opcional.
 
 A partida sempre comeca com uma sequencia de paredes de asteroides. `ArcadeOne` mantem contadores de sequencias consecutivas para deixar `AsteroidPairComponent` mais comum: meteoros soltos so podem comecar depois de pelo menos tres sequencias seguidas de paredes, entram com 25% de chance quando liberados e nunca passam de duas sequencias consecutivas. A troca e antecipada quando a peca mais alta da sequencia atual chega perto do topo, permitindo que a proxima sequencia nasca acima dela sem apagar os obstaculos que ainda estao visiveis.
 
@@ -18,7 +18,7 @@ Em cada frame, `ArcadeOne.update` avanca distancia e velocidade, move todos os o
    Chama `_buildRun`, que prepara a partida inicial.
 
 2. **Carga de imagens** — `lib/game/arcade_one.dart` -> `_loadGameImages`
-   Carrega `asteroid_tile.png`, `loose_meteor.png` e `player_ship.png` usando os caminhos definidos em `lib/game/game_image_assets.dart`.
+   Carrega `asteroid_tile.png`, todas as variações em `assets/images/asteroids/`, `loose_meteor.png` e `player_ship.png` usando os caminhos definidos em `lib/game/game_image_assets.dart`.
 
 3. **Montagem dos componentes base** — `lib/game/arcade_one.dart` -> `_buildRun`
    Cria `StarfieldComponent`, `Ship` e `DriftHudComponent`, adiciona os tres ao jogo e chama `_spawnNextObstacleSequence`.
@@ -30,7 +30,7 @@ Em cada frame, `ArcadeOne.update` avanca distancia e velocidade, move todos os o
    Define `_nextObstacleY` a partir de `initialObstacleY` ou de `afterY - obstacleSpacing`, e chama `_spawnObstacle` `asteroidPairSequenceLength` vezes.
 
 6. **Criacao de cada parede** — `lib/game/arcade_one.dart` -> `_spawnObstacle`
-   Calcula uma margem lateral, sorteia `gapCenter`, cria `AsteroidPairComponent`, adiciona na lista `obstacles`, adiciona o componente ao Flame e desloca `_nextObstacleY` para a proxima parede.
+   Calcula uma margem lateral, sorteia `gapCenter`, escolhe o tile por `landmarkForDistance(distanceKm)`, cria `AsteroidPairComponent`, adiciona na lista `obstacles`, adiciona o componente ao Flame e desloca `_nextObstacleY` para a proxima parede.
 
 7. **Componente de parede** — `lib/game/components/asteroid_pair_component.dart` -> `AsteroidPairComponent`
    Calcula `gapSize` pela dificuldade, define `leftRect` e `rightRect`, renderiza o sprite de asteroide quando disponivel e usa fallback procedural se o sprite nao carregar.
@@ -83,8 +83,8 @@ Em cada frame, `ArcadeOne.update` avanca distancia e velocidade, move todos os o
 | Componente | `lib/game/components/loose_meteor_component.dart` | Implementa meteoros soltos, raio, drift horizontal, renderizacao, movimento e colisao circular contra a nave. |
 | Barrel export | `lib/game/components/components.dart` | Exporta os componentes de jogo, incluindo os dois tipos de obstaculo. |
 | Barrel export | `lib/game/game.dart` | Exporta `arcade_one.dart`, componentes, cubits, entidades e views para consumidores da feature game. |
-| Assets | `lib/game/game_image_assets.dart` | Define os caminhos de `asteroid_tile.png`, `loose_meteor.png` e `player_ship.png`. |
-| Assets | `assets/images/asteroid_tile.png`, `assets/images/loose_meteor.png` | Sprites usados pela renderizacao dos dois obstaculos. |
+| Assets | `lib/game/game_image_assets.dart` | Define os caminhos de `asteroid_tile.png`, das variações por marco, `loose_meteor.png` e `player_ship.png`. |
+| Assets | `assets/images/asteroid_tile.png`, `assets/images/asteroids/*.png`, `assets/images/loose_meteor.png` | Sprites usados pela renderizacao dos dois obstaculos; as paredes usam uma variação por marco espacial. |
 | Testes | `test/game/arcade_one_test.dart` | Cobre load inicial, prioridade de paredes, atraso e limite de sequencias de meteoros, handoff antecipado, colisao com meteoro e restart. |
 | Testes | `test/game/components/asteroid_pair_component_test.dart` | Cobre reducao de gap por dificuldade, movimento e colisao das paredes. |
 | Testes | `test/game/components/loose_meteor_component_test.dart` | Cobre movimento com drift, offscreen e colisao circular dos meteoros. |
@@ -98,6 +98,7 @@ Em cada frame, `ArcadeOne.update` avanca distancia e velocidade, move todos os o
 - **Handoff antecipado evita vazio grande** — `lib/game/arcade_one.dart`: `_advanceObstacleSequenceIfNeeded` cria a proxima sequencia quando a peca mais alta chega em `obstacleSequenceHandoffY`.
 - **Obstaculos antigos continuam visiveis** — `lib/game/arcade_one.dart`: o handoff adiciona a proxima sequencia sem apagar a sequencia atual; a remocao so acontece quando cada componente fica offscreen.
 - **Dificuldade fecha o gap das paredes** — `lib/game/components/asteroid_pair_component.dart`: `gapSize` começa em `asteroidBaseGap` e reduz com `difficulty`, sem passar de `asteroidMinGap`.
+- **Cor das paredes acompanha o marco espacial** — `lib/game/arcade_one.dart`: `_spawnObstacle` usa `_asteroidTileImageForDistance(distanceKm)` para escolher a imagem da parede conforme o marco ativo; Terra/Lua usa a arte original, os proximos marcos usam paletas novas, e se a variação nao carregar o jogo usa `asteroid_tile.png`.
 - **Dificuldade aumenta a sequencia de meteoros** — `lib/game/arcade_one.dart`: `_spawnLooseMeteorSequence` soma ate `looseMeteorDifficultyBonus` meteoros ao tamanho base conforme `difficulty`.
 - **Dificuldade aumenta variedade dos meteoros** — `lib/game/arcade_one.dart`: `_spawnLooseMeteor` amplia a faixa de raio e o drift horizontal conforme `difficulty`.
 - **Colisao encerra a rodada** — `lib/game/arcade_one.dart`: colisao com `AsteroidPairComponent` ou `LooseMeteorComponent` chama `endRun`.

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/title/title.dart';
 import 'package:bloc_test/bloc_test.dart';
@@ -10,6 +11,8 @@ import 'package:mockingjay/mockingjay.dart';
 import '../../helpers/helpers.dart';
 
 class _MockAudioCubit extends MockCubit<AudioState> implements AudioCubit {}
+
+class _MockStorageService extends Mock implements StorageService {}
 
 void main() {
   group('TitleView', () {
@@ -113,6 +116,68 @@ void main() {
 
       await tester.tap(find.text('Joystick'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(ElevatedButton));
+      await tester.tap(find.byType(ElevatedButton));
+
+      final route =
+          verify(
+                () => navigator.pushReplacement<void, void>(captureAny()),
+              ).captured.single
+              as MaterialPageRoute<void>;
+      final page =
+          route.builder(
+                tester.element(find.byType(TitleView)),
+              )
+              as GamePage;
+
+      expect(page.controlMode, equals(GameControlMode.joystick));
+    });
+
+    testWidgets('persists the selected control mode', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final storage = _MockStorageService();
+      when(() => storage.getString(any())).thenAnswer((_) async => null);
+      when(() => storage.setString(any(), any())).thenAnswer((_) async {});
+
+      await tester.pumpApp(const TitleView(), storageService: storage);
+
+      await tester.tap(find.text('Joystick'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => storage.setString('title_control_mode', 'joystick'),
+      ).called(1);
+    });
+
+    testWidgets('restores the persisted control mode', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final navigator = MockNavigator();
+      when(navigator.canPop).thenReturn(true);
+      when(
+        () => navigator.pushReplacement<void, void>(any()),
+      ).thenAnswer((_) async {});
+
+      final storage = _MockStorageService();
+      when(() => storage.getString(any())).thenAnswer((_) async => null);
+      when(
+        () => storage.getString('title_control_mode'),
+      ).thenAnswer((_) async => 'joystick');
+
+      await tester.pumpApp(
+        const TitleView(),
+        navigator: navigator,
+        storageService: storage,
+      );
+      await tester.pumpAndSettle();
+
       await tester.ensureVisible(find.byType(ElevatedButton));
       await tester.tap(find.byType(ElevatedButton));
 

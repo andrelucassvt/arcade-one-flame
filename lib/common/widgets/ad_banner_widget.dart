@@ -7,11 +7,13 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 class AdBannerWidget extends StatefulWidget {
   const AdBannerWidget({
     required this.adUnitId,
+    this.fallbackAdUnitId,
     this.adSize = AdSize.banner,
     super.key,
   });
 
   final String adUnitId;
+  final String? fallbackAdUnitId;
   final AdSize adSize;
 
   @override
@@ -21,16 +23,17 @@ class AdBannerWidget extends StatefulWidget {
 class _AdBannerWidgetState extends State<AdBannerWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
+  bool _usedFallback = false;
 
   @override
   void initState() {
     super.initState();
-    _loadAd();
+    _loadAd(widget.adUnitId);
   }
 
-  void _loadAd() {
+  void _loadAd(String adUnitId) {
     final ad = BannerAd(
-      adUnitId: widget.adUnitId,
+      adUnitId: adUnitId,
       size: widget.adSize,
       request: const AdRequest(),
       listener: BannerAdListener(
@@ -38,9 +41,15 @@ class _AdBannerWidgetState extends State<AdBannerWidget> {
           if (mounted) setState(() => _isLoaded = true);
         },
         onAdFailedToLoad: (ad, error) {
-          log('AdBannerWidget: failed to load — $error');
+          log('AdBannerWidget: failed to load ($adUnitId) — $error');
           unawaited(ad.dispose());
           _bannerAd = null;
+
+          final fallback = widget.fallbackAdUnitId;
+          if (!_usedFallback && fallback != null) {
+            _usedFallback = true;
+            _loadAd(fallback);
+          }
         },
       ),
     );

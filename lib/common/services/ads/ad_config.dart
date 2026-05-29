@@ -9,6 +9,12 @@ class AdConfig {
     return null;
   }
 
+  static String? get maybeFallbackBanner {
+    if (Platform.isAndroid) return 'ca-app-pub-3652623512305285/1913109829';
+    if (Platform.isIOS) return 'ca-app-pub-3652623512305285/9015528627';
+    return null;
+  }
+
   static String get banner {
     final adUnitId = maybeBanner;
     if (adUnitId != null) {

@@ -21,8 +21,6 @@ import 'package:mocktail/mocktail.dart';
 
 import '../../helpers/helpers.dart';
 
-class _FakeAssetSource extends Fake implements AssetSource {}
-
 class _FakeImage extends Fake implements ui.Image {}
 
 class _MockAppLocalizations extends Mock implements AppLocalizations {}
@@ -41,7 +39,6 @@ class _MockStorageService extends Mock implements StorageService {}
 class _OverlayGame extends ArcadeOne {
   _OverlayGame({
     required super.l10n,
-    required super.enginePlayer,
     required super.deathPlayer,
     required super.textStyle,
     required super.images,
@@ -59,9 +56,6 @@ void main() {
   HttpOverrides.global = null;
 
   setUpAll(() {
-    registerFallbackValue(_FakeAssetSource());
-    registerFallbackValue(ReleaseMode.stop);
-
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
           MethodChannel('xyz.luan/audioplayers'),
@@ -138,10 +132,10 @@ void main() {
       audioCubit = _MockAudioCubit();
       when(() => audioCubit.state).thenReturn(AudioState());
 
-      final enginePlayer = _MockAudioPlayer();
-      when(() => audioCubit.enginePlayer).thenReturn(enginePlayer);
       final deathPlayer = _MockAudioPlayer();
       when(() => audioCubit.deathPlayer).thenReturn(deathPlayer);
+      when(audioCubit.startEngineLoop).thenAnswer((_) async {});
+      when(audioCubit.stopEngineLoop).thenAnswer((_) async {});
     });
 
     testWidgets('toggles mute button correctly', (tester) async {
@@ -202,17 +196,9 @@ void main() {
       when(() => l10n.gameOverTitle).thenReturn('GAME OVER');
       when(() => l10n.restartHint).thenReturn('Tap to restart');
 
-      final enginePlayer = _MockAudioPlayer();
-      final deathPlayer = _MockAudioPlayer();
-      when(() => enginePlayer.setReleaseMode(any())).thenAnswer((_) async {});
-      when(() => enginePlayer.play(any())).thenAnswer((_) async {});
-      when(enginePlayer.stop).thenAnswer((_) async {});
-      when(() => deathPlayer.play(any())).thenAnswer((_) async {});
-
       final game = _OverlayGame(
         l10n: l10n,
-        enginePlayer: enginePlayer,
-        deathPlayer: deathPlayer,
+        deathPlayer: _MockAudioPlayer(),
         textStyle: const TextStyle(),
         images: Images(),
         storage: _MockStorageService(),
@@ -256,7 +242,6 @@ void main() {
 
       final game = _OverlayGame(
         l10n: l10n,
-        enginePlayer: _MockAudioPlayer(),
         deathPlayer: _MockAudioPlayer(),
         textStyle: const TextStyle(),
         images: Images(),
@@ -295,7 +280,6 @@ void main() {
 
       final game = _OverlayGame(
         l10n: l10n,
-        enginePlayer: _MockAudioPlayer(),
         deathPlayer: _MockAudioPlayer(),
         textStyle: const TextStyle(),
         images: Images(),

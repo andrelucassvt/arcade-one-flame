@@ -21,7 +21,6 @@ class _MockStorageService extends Mock implements StorageService {}
 class _ArcadeOne extends ArcadeOne {
   _ArcadeOne({
     required super.l10n,
-    required super.enginePlayer,
     required super.deathPlayer,
     required super.textStyle,
     required super.images,
@@ -51,7 +50,6 @@ void main() {
     ArcadeOne createGame() {
       final game = _ArcadeOne(
         l10n: l10n,
-        enginePlayer: _MockAudioPlayer(),
         deathPlayer: _MockAudioPlayer(),
         textStyle: const TextStyle(),
         images: Images(),

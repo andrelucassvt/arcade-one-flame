@@ -64,9 +64,10 @@ class _GameViewState extends State<GameView> {
         widget.game ??
         ArcadeOne(
           l10n: context.l10n,
-          enginePlayer: audioCubit.enginePlayer,
           deathPlayer: audioCubit.deathPlayer,
           playThrustTapSound: audioCubit.playThrustTap,
+          startEngineLoop: audioCubit.startEngineLoop,
+          stopEngineLoop: audioCubit.stopEngineLoop,
           textStyle: textStyle,
           images: context.read<PreloadCubit>().images,
           storage: context.read<StorageService>(),

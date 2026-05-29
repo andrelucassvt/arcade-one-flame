@@ -14,6 +14,8 @@ import 'package:flame/game.dart';
 import 'package:flutter/painting.dart';
 
 typedef PlayThrustTapSound = Future<void> Function();
+typedef StartEngineLoop = Future<void> Function();
+typedef StopEngineLoop = Future<void> Function();
 
 const String gameOverOverlayKey = 'game_over';
 const double initialDriftSpeed = 2;
@@ -42,7 +44,6 @@ enum ObstacleSequence {
 class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   ArcadeOne({
     required this.l10n,
-    required this.enginePlayer,
     required this.deathPlayer,
     required this.textStyle,
     required Images images,
@@ -50,7 +51,11 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     this.controlMode = GameControlMode.touch,
     math.Random? random,
     PlayThrustTapSound? playThrustTapSound,
+    StartEngineLoop? startEngineLoop,
+    StopEngineLoop? stopEngineLoop,
   }) : playThrustTapSound = playThrustTapSound ?? _playNoThrustTapSound,
+       startEngineLoop = startEngineLoop ?? _noEngineLoop,
+       stopEngineLoop = stopEngineLoop ?? _noEngineLoop,
        _random = random ?? math.Random() {
     this.images = images;
   }
@@ -59,11 +64,11 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   final AppLocalizations l10n;
 
-  final AudioPlayer enginePlayer;
-
   final AudioPlayer deathPlayer;
 
   final PlayThrustTapSound playThrustTapSound;
+  final StartEngineLoop startEngineLoop;
+  final StopEngineLoop stopEngineLoop;
 
   final TextStyle textStyle;
 
@@ -370,13 +375,10 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       return;
     }
 
+    _isEngineSoundPlaying = true;
     unawaited(
-      enginePlayer.setReleaseMode(ReleaseMode.loop).then((_) {
-        if (!_isEngineSoundRequested || isGameOver) {
-          return Future<void>.value();
-        }
-        _isEngineSoundPlaying = true;
-        return enginePlayer.play(AssetSource(Assets.audio.engineFire));
+      startEngineLoop().catchError((Object _) {
+        _isEngineSoundPlaying = false;
       }),
     );
   }
@@ -394,7 +396,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     }
 
     _isEngineSoundPlaying = false;
-    unawaited(enginePlayer.stop());
+    unawaited(stopEngineLoop());
   }
 
   Vector2 _shipStartPosition() {
@@ -641,3 +643,5 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 }
 
 Future<void> _playNoThrustTapSound() async {}
+
+Future<void> _noEngineLoop() async {}

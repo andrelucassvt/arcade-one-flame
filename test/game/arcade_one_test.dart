@@ -45,10 +45,11 @@ void main() {
 
   group('ArcadeOne', () {
     late AppLocalizations l10n;
-    late AudioPlayer enginePlayer;
     late AudioPlayer deathPlayer;
     late StorageService storage;
     late int thrustTapSoundCount;
+    late int startEngineLoopCount;
+    late int stopEngineLoopCount;
 
     setUpAll(() {
       registerFallbackValue(_FakeAssetSource());
@@ -62,13 +63,11 @@ void main() {
       when(() => l10n.gameOverTitle).thenReturn('GAME OVER');
       when(() => l10n.restartHint).thenReturn('Tap to restart');
 
-      enginePlayer = _MockAudioPlayer();
       deathPlayer = _MockAudioPlayer();
       storage = _MockStorageService();
       thrustTapSoundCount = 0;
-      when(() => enginePlayer.play(any())).thenAnswer((_) async {});
-      when(() => enginePlayer.stop()).thenAnswer((_) async {});
-      when(() => enginePlayer.setReleaseMode(any())).thenAnswer((_) async {});
+      startEngineLoopCount = 0;
+      stopEngineLoopCount = 0;
       when(() => deathPlayer.play(any())).thenAnswer((_) async {});
       when(() => storage.getDouble(any())).thenAnswer((_) async => null);
       when(() => storage.setDouble(any(), any())).thenAnswer((_) async {});
@@ -80,10 +79,15 @@ void main() {
     }) {
       final game = ArcadeOne(
         l10n: l10n,
-        enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
         playThrustTapSound: () async {
           thrustTapSoundCount += 1;
+        },
+        startEngineLoop: () async {
+          startEngineLoopCount += 1;
+        },
+        stopEngineLoop: () async {
+          stopEngineLoopCount += 1;
         },
         textStyle: const TextStyle(),
         images: Images(),
@@ -339,18 +343,7 @@ void main() {
       game.onDragUpdate(dragUpdate(game));
       await Future<void>.delayed(Duration.zero);
 
-      verify(() => enginePlayer.setReleaseMode(ReleaseMode.loop)).called(1);
-      verify(
-        () => enginePlayer.play(
-          any(
-            that: isA<AssetSource>().having(
-              (source) => source.path,
-              'path',
-              Assets.audio.engineFire,
-            ),
-          ),
-        ),
-      ).called(1);
+      expect(startEngineLoopCount, equals(1));
     });
 
     testWithGame('does not play engine fire sound for quick taps', createGame, (
@@ -362,9 +355,8 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(thrustTapSoundCount, equals(1));
-      verifyNever(() => enginePlayer.setReleaseMode(any()));
-      verifyNever(() => enginePlayer.play(any()));
-      verifyNever(() => enginePlayer.stop());
+      expect(startEngineLoopCount, equals(0));
+      expect(stopEngineLoopCount, equals(0));
     });
 
     testWithGame('stops engine fire sound when thrust ends', createGame, (
@@ -376,7 +368,7 @@ void main() {
 
       game.onTapUp(tapUp(game));
 
-      verify(() => enginePlayer.stop()).called(1);
+      expect(stopEngineLoopCount, equals(1));
     });
 
     testWithGame(
@@ -425,7 +417,7 @@ void main() {
 
       game.endRun();
 
-      verify(() => enginePlayer.stop()).called(1);
+      expect(stopEngineLoopCount, equals(1));
       verify(() => deathPlayer.play(any())).called(1);
       game.endRun();
       verifyNever(() => deathPlayer.play(any()));

@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:arcade_one/common/services/ads/ad_service.dart';
 import 'package:arcade_one/gen/assets.gen.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:bloc/bloc.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -40,6 +41,18 @@ Future<void> bootstrap(
   });
 
   // Add cross-flavor configuration here
+  await AudioPlayer.global.setAudioContext(
+    AudioContext(
+      iOS: AudioContextIOS(
+        category: AVAudioSessionCategory.ambient,
+      ),
+      android: const AudioContextAndroid(
+        contentType: AndroidContentType.sonification,
+        usageType: AndroidUsageType.game,
+        audioFocus: AndroidAudioFocus.none,
+      ),
+    ),
+  );
 
   await AdService().initialize();
 

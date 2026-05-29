@@ -1,5 +1,6 @@
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/cubit/cubit.dart';
+import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,8 @@ class _MockAudioPlayer extends Mock implements AudioPlayer {}
 
 class _MockStorageService extends Mock implements StorageService {}
 
+class _FakeAssetSource extends Fake implements AssetSource {}
+
 void main() {
   group('AudioCubit', () {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +26,11 @@ void main() {
     late AudioPlayer enginePlayer;
     late AudioPlayer deathPlayer;
     late StorageService storage;
+
+    setUpAll(() {
+      registerFallbackValue(_FakeAssetSource());
+      registerFallbackValue(ReleaseMode.stop);
+    });
 
     setUp(() {
       audioCache = _MockAudioCache();
@@ -43,6 +51,11 @@ void main() {
 
       when(() => enginePlayer.setVolume(any())).thenAnswer((_) async {});
       when(() => deathPlayer.setVolume(any())).thenAnswer((_) async {});
+      when(
+        () => enginePlayer.play(any(), volume: any(named: 'volume')),
+      ).thenAnswer((_) async {});
+      when(() => enginePlayer.setReleaseMode(any())).thenAnswer((_) async {});
+      when(enginePlayer.stop).thenAnswer((_) async {});
 
       when(() => storage.getDouble(any())).thenAnswer((_) async => null);
       when(() => storage.setDouble(any(), any())).thenAnswer((_) async {});
@@ -78,6 +91,10 @@ void main() {
       ),
       act: (cubit) => cubit.init(),
       expect: () => [const AudioState(volume: 0)],
+      verify: (_) {
+        verify(() => enginePlayer.setVolume(any(that: equals(0)))).called(1);
+        verify(() => deathPlayer.setVolume(any(that: equals(0)))).called(1);
+      },
     );
 
     blocTest<AudioCubit, AudioState>(
@@ -148,10 +165,72 @@ void main() {
       act: (cubit) => cubit.toggleVolume(),
       expect: () => [const AudioState()],
       verify: (_) {
-        verify(() => enginePlayer.setVolume(any(that: equals(1)))).called(1);
+        verify(
+          () => enginePlayer.setVolume(
+            any(that: equals(AudioCubit.engineVolumeFactor)),
+          ),
+        ).called(1);
         verify(() => deathPlayer.setVolume(any(that: equals(1)))).called(1);
       },
     );
+
+    test('startEngineLoop fades in to the reduced engine volume', () async {
+      final cubit = AudioCubit.test(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+        storage: storage,
+      );
+
+      await cubit.startEngineLoop();
+
+      verify(() => enginePlayer.setReleaseMode(ReleaseMode.loop)).called(1);
+      verify(
+        () => enginePlayer.play(
+          any(
+            that: isA<AssetSource>().having(
+              (source) => source.path,
+              'path',
+              Assets.audio.engineFire,
+            ),
+          ),
+          volume: any(named: 'volume', that: equals(0)),
+        ),
+      ).called(1);
+      verify(
+        () => enginePlayer.setVolume(
+          any(that: equals(AudioCubit.engineVolumeFactor)),
+        ),
+      ).called(greaterThanOrEqualTo(1));
+    });
+
+    test('startEngineLoop does not start sound when muted', () async {
+      final cubit = AudioCubit.test(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+        storage: storage,
+        volume: 0,
+      );
+
+      await cubit.startEngineLoop();
+
+      verifyNever(() => enginePlayer.setReleaseMode(any()));
+      verifyNever(
+        () => enginePlayer.play(any(), volume: any(named: 'volume')),
+      );
+    });
+
+    test('stopEngineLoop fades out and stops the engine player', () async {
+      final cubit = AudioCubit.test(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+        storage: storage,
+      );
+
+      await cubit.startEngineLoop();
+      await cubit.stopEngineLoop();
+
+      verify(enginePlayer.stop).called(1);
+    });
 
     test('playThrustTap starts pooled sound with current volume', () async {
       final cubit = AudioCubit.test(

@@ -2,6 +2,7 @@
 // ignore_for_file: cascade_invocations
 
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/game.dart';
@@ -24,6 +25,10 @@ class _MockAppLocalizations extends Mock implements AppLocalizations {}
 class _MockAudioPlayer extends Mock implements AudioPlayer {}
 
 class _MockStorageService extends Mock implements StorageService {}
+
+class _MockImages extends Mock implements Images {}
+
+class _FakeImage extends Fake implements ui.Image {}
 
 class _FixedDoubleRandom implements math.Random {
   const _FixedDoubleRandom(this.value);
@@ -78,6 +83,8 @@ void main() {
     ArcadeOne createGame({
       math.Random? random,
       GameControlMode controlMode = GameControlMode.touch,
+      Images? images,
+      PlayerShipSkin playerShip = defaultPlayerShipSkin,
     }) {
       final game = ArcadeOne(
         l10n: l10n,
@@ -95,9 +102,10 @@ void main() {
           gameOverHapticCount += 1;
         },
         textStyle: const TextStyle(),
-        images: Images(),
+        images: images ?? Images(),
         storage: storage,
         controlMode: controlMode,
+        playerShip: playerShip,
         random: random ?? math.Random(1),
       );
       game.onGameResize(Vector2(390, 700));
@@ -163,6 +171,33 @@ void main() {
       expect(game.obstacles.first.position.y, greaterThan(-100));
       expect(game.looseMeteors, isEmpty);
     });
+
+    final selectedShipLoadedPaths = <String>[];
+
+    testWithGame(
+      'loads the selected player ship asset',
+      () {
+        final images = _MockImages();
+        selectedShipLoadedPaths.clear();
+        when(() => images.fromCache(any())).thenAnswer((invocation) {
+          selectedShipLoadedPaths.add(
+            invocation.positionalArguments.single as String,
+          );
+          return _FakeImage();
+        });
+
+        return createGame(
+          images: images,
+          playerShip: playerShipSkinById('mars'),
+        );
+      },
+      (game) async {
+        expect(
+          selectedShipLoadedPaths,
+          contains(playerShipSkinById('mars').assetPath),
+        );
+      },
+    );
 
     testWithGame(
       'delays meteor sequences until after enough wall sequences',

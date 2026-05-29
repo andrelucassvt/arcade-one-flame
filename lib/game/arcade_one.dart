@@ -20,6 +20,7 @@ typedef StopEngineLoop = Future<void> Function();
 typedef TriggerGameOverHaptic = Future<void> Function();
 
 const String gameOverOverlayKey = 'game_over';
+const String bestDistanceStorageKey = 'best_distance_km';
 const double initialDriftSpeed = 2;
 const double driftSpeedGrowth = 0.0008;
 const double driftVisualSpeedScale = 42;
@@ -51,6 +52,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     required Images images,
     required this.storage,
     this.controlMode = GameControlMode.touch,
+    this.playerShip = defaultPlayerShipSkin,
     math.Random? random,
     PlayThrustTapSound? playThrustTapSound,
     StartEngineLoop? startEngineLoop,
@@ -64,7 +66,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     this.images = images;
   }
 
-  static const _keyBestDistance = 'best_distance_km';
+  static const String _keyBestDistance = bestDistanceStorageKey;
 
   final AppLocalizations l10n;
 
@@ -82,6 +84,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   final StorageService storage;
 
   final GameControlMode controlMode;
+  final PlayerShipSkin playerShip;
 
   double distanceKm = 0;
   double bestDistanceKm = 0;
@@ -606,7 +609,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       _asteroidTileImages[entry.key] = await _loadGameImage(entry.value);
     }
     _looseMeteorImage = await _loadGameImage(looseMeteorImageAsset);
-    _playerShipImage = await _loadGameImage(playerShipImageAsset);
+    _playerShipImage = await _loadGameImage(playerShip.assetPath);
     _spaceLandmarkImages.clear();
     for (final assetPath in spaceLandmarkAssetPaths) {
       _spaceLandmarkImages[assetPath] = await _loadGameImage(assetPath);

@@ -16,7 +16,7 @@
   "@titleEyebrow": {
     "description": "Small label shown at the top of the Title Page"
   },
-  "titleHeadline": "DRIFT",
+  "titleHeadline": "DRIFT SPACE",
   "@titleHeadline": {
     "description": "Main title shown on the Title Page"
   },
@@ -71,6 +71,85 @@
   "titleShipStatusValue": "Ready",
   "@titleShipStatusValue": {
     "description": "Value for the ship status on the Title Page"
+  },
+  "titleShipSelectorButton": "Choose ship",
+  "@titleShipSelectorButton": {
+    "description": "Label for the player ship selector button on the Title Page"
+  },
+  "titleShipSelectionTitle": "Select ship",
+  "@titleShipSelectionTitle": {
+    "description": "Title for the player ship selection sheet"
+  },
+  "titleShipStatusSelected": "Selected",
+  "@titleShipStatusSelected": {
+    "description": "Status shown for the selected player ship"
+  },
+  "titleShipStatusUnlocked": "Unlocked",
+  "@titleShipStatusUnlocked": {
+    "description": "Status shown for an unlocked player ship"
+  },
+  "titleShipStatusLocked": "Locked",
+  "@titleShipStatusLocked": {
+    "description": "Status shown for a locked player ship"
+  },
+  "titleShipUnlockRequirement": "Unlocks at {distance} km",
+  "@titleShipUnlockRequirement": {
+    "description": "Unlock requirement for a locked player ship",
+    "placeholders": {
+      "distance": {
+        "type": "int",
+        "example": "250",
+        "description": "The best distance required to unlock the ship"
+      }
+    }
+  },
+  "titleShipDefaultName": "Scout",
+  "@titleShipDefaultName": {
+    "description": "Name of the default player ship"
+  },
+  "titleShipMarsName": "Mars Comet",
+  "@titleShipMarsName": {
+    "description": "Name of the player ship unlocked at Mars"
+  },
+  "titleShipAsteroidBeltName": "Rockhopper",
+  "@titleShipAsteroidBeltName": {
+    "description": "Name of the player ship unlocked at the asteroid belt"
+  },
+  "titleShipJupiterName": "Jovian Lance",
+  "@titleShipJupiterName": {
+    "description": "Name of the player ship unlocked at Jupiter"
+  },
+  "titleShipSaturnName": "Saturn Ringwing",
+  "@titleShipSaturnName": {
+    "description": "Name of the player ship unlocked at Saturn"
+  },
+  "titleShipIceGiantsName": "Neptune Frost",
+  "@titleShipIceGiantsName": {
+    "description": "Name of the player ship unlocked at the ice giants"
+  },
+  "titleShipKuiperBeltName": "Kuiper Runner",
+  "@titleShipKuiperBeltName": {
+    "description": "Name of the player ship unlocked at the Kuiper Belt"
+  },
+  "titleShipOrionNebulaName": "Orion Spark",
+  "@titleShipOrionNebulaName": {
+    "description": "Name of the player ship unlocked at the Orion Nebula"
+  },
+  "titleShipPillarsCreationName": "Creation Spire",
+  "@titleShipPillarsCreationName": {
+    "description": "Name of the player ship unlocked at the Pillars of Creation"
+  },
+  "titleShipBlackHoleName": "Event Horizon",
+  "@titleShipBlackHoleName": {
+    "description": "Name of the player ship unlocked at the black hole"
+  },
+  "titleShipAndromedaName": "Andromeda Arc",
+  "@titleShipAndromedaName": {
+    "description": "Name of the player ship unlocked at Andromeda"
+  },
+  "titleShipDeepQuasarName": "Quasar Needle",
+  "@titleShipDeepQuasarName": {
+    "description": "Name of the player ship unlocked at the deep quasar"
   },
   "titleControlModeLabel": "Controls",
   "@titleControlModeLabel": {

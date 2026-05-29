@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 class TitleStartButton extends StatelessWidget {
   const TitleStartButton({
     required this.controlMode,
+    required this.playerShip,
     super.key,
   });
 
   final GameControlMode controlMode;
+  final PlayerShipSkin playerShip;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +24,7 @@ class TitleStartButton extends StatelessWidget {
           await Navigator.of(
             context,
           ).pushReplacement<void, void>(
-            GamePage.route(controlMode: controlMode),
+            GamePage.route(controlMode: controlMode, playerShip: playerShip),
           );
         },
         icon: const Icon(Icons.rocket_launch_rounded),

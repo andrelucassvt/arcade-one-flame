@@ -17,33 +17,43 @@ const double _joystickBottomSpacing = 16;
 class GamePage extends StatelessWidget {
   const GamePage({
     this.controlMode = GameControlMode.touch,
+    this.playerShip = defaultPlayerShipSkin,
     super.key,
   });
 
   final GameControlMode controlMode;
+  final PlayerShipSkin playerShip;
 
   static Route<void> route({
     GameControlMode controlMode = GameControlMode.touch,
+    PlayerShipSkin playerShip = defaultPlayerShipSkin,
   }) {
     return MaterialPageRoute<void>(
-      builder: (_) => GamePage(controlMode: controlMode),
+      builder: (_) => GamePage(
+        controlMode: controlMode,
+        playerShip: playerShip,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: GameView(controlMode: controlMode));
+    return Scaffold(
+      body: GameView(controlMode: controlMode, playerShip: playerShip),
+    );
   }
 }
 
 class GameView extends StatefulWidget {
   const GameView({
     this.controlMode = GameControlMode.touch,
+    this.playerShip = defaultPlayerShipSkin,
     super.key,
     this.game,
   });
 
   final GameControlMode controlMode;
+  final PlayerShipSkin playerShip;
   final FlameGame? game;
 
   @override
@@ -72,6 +82,7 @@ class _GameViewState extends State<GameView> {
           images: context.read<PreloadCubit>().images,
           storage: context.read<StorageService>(),
           controlMode: widget.controlMode,
+          playerShip: widget.playerShip,
         );
     final game = _game!;
     if (game is ArcadeOne) {

@@ -25,6 +25,28 @@ const String asteroidDeepQuasarTileImageAsset =
     'assets/images/asteroids/asteroid_tile_deep_quasar.png';
 const String looseMeteorImageAsset = 'assets/images/loose_meteor.png';
 const String playerShipImageAsset = 'assets/images/player_ship.png';
+const String playerShipMarsImageAsset =
+    'assets/images/ships/player_ship_mars.png';
+const String playerShipAsteroidBeltImageAsset =
+    'assets/images/ships/player_ship_asteroid_belt.png';
+const String playerShipJupiterImageAsset =
+    'assets/images/ships/player_ship_jupiter.png';
+const String playerShipSaturnImageAsset =
+    'assets/images/ships/player_ship_saturn.png';
+const String playerShipIceGiantsImageAsset =
+    'assets/images/ships/player_ship_ice_giants.png';
+const String playerShipKuiperBeltImageAsset =
+    'assets/images/ships/player_ship_kuiper_belt.png';
+const String playerShipOrionNebulaImageAsset =
+    'assets/images/ships/player_ship_orion_nebula.png';
+const String playerShipPillarsCreationImageAsset =
+    'assets/images/ships/player_ship_pillars_creation.png';
+const String playerShipBlackHoleImageAsset =
+    'assets/images/ships/player_ship_black_hole.png';
+const String playerShipAndromedaImageAsset =
+    'assets/images/ships/player_ship_andromeda.png';
+const String playerShipDeepQuasarImageAsset =
+    'assets/images/ships/player_ship_deep_quasar.png';
 const String spaceEarthMoonBackgroundAsset =
     'assets/images/backgrounds/space_earth_moon.png';
 const String spaceMarsBackgroundAsset =
@@ -80,11 +102,26 @@ const List<String> asteroidTileImageAssets = [
   asteroidDeepQuasarTileImageAsset,
 ];
 
+const List<String> playerShipImageAssets = [
+  playerShipImageAsset,
+  playerShipMarsImageAsset,
+  playerShipAsteroidBeltImageAsset,
+  playerShipJupiterImageAsset,
+  playerShipSaturnImageAsset,
+  playerShipIceGiantsImageAsset,
+  playerShipKuiperBeltImageAsset,
+  playerShipOrionNebulaImageAsset,
+  playerShipPillarsCreationImageAsset,
+  playerShipBlackHoleImageAsset,
+  playerShipAndromedaImageAsset,
+  playerShipDeepQuasarImageAsset,
+];
+
 const List<String> gameImageAssets = [
   asteroidTileImageAsset,
   ...asteroidTileImageAssets,
   looseMeteorImageAsset,
-  playerShipImageAsset,
+  ...playerShipImageAssets,
   spaceEarthMoonBackgroundAsset,
   spaceMarsBackgroundAsset,
   spaceAsteroidBeltBackgroundAsset,

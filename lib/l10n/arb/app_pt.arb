@@ -16,7 +16,7 @@
   "@titleEyebrow": {
     "description": "Small label shown at the top of the Title Page"
   },
-  "titleHeadline": "DRIFT",
+  "titleHeadline": "DRIFT SPACE",
   "@titleHeadline": {
     "description": "Main title shown on the Title Page"
   },
@@ -71,6 +71,85 @@
   "titleShipStatusValue": "Pronta",
   "@titleShipStatusValue": {
     "description": "Value for the ship status on the Title Page"
+  },
+  "titleShipSelectorButton": "Escolher nave",
+  "@titleShipSelectorButton": {
+    "description": "Label for the player ship selector button on the Title Page"
+  },
+  "titleShipSelectionTitle": "Selecione a nave",
+  "@titleShipSelectionTitle": {
+    "description": "Title for the player ship selection sheet"
+  },
+  "titleShipStatusSelected": "Selecionada",
+  "@titleShipStatusSelected": {
+    "description": "Status shown for the selected player ship"
+  },
+  "titleShipStatusUnlocked": "Liberada",
+  "@titleShipStatusUnlocked": {
+    "description": "Status shown for an unlocked player ship"
+  },
+  "titleShipStatusLocked": "Bloqueada",
+  "@titleShipStatusLocked": {
+    "description": "Status shown for a locked player ship"
+  },
+  "titleShipUnlockRequirement": "Libera em {distance} km",
+  "@titleShipUnlockRequirement": {
+    "description": "Unlock requirement for a locked player ship",
+    "placeholders": {
+      "distance": {
+        "type": "int",
+        "example": "250",
+        "description": "The best distance required to unlock the ship"
+      }
+    }
+  },
+  "titleShipDefaultName": "Batedora",
+  "@titleShipDefaultName": {
+    "description": "Name of the default player ship"
+  },
+  "titleShipMarsName": "Cometa de Marte",
+  "@titleShipMarsName": {
+    "description": "Name of the player ship unlocked at Mars"
+  },
+  "titleShipAsteroidBeltName": "Salta-rochas",
+  "@titleShipAsteroidBeltName": {
+    "description": "Name of the player ship unlocked at the asteroid belt"
+  },
+  "titleShipJupiterName": "Lanca Joviana",
+  "@titleShipJupiterName": {
+    "description": "Name of the player ship unlocked at Jupiter"
+  },
+  "titleShipSaturnName": "Asa de Saturno",
+  "@titleShipSaturnName": {
+    "description": "Name of the player ship unlocked at Saturn"
+  },
+  "titleShipIceGiantsName": "Gelo de Netuno",
+  "@titleShipIceGiantsName": {
+    "description": "Name of the player ship unlocked at the ice giants"
+  },
+  "titleShipKuiperBeltName": "Corredora Kuiper",
+  "@titleShipKuiperBeltName": {
+    "description": "Name of the player ship unlocked at the Kuiper Belt"
+  },
+  "titleShipOrionNebulaName": "Faisca de Orion",
+  "@titleShipOrionNebulaName": {
+    "description": "Name of the player ship unlocked at the Orion Nebula"
+  },
+  "titleShipPillarsCreationName": "Pilar da Criacao",
+  "@titleShipPillarsCreationName": {
+    "description": "Name of the player ship unlocked at the Pillars of Creation"
+  },
+  "titleShipBlackHoleName": "Horizonte de Eventos",
+  "@titleShipBlackHoleName": {
+    "description": "Name of the player ship unlocked at the black hole"
+  },
+  "titleShipAndromedaName": "Arco de Andromeda",
+  "@titleShipAndromedaName": {
+    "description": "Name of the player ship unlocked at Andromeda"
+  },
+  "titleShipDeepQuasarName": "Agulha Quasar",
+  "@titleShipDeepQuasarName": {
+    "description": "Name of the player ship unlocked at the deep quasar"
   },
   "titleControlModeLabel": "Controles",
   "@titleControlModeLabel": {

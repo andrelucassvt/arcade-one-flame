@@ -1,18 +1,24 @@
+import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/game/game_image_assets.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
 class TitleHero extends StatelessWidget {
-  const TitleHero({required this.isWide, super.key});
+  const TitleHero({
+    required this.isWide,
+    required this.selectedShip,
+    super.key,
+  });
 
   final bool isWide;
+  final PlayerShipSkin selectedShip;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final headlineStyle = Theme.of(context).textTheme.displayLarge?.copyWith(
       color: Colors.white,
-      fontSize: isWide ? 92 : 64,
+      fontSize: isWide ? 92 : 34,
       fontWeight: FontWeight.w900,
       height: 0.92,
       letterSpacing: 0,
@@ -26,8 +32,9 @@ class TitleHero extends StatelessWidget {
     );
 
     return Column(
-      crossAxisAlignment:
-          isWide ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      crossAxisAlignment: isWide
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.center,
       children: [
         Stack(
           clipBehavior: Clip.none,
@@ -61,7 +68,7 @@ class TitleHero extends StatelessWidget {
             Transform.rotate(
               angle: -0.14,
               child: Image.asset(
-                playerShipImageAsset,
+                selectedShip.assetPath,
                 width: isWide ? 260 : 220,
                 filterQuality: FilterQuality.none,
               ),
@@ -75,18 +82,18 @@ class TitleHero extends StatelessWidget {
           child: Text(l10n.titleHeadline, style: headlineStyle),
         ),
         const SizedBox(height: 16),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: Text(
-            l10n.titleSubtitle,
-            textAlign: isWide ? TextAlign.start : TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: const Color(0xFFDCE9FF),
-              height: 1.35,
-              letterSpacing: 0,
-            ),
-          ),
-        ),
+        // ConstrainedBox(
+        //   constraints: const BoxConstraints(maxWidth: 560),
+        //   child: Text(
+        //     l10n.titleSubtitle,
+        //     textAlign: isWide ? TextAlign.start : TextAlign.center,
+        //     style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        //       color: const Color(0xFFDCE9FF),
+        //       height: 1.35,
+        //       letterSpacing: 0,
+        //     ),
+        //   ),
+        // ),
       ],
     );
   }

@@ -43,4 +43,5 @@ flutter:
     - assets/images/
     - assets/images/asteroids/
     - assets/images/backgrounds/
+    - assets/images/ships/
     - assets/licenses/poppins/

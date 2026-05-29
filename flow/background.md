@@ -12,6 +12,8 @@ Durante a partida, `ArcadeOne.update` incrementa `distanceKm`, recalcula `scroll
 
 O mesmo marco ativo tambem influencia a cor das paredes de asteroides. `ArcadeOne._spawnObstacle` consulta `landmarkForDistance(distanceKm)` e usa o tile correspondente em `asteroidTileImageAssetsByLandmarkId`, mantendo a geometria do obstaculo igual, mas trocando a paleta para combinar com o trecho do background.
 
+Os mesmos KMs de inicio dos marcos tambem alimentam o catalogo de desbloqueio de naves em `lib/game/player_ship/player_ship_catalog.dart`. A nave default fica liberada em `0 km`, e as demais skins usam os marcos de Marte em diante como requisitos de melhor distancia.
+
 No restart, `ArcadeOne.restartRun` zera a distancia e chama `background.reset()`, voltando o marco ativo para Terra/Lua sem recriar a tela.
 
 ## Marcos por KM
@@ -77,6 +79,7 @@ Observacoes de leitura da tabela:
 | Jogo Flame | `lib/game/arcade_one.dart` | Carrega imagens, cria o background, avanca o componente por distancia e reseta no restart. |
 | Background | `lib/game/background/space_landmark.dart` | Modelo imutavel do marco espacial com janela de visibilidade e movimento de entrada/saida. |
 | Background | `lib/game/background/space_landmark_catalog.dart` | Catalogo ordenado, selecao de marco por KM e lista de marcos visiveis. |
+| Catalogo de naves | `lib/game/player_ship/player_ship_catalog.dart` | Reutiliza os KMs dos marcos como requisitos de desbloqueio das skins de nave. |
 | Componente | `lib/game/components/space_background_component.dart` | Renderiza starfield, sprites visiveis, movimento por KM, fade de entrada/saida e fallback procedural. |
 | Componente | `lib/game/components/starfield_component.dart` | Mantem estrelas procedurais com parallax continuo. |
 | Assets | `assets/images/backgrounds/*.png` | Sprites PNG transparentes dos marcos espaciais. |
@@ -91,6 +94,7 @@ Observacoes de leitura da tabela:
 - **Selecao por distancia** — `lib/game/background/space_landmark_catalog.dart`: o marco ativo e o ultimo item de `spaceLandmarks` cujo `startKm` e menor ou igual a `distanceKm`.
 - **Visibilidade por janela** — `lib/game/background/space_landmark.dart`: cada marco fica visivel entre `startKm` e `startKm + visibleKm`.
 - **Faixas de KM** — `lib/game/background/space_landmark_catalog.dart`: a tabela "Marcos por KM" acima detalha inicio, fim e janela visivel de cada planeta/objeto.
+- **Desbloqueio de naves por marco** — `lib/game/player_ship/player_ship_catalog.dart`: as skins usam os KMs de inicio dos marcos como requisitos, com default em `0 km` e a ultima nave em `8500 km`.
 - **Tile de asteroide por marco** — `lib/game/arcade_one.dart`: cada nova parede usa o tile de `asteroidTileImageAssetsByLandmarkId[landmarkForDistance(distanceKm).id]`, com fallback para `asteroid_tile.png`; Terra/Lua preserva o visual original e os proximos marcos mudam a paleta.
 - **Entrada e saida visual** — `lib/game/components/space_background_component.dart`: cada sprite interpola de `startAnchor` para `endAnchor` e usa fade curto no inicio/fim da sua janela.
 - **Background nao interfere no gameplay** — `lib/game/components/space_background_component.dart`: o componente tem prioridade `-100` e nao participa de colisao, spawn ou HUD.

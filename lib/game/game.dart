@@ -4,5 +4,6 @@ export 'components/components.dart';
 export 'cubit/cubit.dart';
 export 'entities/entities.dart';
 export 'game_control_mode.dart';
+export 'player_ship/player_ship.dart';
 export 'view/view.dart';
 export 'widgets/widgets.dart';

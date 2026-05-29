@@ -123,6 +123,19 @@ void main() {
 
       expect(view.controlMode, equals(GameControlMode.joystick));
     });
+
+    testWidgets('passes the selected player ship to GameView', (tester) async {
+      final playerShip = playerShipSkinById('mars');
+
+      await tester.pumpApp(
+        GamePage(playerShip: playerShip),
+        preloadCubit: preloadCubit,
+      );
+
+      final view = tester.widget<GameView>(find.byType(GameView));
+
+      expect(view.playerShip, equals(playerShip));
+    });
   });
 
   group('GameView', () {

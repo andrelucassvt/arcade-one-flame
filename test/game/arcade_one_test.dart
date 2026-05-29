@@ -50,6 +50,7 @@ void main() {
     late int thrustTapSoundCount;
     late int startEngineLoopCount;
     late int stopEngineLoopCount;
+    late int gameOverHapticCount;
 
     setUpAll(() {
       registerFallbackValue(_FakeAssetSource());
@@ -68,6 +69,7 @@ void main() {
       thrustTapSoundCount = 0;
       startEngineLoopCount = 0;
       stopEngineLoopCount = 0;
+      gameOverHapticCount = 0;
       when(() => deathPlayer.play(any())).thenAnswer((_) async {});
       when(() => storage.getDouble(any())).thenAnswer((_) async => null);
       when(() => storage.setDouble(any(), any())).thenAnswer((_) async {});
@@ -88,6 +90,9 @@ void main() {
         },
         stopEngineLoop: () async {
           stopEngineLoopCount += 1;
+        },
+        triggerGameOverHaptic: () async {
+          gameOverHapticCount += 1;
         },
         textStyle: const TextStyle(),
         images: Images(),
@@ -300,6 +305,7 @@ void main() {
       game.update(0.1);
 
       expect(game.isGameOver, isTrue);
+      expect(gameOverHapticCount, equals(1));
       verify(
         () => deathPlayer.play(
           any(
@@ -418,8 +424,10 @@ void main() {
       game.endRun();
 
       expect(stopEngineLoopCount, equals(1));
+      expect(gameOverHapticCount, equals(1));
       verify(() => deathPlayer.play(any())).called(1);
       game.endRun();
+      expect(gameOverHapticCount, equals(1));
       verifyNever(() => deathPlayer.play(any()));
     });
 

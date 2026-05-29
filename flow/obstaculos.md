@@ -10,7 +10,7 @@ Hoje existem dois tipos de obstaculo. O primeiro e `AsteroidPairComponent`, que 
 
 A partida sempre comeca com uma sequencia de paredes de asteroides. `ArcadeOne` mantem contadores de sequencias consecutivas para deixar `AsteroidPairComponent` mais comum: meteoros soltos so podem comecar depois de pelo menos tres sequencias seguidas de paredes, entram com 25% de chance quando liberados e nunca passam de duas sequencias consecutivas. A troca e antecipada quando a peca mais alta da sequencia atual chega perto do topo, permitindo que a proxima sequencia nasca acima dela sem apagar os obstaculos que ainda estao visiveis.
 
-Em cada frame, `ArcadeOne.update` avanca distancia e velocidade, move todos os obstaculos para baixo, verifica colisao com a nave e remove componentes que ja sairam pela parte inferior da tela. Se houver colisao com parede, meteoro ou borda da tela, `endRun` marca game over, atualiza a melhor distancia e toca o efeito sonoro.
+Em cada frame, `ArcadeOne.update` avanca distancia e velocidade, move todos os obstaculos para baixo, verifica colisao com a nave e remove componentes que ja sairam pela parte inferior da tela. Se houver colisao com parede, meteoro ou borda da tela, `endRun` marca game over, atualiza a melhor distancia, dispara vibracao leve e toca o efeito sonoro.
 
 ## Passo a Passo
 
@@ -101,13 +101,14 @@ Em cada frame, `ArcadeOne.update` avanca distancia e velocidade, move todos os o
 - **Cor das paredes acompanha o marco espacial** — `lib/game/arcade_one.dart`: `_spawnObstacle` usa `_asteroidTileImageForDistance(distanceKm)` para escolher a imagem da parede conforme o marco ativo; Terra/Lua usa a arte original, os proximos marcos usam paletas novas, e se a variação nao carregar o jogo usa `asteroid_tile.png`.
 - **Dificuldade aumenta a sequencia de meteoros** — `lib/game/arcade_one.dart`: `_spawnLooseMeteorSequence` soma ate `looseMeteorDifficultyBonus` meteoros ao tamanho base conforme `difficulty`.
 - **Dificuldade aumenta variedade dos meteoros** — `lib/game/arcade_one.dart`: `_spawnLooseMeteor` amplia a faixa de raio e o drift horizontal conforme `difficulty`.
-- **Colisao encerra a rodada** — `lib/game/arcade_one.dart`: colisao com `AsteroidPairComponent` ou `LooseMeteorComponent` chama `endRun`.
+- **Colisao encerra a rodada** — `lib/game/arcade_one.dart`: colisao com `AsteroidPairComponent` ou `LooseMeteorComponent` chama `endRun`, que tambem dispara vibracao leve no celular.
 - **Restart limpa os dois tipos** — `lib/game/arcade_one.dart`: `restartRun` chama `_removeAsteroidPairs` e `_removeLooseMeteors` antes de criar nova sequencia inicial.
 
 ## Dependencias Externas
 
 - `flame` — fornece `FlameGame`, `PositionComponent`, `Vector2`, anchors e ciclo de vida de componentes.
 - `flutter/material.dart` e `dart:ui` — fornecem `Canvas`, `Paint`, `Path`, `Rect` e `ui.Image` para renderizacao.
+- `flutter/services.dart` — fornece `HapticFeedback.lightImpact()` para o feedback tatil de game over.
 - `audioplayers` — `ArcadeOne.endRun` toca o efeito sonoro quando a colisao encerra a rodada.
 
 ## Observacoes

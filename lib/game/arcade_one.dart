@@ -12,10 +12,12 @@ import 'package:flame/cache.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter/services.dart';
 
 typedef PlayThrustTapSound = Future<void> Function();
 typedef StartEngineLoop = Future<void> Function();
 typedef StopEngineLoop = Future<void> Function();
+typedef TriggerGameOverHaptic = Future<void> Function();
 
 const String gameOverOverlayKey = 'game_over';
 const double initialDriftSpeed = 2;
@@ -53,9 +55,11 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     PlayThrustTapSound? playThrustTapSound,
     StartEngineLoop? startEngineLoop,
     StopEngineLoop? stopEngineLoop,
+    TriggerGameOverHaptic? triggerGameOverHaptic,
   }) : playThrustTapSound = playThrustTapSound ?? _playNoThrustTapSound,
        startEngineLoop = startEngineLoop ?? _noEngineLoop,
        stopEngineLoop = stopEngineLoop ?? _noEngineLoop,
+       triggerGameOverHaptic = triggerGameOverHaptic ?? _triggerGameOverHaptic,
        _random = random ?? math.Random() {
     this.images = images;
   }
@@ -69,6 +73,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   final PlayThrustTapSound playThrustTapSound;
   final StartEngineLoop startEngineLoop;
   final StopEngineLoop stopEngineLoop;
+  final TriggerGameOverHaptic triggerGameOverHaptic;
 
   final TextStyle textStyle;
 
@@ -296,6 +301,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       unawaited(storage.setDouble(_keyBestDistance, bestDistanceKm));
     }
     _stopEngineSound();
+    unawaited(triggerGameOverHaptic());
     unawaited(deathPlayer.play(AssetSource(Assets.audio.death)));
     if (overlays.registeredOverlays.contains(gameOverOverlayKey)) {
       overlays.add(gameOverOverlayKey);
@@ -645,3 +651,11 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 Future<void> _playNoThrustTapSound() async {}
 
 Future<void> _noEngineLoop() async {}
+
+Future<void> _triggerGameOverHaptic() async {
+  try {
+    await HapticFeedback.lightImpact();
+  } on Object {
+    // Haptic feedback is best-effort and should never block game over.
+  }
+}

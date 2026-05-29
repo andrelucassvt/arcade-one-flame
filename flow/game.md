@@ -1,6 +1,6 @@
 # Flow: Game
 
-> **Resumo:** Monta a partida DRIFT em Flame, permite mutar o audio, controla a nave por toque/clique ou joystick virtual, toca som de motor/fogo durante o thrust, toca som de morte no game over e executa background progressivo por KM, pares de asteroides, meteoros soltos, pontuacao por distancia, popup de game over e restart.
+> **Resumo:** Monta a partida DRIFT em Flame, permite mutar o audio, controla a nave por toque/clique ou joystick virtual, toca som de motor/fogo durante o thrust, toca som de morte e vibracao leve no game over e executa background progressivo por KM, pares de asteroides, meteoros soltos, pontuacao por distancia, popup de game over e restart.
 
 ## Visão Geral
 
@@ -10,7 +10,7 @@ O fluxo de Game comeca quando `TitleView` navega para `GamePage.route(controlMod
 
 Durante a partida em `GameControlMode.touch`, toques e drags na tela ligam o thrust da nave em direcao ao ponteiro. Em `GameControlMode.joystick`, `GameView` sobrepoe `GameJoystick` no `bottomCenter`, com margem inferior que reserva a altura do banner quando ha anuncio configurado; o joystick envia uma direcao normalizada para `ArcadeOne.setJoystickDirection`, que aplica thrust por direcao em vez de alvo de ponteiro. Nesse modo a nave nasce com `joystickShipThrustPower` e `joystickShipMaxSpeed`, deixando a velocidade da nave menor que no modo de toque. Cada inicio de thrust toca imediatamente um SFX curto via `AudioPool`, para que taps rapidos tenham feedback sem cortar o som. O som longo de motor/fogo entra em loop apenas se o input continuar ativo depois de um pequeno atraso. Enquanto o thrust esta ativo, `Ship` anima o sprite da nave com pulso e chama animada; ao soltar, o som de motor/fogo pendente ou ativo para, mas a nave nao para: `Ship` mantem a velocidade acumulada e continua deslizando por inercia. `ArcadeOne.update` incrementa a distancia, calcula a velocidade de scroll, avanca o background progressivo, move a sequencia ativa de obstaculos, verifica colisao com asteroides ou meteoros soltos e encerra a partida se a nave tocar as bordas da tela.
 
-Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia da sessao, para o som de motor/fogo, toca o som de morte e ativa o overlay Flutter de game over. O popup informa que o jogador morreu, mostra a distancia percorrida em KM e oferece botoes para reiniciar a mesma tela ou voltar para a Title.
+Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia da sessao, para o som de motor/fogo, dispara uma vibracao leve, toca o som de morte e ativa o overlay Flutter de game over. O popup informa que o jogador morreu, mostra a distancia percorrida em KM e oferece botoes para reiniciar a mesma tela ou voltar para a Title.
 
 ## Passo a Passo
 
@@ -53,7 +53,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 19. **Colisao e bordas** — `lib/game/arcade_one.dart` -> `_checkBounds`, `AsteroidPairComponent.collidesWith` e `LooseMeteorComponent.collidesWith`
     Tocar nas bordas, intersectar um bloco de asteroide ou bater em um meteoro solto chama `ArcadeOne.endRun`.
 20. **Game over** — `lib/game/arcade_one.dart` -> `endRun`
-    Marca `isGameOver`. Se `distanceKm > bestDistanceKm`, atualiza `bestDistanceKm` e persiste o novo recorde via `StorageService.setDouble('best_distance_km', ...)`. Para o som de motor/fogo via callback do `AudioCubit`, toca `Assets.audio.death`, limpa o thrust da nave, zera a velocidade e ativa o overlay `gameOverOverlayKey`.
+    Marca `isGameOver`. Se `distanceKm > bestDistanceKm`, atualiza `bestDistanceKm` e persiste o novo recorde via `StorageService.setDouble('best_distance_km', ...)`. Para o som de motor/fogo via callback do `AudioCubit`, dispara `HapticFeedback.lightImpact()` como vibracao leve, toca `Assets.audio.death`, limpa o thrust da nave, zera a velocidade e ativa o overlay `gameOverOverlayKey`.
 21. **HUD** — `lib/game/components/drift_hud_component.dart` -> `DriftHudComponent.update`
     Atualiza distancia atual e melhor distancia. As mensagens centrais de game over ficam fora do canvas e sao exibidas pelo overlay Flutter.
 22. **Popup de game over** — `lib/game/widgets/game_over_popup.dart`
@@ -131,6 +131,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 - **Morte por borda** — se o raio de colisao da nave toca qualquer borda da area de jogo, `ArcadeOne.endRun` e chamado.
 - **Morte por obstaculo** — colisao da nave contra os retangulos de asteroides ou colisao circular contra meteoros soltos encerra a partida.
 - **Som de morte unico** — `ArcadeOne.endRun` ignora chamadas repetidas quando `isGameOver == true`, garantindo que `Assets.audio.death` toque apenas uma vez por morte.
+- **Vibracao leve unica** — `ArcadeOne.endRun` dispara `HapticFeedback.lightImpact()` junto do game over e tambem se beneficia da guarda `isGameOver`, evitando repeticao enquanto a rodada ja acabou.
 - **Game over congela progressao** — `ArcadeOne.update` retorna cedo quando `isGameOver == true`.
 - **Melhor distancia persistida** — `onLoad` carrega `bestDistanceKm` do storage (chave `best_distance_km`); `endRun` salva apenas quando `distanceKm > bestDistanceKm`, mantendo sempre o maior valor entre sessoes.
 - **Restart na mesma tela** — apos game over, o botao do popup chama `restartRun` e nao navega para outra tela.
@@ -141,6 +142,7 @@ Quando ocorre game over, o jogo marca `isGameOver`, registra a melhor distancia 
 
 - `flame` para `FlameGame`, `GameWidget`, eventos de input, componentes, vetores e renderizacao.
 - Flutter GestureDetector/Material para o joystick virtual sobreposto.
+- Flutter services para `HapticFeedback.lightImpact()` no game over.
 - `audioplayers` para `AudioPlayer`, `AudioPool` dos efeitos sonoros e `AudioContext` global.
 - `flutter_bloc` para estado do audio.
 - `equatable` para igualdade de `AudioState`.

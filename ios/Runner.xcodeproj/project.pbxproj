@@ -538,6 +538,7 @@
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "Drift Space";
 				INFOPLIST_FILE = Runner/Info.plist;
+				FLUTTER_TARGET = lib/main_production.dart;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -673,6 +674,7 @@
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "[DEV] Drift Space";
 				INFOPLIST_FILE = Runner/Info.plist;
+				FLUTTER_TARGET = lib/main_development.dart;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -774,6 +776,7 @@
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "[DEV] Drift Space";
 				INFOPLIST_FILE = Runner/Info.plist;
+				FLUTTER_TARGET = lib/main_development.dart;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -870,6 +873,7 @@
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "[DEV] Drift Space";
 				INFOPLIST_FILE = Runner/Info.plist;
+				FLUTTER_TARGET = lib/main_development.dart;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -971,6 +975,7 @@
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "[STG] Drift Space";
 				INFOPLIST_FILE = Runner/Info.plist;
+				FLUTTER_TARGET = lib/main_staging.dart;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1072,6 +1077,7 @@
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "[STG] Drift Space";
 				INFOPLIST_FILE = Runner/Info.plist;
+				FLUTTER_TARGET = lib/main_staging.dart;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1168,6 +1174,7 @@
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "[STG] Drift Space";
 				INFOPLIST_FILE = Runner/Info.plist;
+				FLUTTER_TARGET = lib/main_staging.dart;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1321,6 +1328,7 @@
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "Drift Space";
 				INFOPLIST_FILE = Runner/Info.plist;
+				FLUTTER_TARGET = lib/main_production.dart;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1352,6 +1360,7 @@
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "Drift Space";
 				INFOPLIST_FILE = Runner/Info.plist;
+				FLUTTER_TARGET = lib/main_production.dart;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (

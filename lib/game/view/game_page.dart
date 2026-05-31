@@ -91,8 +91,6 @@ class _GameViewState extends State<GameView> {
         ArcadeOne(
           l10n: context.l10n,
           deathPlayer: audioCubit.deathPlayer,
-          startEngineLoop: audioCubit.startEngineLoop,
-          stopEngineLoop: audioCubit.stopEngineLoop,
           textStyle: textStyle,
           images: context.read<PreloadCubit>().images,
           storage: context.read<StorageService>(),

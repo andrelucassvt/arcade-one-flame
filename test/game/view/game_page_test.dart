@@ -147,8 +147,6 @@ void main() {
 
       final deathPlayer = _MockAudioPlayer();
       when(() => audioCubit.deathPlayer).thenReturn(deathPlayer);
-      when(audioCubit.startEngineLoop).thenAnswer((_) async {});
-      when(audioCubit.stopEngineLoop).thenAnswer((_) async {});
       when(audioCubit.startBgm).thenAnswer((_) async {});
       when(audioCubit.stopBgm).thenAnswer((_) async {});
     });

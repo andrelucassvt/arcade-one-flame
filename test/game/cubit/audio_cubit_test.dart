@@ -1,7 +1,6 @@
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/cubit/cubit.dart';
 import 'package:arcade_one/game/game_audio_assets.dart';
-import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/services.dart';
@@ -21,7 +20,6 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
 
     late AudioCache audioCache;
-    late AudioPlayer enginePlayer;
     late AudioPlayer deathPlayer;
     late AudioPlayer bgmPlayer;
     late StorageService storage;
@@ -33,30 +31,21 @@ void main() {
 
     setUp(() {
       audioCache = _MockAudioCache();
-      enginePlayer = _MockAudioPlayer();
       deathPlayer = _MockAudioPlayer();
       bgmPlayer = _MockAudioPlayer();
       storage = _MockStorageService();
 
-      when(() => enginePlayer.audioCache).thenReturn(audioCache);
       when(() => deathPlayer.audioCache).thenReturn(audioCache);
 
-      when(enginePlayer.dispose).thenAnswer((_) async {});
       when(deathPlayer.dispose).thenAnswer((_) async {});
       when(bgmPlayer.dispose).thenAnswer((_) async {});
 
-      when(() => enginePlayer.setVolume(any())).thenAnswer((_) async {});
       when(() => deathPlayer.setVolume(any())).thenAnswer((_) async {});
       when(() => bgmPlayer.setVolume(any())).thenAnswer((_) async {});
       when(
-        () => enginePlayer.play(any(), volume: any(named: 'volume')),
-      ).thenAnswer((_) async {});
-      when(
         () => bgmPlayer.play(any(), volume: any(named: 'volume')),
       ).thenAnswer((_) async {});
-      when(() => enginePlayer.setReleaseMode(any())).thenAnswer((_) async {});
       when(() => bgmPlayer.setReleaseMode(any())).thenAnswer((_) async {});
-      when(enginePlayer.stop).thenAnswer((_) async {});
       when(bgmPlayer.stop).thenAnswer((_) async {});
 
       when(() => storage.getDouble(any())).thenAnswer((_) async => null);
@@ -73,7 +62,6 @@ void main() {
       'can be instantiated',
       () => expect(
         AudioCubit(
-          enginePlayer: enginePlayer,
           deathPlayer: deathPlayer,
           bgmPlayer: bgmPlayer,
         ),
@@ -91,7 +79,6 @@ void main() {
         ).thenAnswer((_) async => 0.0);
       },
       build: () => AudioCubit(
-        enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
         bgmPlayer: bgmPlayer,
         storage: storage,
@@ -99,7 +86,6 @@ void main() {
       act: (cubit) => cubit.init(),
       expect: () => [const AudioState(volume: 0)],
       verify: (_) {
-        verify(() => enginePlayer.setVolume(any(that: equals(0)))).called(1);
         verify(() => deathPlayer.setVolume(any(that: equals(0)))).called(1);
         verify(() => bgmPlayer.setVolume(any(that: equals(0)))).called(1);
       },
@@ -108,7 +94,6 @@ void main() {
     blocTest<AudioCubit, AudioState>(
       'init não emite nada quando storage retorna null',
       build: () => AudioCubit(
-        enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
         bgmPlayer: bgmPlayer,
         storage: storage,
@@ -120,7 +105,6 @@ void main() {
     blocTest<AudioCubit, AudioState>(
       'toggleVolume salva volume 0 no storage ao mutar',
       build: () => AudioCubit.test(
-        enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
         bgmPlayer: bgmPlayer,
         storage: storage,
@@ -135,7 +119,6 @@ void main() {
     blocTest<AudioCubit, AudioState>(
       'toggleVolume salva volume 1 no storage ao desmutar',
       build: () => AudioCubit.test(
-        enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
         bgmPlayer: bgmPlayer,
         storage: storage,
@@ -153,7 +136,6 @@ void main() {
     blocTest<AudioCubit, AudioState>(
       'toggleVolume mutes the volume when the volume is not 0',
       build: () => AudioCubit.test(
-        enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
         bgmPlayer: bgmPlayer,
         storage: storage,
@@ -161,7 +143,6 @@ void main() {
       act: (cubit) => cubit.toggleVolume(),
       expect: () => [const AudioState(volume: 0)],
       verify: (_) {
-        verify(() => enginePlayer.setVolume(any(that: equals(0)))).called(1);
         verify(() => deathPlayer.setVolume(any(that: equals(0)))).called(1);
         verify(() => bgmPlayer.setVolume(any(that: equals(0)))).called(1);
       },
@@ -170,7 +151,6 @@ void main() {
     blocTest<AudioCubit, AudioState>(
       'toggleVolume unmutes the volume when the volume is 0',
       build: () => AudioCubit.test(
-        enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
         bgmPlayer: bgmPlayer,
         storage: storage,
@@ -179,82 +159,15 @@ void main() {
       act: (cubit) => cubit.toggleVolume(),
       expect: () => [const AudioState()],
       verify: (_) {
-        verify(
-          () => enginePlayer.setVolume(
-            any(that: equals(AudioCubit.engineVolumeFactor)),
-          ),
-        ).called(1);
         verify(() => deathPlayer.setVolume(any(that: equals(1)))).called(1);
         verify(() => bgmPlayer.setVolume(any(that: equals(1)))).called(1);
       },
     );
 
-    test('startEngineLoop fades in to the reduced engine volume', () async {
-      final cubit = AudioCubit.test(
-        enginePlayer: enginePlayer,
-        deathPlayer: deathPlayer,
-        bgmPlayer: bgmPlayer,
-        storage: storage,
-      );
-
-      await cubit.startEngineLoop();
-
-      verify(() => enginePlayer.setReleaseMode(ReleaseMode.loop)).called(1);
-      verify(
-        () => enginePlayer.play(
-          any(
-            that: isA<AssetSource>().having(
-              (source) => source.path,
-              'path',
-              Assets.audio.engineFire,
-            ),
-          ),
-          volume: any(named: 'volume', that: equals(0)),
-        ),
-      ).called(1);
-      verify(
-        () => enginePlayer.setVolume(
-          any(that: equals(AudioCubit.engineVolumeFactor)),
-        ),
-      ).called(greaterThanOrEqualTo(1));
-    });
-
-    test('startEngineLoop does not start sound when muted', () async {
-      final cubit = AudioCubit.test(
-        enginePlayer: enginePlayer,
-        deathPlayer: deathPlayer,
-        bgmPlayer: bgmPlayer,
-        storage: storage,
-        volume: 0,
-      );
-
-      await cubit.startEngineLoop();
-
-      verifyNever(() => enginePlayer.setReleaseMode(any()));
-      verifyNever(
-        () => enginePlayer.play(any(), volume: any(named: 'volume')),
-      );
-    });
-
-    test('stopEngineLoop fades out and stops the engine player', () async {
-      final cubit = AudioCubit.test(
-        enginePlayer: enginePlayer,
-        deathPlayer: deathPlayer,
-        bgmPlayer: bgmPlayer,
-        storage: storage,
-      );
-
-      await cubit.startEngineLoop();
-      await cubit.stopEngineLoop();
-
-      verify(enginePlayer.stop).called(1);
-    });
-
     // ── Testes de BGM ─────────────────────────────────────────────────────
 
     test('startBgm plays BGM in loop with current volume', () async {
       final cubit = AudioCubit.test(
-        enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
         bgmPlayer: bgmPlayer,
         storage: storage,
@@ -279,7 +192,6 @@ void main() {
 
     test('startBgm does not start when muted', () async {
       final cubit = AudioCubit.test(
-        enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
         bgmPlayer: bgmPlayer,
         storage: storage,
@@ -294,7 +206,6 @@ void main() {
 
     test('stopBgm stops the bgm player', () async {
       final cubit = AudioCubit.test(
-        enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
         bgmPlayer: bgmPlayer,
         storage: storage,
@@ -308,7 +219,6 @@ void main() {
 
     test('close disposes every audio player', () async {
       final cubit = AudioCubit.test(
-        enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
         bgmPlayer: bgmPlayer,
         storage: storage,
@@ -316,7 +226,6 @@ void main() {
 
       await cubit.close();
 
-      verify(enginePlayer.dispose).called(1);
       verify(deathPlayer.dispose).called(1);
       verify(bgmPlayer.dispose).called(1);
     });

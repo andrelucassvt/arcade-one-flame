@@ -14,8 +14,6 @@ import 'package:flame/game.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 
-typedef StartEngineLoop = Future<void> Function();
-typedef StopEngineLoop = Future<void> Function();
 typedef TriggerGameOverHaptic = Future<void> Function();
 
 const String gameOverOverlayKey = 'game_over';
@@ -36,8 +34,6 @@ const int looseMeteorDifficultyBonus = 5;
 const int asteroidPairSequencesBeforeLooseMeteors = 3;
 const int maxConsecutiveLooseMeteorSequences = 2;
 const double looseMeteorSequenceChance = 0.25;
-const Duration engineSoundStartDelay = Duration(milliseconds: 90);
-
 enum ObstacleSequence {
   asteroidPairs,
   looseMeteors,
@@ -53,12 +49,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     this.controlMode = GameControlMode.touch,
     this.playerShip = defaultPlayerShipSkin,
     math.Random? random,
-    StartEngineLoop? startEngineLoop,
-    StopEngineLoop? stopEngineLoop,
     TriggerGameOverHaptic? triggerGameOverHaptic,
-  }) : startEngineLoop = startEngineLoop ?? _noEngineLoop,
-       stopEngineLoop = stopEngineLoop ?? _noEngineLoop,
-       triggerGameOverHaptic = triggerGameOverHaptic ?? _triggerGameOverHaptic,
+  }) : triggerGameOverHaptic = triggerGameOverHaptic ?? _triggerGameOverHaptic,
        _random = random ?? math.Random() {
     this.images = images;
   }
@@ -69,8 +61,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   final AudioPlayer deathPlayer;
 
-  final StartEngineLoop startEngineLoop;
-  final StopEngineLoop stopEngineLoop;
   final TriggerGameOverHaptic triggerGameOverHaptic;
 
   final TextStyle textStyle;
@@ -93,10 +83,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   StarfieldComponent? get starfield => background?.starfield;
 
   EdgeInsets _safeAreaPadding = EdgeInsets.zero;
-  Timer? _engineSoundStartTimer;
-  bool _isEngineSoundRequested = false;
-  bool _isEngineSoundPlaying = false;
-
   final List<AsteroidPairComponent> obstacles = [];
   final List<LooseMeteorComponent> looseMeteors = [];
 
@@ -195,7 +181,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       return;
     }
 
-    _startEngineSound();
     ship?.setThrustTarget(event.canvasPosition);
   }
 
@@ -205,7 +190,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       return;
     }
 
-    _stopEngineSound();
     ship?.clearThrust();
   }
 
@@ -215,7 +199,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       return;
     }
 
-    _stopEngineSound();
     ship?.clearThrust();
   }
 
@@ -223,7 +206,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
     if (controlMode == GameControlMode.touch && !isGameOver) {
-      _startEngineSound();
       ship?.setThrustTarget(event.canvasPosition);
     }
   }
@@ -231,7 +213,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void onDragUpdate(DragUpdateEvent event) {
     if (controlMode == GameControlMode.touch && !isGameOver) {
-      _startEngineSound();
       ship?.setThrustTarget(event.canvasEndPosition);
     }
   }
@@ -243,7 +224,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       return;
     }
 
-    _stopEngineSound();
     ship?.clearThrust();
   }
 
@@ -254,7 +234,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       return;
     }
 
-    _stopEngineSound();
     ship?.clearThrust();
   }
 
@@ -268,7 +247,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       return;
     }
 
-    _startEngineSound();
     ship?.setThrustDirection(direction);
   }
 
@@ -277,7 +255,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       return;
     }
 
-    _stopEngineSound();
     ship?.clearThrust();
   }
 
@@ -291,7 +268,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       bestDistanceKm = distanceKm;
       unawaited(storage.setDouble(_keyBestDistance, bestDistanceKm));
     }
-    _stopEngineSound();
     unawaited(triggerGameOverHaptic());
     unawaited(deathPlayer.play(AssetSource(Assets.audio.death)));
     if (overlays.registeredOverlays.contains(gameOverOverlayKey)) {
@@ -320,12 +296,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     _spawnNextObstacleSequence();
   }
 
-  @override
-  void onRemove() {
-    _engineSoundStartTimer?.cancel();
-    super.onRemove();
-  }
-
   Future<void> _buildRun() async {
     final area = playArea;
 
@@ -351,48 +321,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
     _spawnNextObstacleSequence();
     hud?.reposition(playArea, safeAreaPadding: _safeAreaPadding);
-  }
-
-  void _startEngineSound() {
-    if (_isEngineSoundRequested || _isEngineSoundPlaying) {
-      return;
-    }
-
-    _isEngineSoundRequested = true;
-    _engineSoundStartTimer?.cancel();
-    _engineSoundStartTimer = Timer(
-      engineSoundStartDelay,
-      _playEngineSoundIfStillRequested,
-    );
-  }
-
-  void _playEngineSoundIfStillRequested() {
-    if (!_isEngineSoundRequested || _isEngineSoundPlaying || isGameOver) {
-      return;
-    }
-
-    _isEngineSoundPlaying = true;
-    unawaited(
-      startEngineLoop().catchError((Object _) {
-        _isEngineSoundPlaying = false;
-      }),
-    );
-  }
-
-  void _stopEngineSound() {
-    if (!_isEngineSoundRequested && !_isEngineSoundPlaying) {
-      return;
-    }
-
-    _engineSoundStartTimer?.cancel();
-    _engineSoundStartTimer = null;
-    _isEngineSoundRequested = false;
-    if (!_isEngineSoundPlaying) {
-      return;
-    }
-
-    _isEngineSoundPlaying = false;
-    unawaited(stopEngineLoop());
   }
 
   Vector2 _shipStartPosition() {
@@ -637,8 +565,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     }
   }
 }
-
-Future<void> _noEngineLoop() async {}
 
 Future<void> _triggerGameOverHaptic() async {
   try {

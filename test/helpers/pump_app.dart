@@ -43,7 +43,6 @@ extension PumpApp on WidgetTester {
     final resolvedAudioCubit =
         audioCubit ??
         AudioCubit.test(
-          enginePlayer: AudioPlayer(),
           deathPlayer: AudioPlayer(),
           bgmPlayer: AudioPlayer(),
         );

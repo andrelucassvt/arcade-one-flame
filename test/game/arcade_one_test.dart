@@ -52,8 +52,6 @@ void main() {
     late AppLocalizations l10n;
     late AudioPlayer deathPlayer;
     late StorageService storage;
-    late int startEngineLoopCount;
-    late int stopEngineLoopCount;
     late int gameOverHapticCount;
 
     setUpAll(() {
@@ -70,8 +68,6 @@ void main() {
 
       deathPlayer = _MockAudioPlayer();
       storage = _MockStorageService();
-      startEngineLoopCount = 0;
-      stopEngineLoopCount = 0;
       gameOverHapticCount = 0;
       when(() => deathPlayer.play(any())).thenAnswer((_) async {});
       when(() => storage.getDouble(any())).thenAnswer((_) async => null);
@@ -87,12 +83,6 @@ void main() {
       final game = ArcadeOne(
         l10n: l10n,
         deathPlayer: deathPlayer,
-        startEngineLoop: () async {
-          startEngineLoopCount += 1;
-        },
-        stopEngineLoop: () async {
-          stopEngineLoopCount += 1;
-        },
         triggerGameOverHaptic: () async {
           gameOverHapticCount += 1;
         },
@@ -131,28 +121,6 @@ void main() {
         1,
         game,
         TapDownDetails(globalPosition: const Offset(120, 160)),
-      );
-    }
-
-    TapUpEvent tapUp(ArcadeOne game) {
-      return TapUpEvent(
-        1,
-        game,
-        TapUpDetails(
-          globalPosition: const Offset(120, 160),
-          kind: PointerDeviceKind.touch,
-        ),
-      );
-    }
-
-    DragUpdateEvent dragUpdate(ArcadeOne game) {
-      return DragUpdateEvent(
-        1,
-        game,
-        DragUpdateDetails(
-          globalPosition: const Offset(120, 160),
-          delta: const Offset(8, 4),
-        ),
       );
     }
 
@@ -369,43 +337,6 @@ void main() {
       verify(() => deathPlayer.play(any())).called(1);
     });
 
-    testWithGame('plays engine fire sound while thrusting', createGame, (
-      game,
-    ) async {
-      game.onTapDown(tapDown(game));
-      await Future<void>.delayed(engineSoundStartDelay);
-      await Future<void>.delayed(Duration.zero);
-
-      game.onDragUpdate(dragUpdate(game));
-      await Future<void>.delayed(Duration.zero);
-
-      expect(startEngineLoopCount, equals(1));
-    });
-
-    testWithGame('does not play engine fire sound for quick taps', createGame, (
-      game,
-    ) async {
-      game.onTapDown(tapDown(game));
-      game.onTapUp(tapUp(game));
-      await Future<void>.delayed(engineSoundStartDelay);
-      await Future<void>.delayed(Duration.zero);
-
-      expect(startEngineLoopCount, equals(0));
-      expect(stopEngineLoopCount, equals(0));
-    });
-
-    testWithGame('stops engine fire sound when thrust ends', createGame, (
-      game,
-    ) async {
-      game.onTapDown(tapDown(game));
-      await Future<void>.delayed(engineSoundStartDelay);
-      await Future<void>.delayed(Duration.zero);
-
-      game.onTapUp(tapUp(game));
-
-      expect(stopEngineLoopCount, equals(1));
-    });
-
     testWithGame(
       'uses joystick direction in joystick control mode',
       () => createGame(controlMode: GameControlMode.joystick),
@@ -440,16 +371,11 @@ void main() {
       },
     );
 
-    testWithGame('stops engine fire sound when the run ends', createGame, (
+    testWithGame('endRun triggers haptic and death sound', createGame, (
       game,
     ) async {
-      game.onTapDown(tapDown(game));
-      await Future<void>.delayed(engineSoundStartDelay);
-      await Future<void>.delayed(Duration.zero);
-
       game.endRun();
 
-      expect(stopEngineLoopCount, equals(1));
       expect(gameOverHapticCount, equals(1));
       verify(() => deathPlayer.play(any())).called(1);
       game.endRun();

@@ -1,8 +1,5 @@
-import 'dart:async';
-
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/game_audio_assets.dart';
-import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,7 +8,6 @@ part 'audio_state.dart';
 
 class AudioCubit extends Cubit<AudioState> {
   AudioCubit({
-    required this.enginePlayer,
     required this.deathPlayer,
     required this.bgmPlayer,
     StorageService? storage,
@@ -19,15 +15,12 @@ class AudioCubit extends Cubit<AudioState> {
        super(const AudioState());
 
   AudioCubit.test({
-    required this.enginePlayer,
     required this.deathPlayer,
     required this.bgmPlayer,
     StorageService? storage,
     double volume = 1.0,
   }) : _storage = storage,
        super(AudioState(volume: volume));
-
-  final AudioPlayer enginePlayer;
 
   final AudioPlayer deathPlayer;
 
@@ -36,18 +29,6 @@ class AudioCubit extends Cubit<AudioState> {
   final StorageService? _storage;
 
   static const _keyVolume = 'audio_volume';
-  static const double engineVolumeFactor = 0.4;
-  static const _engineFadeDuration = Duration(milliseconds: 180);
-  static const _engineFadeSteps = 6;
-
-  static final _engineFadeStepDuration = Duration(
-    milliseconds: _engineFadeDuration.inMilliseconds ~/ _engineFadeSteps,
-  );
-
-  Timer? _engineFadeTimer;
-  Completer<void>? _engineFadeCompleter;
-  double _engineCurrentVolume = 0;
-  bool _isEngineLoopPlaying = false;
 
   /// Carrega o volume persistido. Deve ser chamado logo após a criação.
   Future<void> init() async {
@@ -59,10 +40,6 @@ class AudioCubit extends Cubit<AudioState> {
   }
 
   Future<void> _changeVolume(double volume) async {
-    _cancelEngineFade();
-    final engineVolume = volume * engineVolumeFactor;
-    _engineCurrentVolume = engineVolume;
-    await enginePlayer.setVolume(engineVolume);
     await deathPlayer.setVolume(volume);
     await bgmPlayer.setVolume(volume);
     if (!isClosed) {
@@ -86,97 +63,10 @@ class AudioCubit extends Cubit<AudioState> {
     await bgmPlayer.stop();
   }
 
-  Future<void> startEngineLoop() async {
-    if (state.volume == 0) {
-      return;
-    }
-
-    final targetVolume = state.volume * engineVolumeFactor;
-    if (_isEngineLoopPlaying) {
-      await _fadeEngineVolume(to: targetVolume);
-      return;
-    }
-
-    _cancelEngineFade();
-    _engineCurrentVolume = 0;
-    await enginePlayer.setReleaseMode(ReleaseMode.loop);
-    await enginePlayer.play(
-      AssetSource(Assets.audio.engineFire),
-      volume: 0,
-    );
-    _isEngineLoopPlaying = true;
-    await _fadeEngineVolume(to: targetVolume);
-  }
-
-  Future<void> stopEngineLoop() async {
-    if (!_isEngineLoopPlaying) {
-      _cancelEngineFade();
-      return;
-    }
-
-    await _fadeEngineVolume(to: 0, stopAfterFade: true);
-    _isEngineLoopPlaying = false;
-  }
-
   @override
   Future<void> close() async {
-    _cancelEngineFade();
-    await enginePlayer.dispose();
     await deathPlayer.dispose();
     await bgmPlayer.dispose();
     return super.close();
-  }
-
-  Future<void> _fadeEngineVolume({
-    required double to,
-    bool stopAfterFade = false,
-  }) {
-    _cancelEngineFade();
-
-    final from = _engineCurrentVolume;
-    final completer = Completer<void>();
-    _engineFadeCompleter = completer;
-
-    var step = 0;
-    _engineFadeTimer = Timer.periodic(_engineFadeStepDuration, (timer) {
-      step += 1;
-      final progress = step / _engineFadeSteps;
-      final volume = from + (to - from) * progress;
-      _engineCurrentVolume = volume;
-      unawaited(enginePlayer.setVolume(volume));
-
-      if (step < _engineFadeSteps) {
-        return;
-      }
-
-      timer.cancel();
-      _engineFadeTimer = null;
-      _engineCurrentVolume = to;
-      unawaited(
-        enginePlayer.setVolume(to).then((_) async {
-          if (stopAfterFade) {
-            await enginePlayer.stop();
-          }
-          if (!completer.isCompleted) {
-            completer.complete();
-          }
-          if (identical(_engineFadeCompleter, completer)) {
-            _engineFadeCompleter = null;
-          }
-        }),
-      );
-    });
-
-    return completer.future;
-  }
-
-  void _cancelEngineFade() {
-    _engineFadeTimer?.cancel();
-    _engineFadeTimer = null;
-    final completer = _engineFadeCompleter;
-    if (completer != null && !completer.isCompleted) {
-      completer.complete();
-    }
-    _engineFadeCompleter = null;
   }
 }

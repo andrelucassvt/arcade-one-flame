@@ -40,9 +40,7 @@ Sem timers, sem espera, sem complicação. Só você, sua nave e o vazio infinit
 
 ### Palavras-chave
 ```
-arcade, espaço, nave, asteroides, desviar, corrida infinita, endless, reflexo,
-galáxia, foguete, planetas, sobrevivência, casual, um toque, recorde, drift,
-naves espaciais, meteoro, viagem espacial, offline
+arcade,espaço,nave,asteroides,desviar,endless,reflexo,galáxia,casual,recorde,drift,meteoro,offline
 ```
 
 ---

@@ -1,1 +1,1 @@
-const String bgmAudioAsset = 'assets/audio/beyond_the_far_rim.mp3';
+const String bgmAudioAsset = 'assets/audio/background_2.mp3';

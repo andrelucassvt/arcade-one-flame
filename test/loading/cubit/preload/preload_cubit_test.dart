@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:arcade_one/game/game_audio_assets.dart';
 import 'package:arcade_one/game/game_image_assets.dart';
 import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:arcade_one/loading/loading.dart';
@@ -36,13 +35,11 @@ void main() {
           audio = _MockAudioCache();
           when(
             () => audio.loadAll([
-              thrustTapAudioAsset,
               Assets.audio.engineFire,
               Assets.audio.death,
             ]),
           ).thenAnswer(
             (invocation) async => [
-              Uri.parse(thrustTapAudioAsset),
               Uri.parse(Assets.audio.engineFire),
               Uri.parse(Assets.audio.death),
             ],
@@ -74,7 +71,6 @@ void main() {
         verify: (bloc) {
           verify(
             () => audio.loadAll([
-              thrustTapAudioAsset,
               Assets.audio.engineFire,
               Assets.audio.death,
             ]),

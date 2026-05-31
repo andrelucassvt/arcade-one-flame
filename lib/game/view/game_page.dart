@@ -62,6 +62,22 @@ class GameView extends StatefulWidget {
 
 class _GameViewState extends State<GameView> {
   FlameGame? _game;
+  AudioCubit? _audioCubit;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_audioCubit == null) {
+      _audioCubit = context.read<AudioCubit>();
+      unawaited(_audioCubit!.startBgm());
+    }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_audioCubit?.stopBgm());
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +91,6 @@ class _GameViewState extends State<GameView> {
         ArcadeOne(
           l10n: context.l10n,
           deathPlayer: audioCubit.deathPlayer,
-          playThrustTapSound: audioCubit.playThrustTap,
           startEngineLoop: audioCubit.startEngineLoop,
           stopEngineLoop: audioCubit.stopEngineLoop,
           textStyle: textStyle,

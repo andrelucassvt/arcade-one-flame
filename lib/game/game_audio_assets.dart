@@ -1,1 +1,1 @@
-const String thrustTapAudioAsset = 'assets/audio/thrust_tap.wav';
+const String bgmAudioAsset = 'assets/audio/beyond_the_far_rim.mp3';

@@ -45,6 +45,7 @@ extension PumpApp on WidgetTester {
         AudioCubit.test(
           enginePlayer: AudioPlayer(),
           deathPlayer: AudioPlayer(),
+          bgmPlayer: AudioPlayer(),
         );
     return pumpWidget(
       RepositoryProvider<StorageService>.value(

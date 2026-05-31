@@ -14,7 +14,6 @@ import 'package:flame/game.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/services.dart';
 
-typedef PlayThrustTapSound = Future<void> Function();
 typedef StartEngineLoop = Future<void> Function();
 typedef StopEngineLoop = Future<void> Function();
 typedef TriggerGameOverHaptic = Future<void> Function();
@@ -54,12 +53,10 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     this.controlMode = GameControlMode.touch,
     this.playerShip = defaultPlayerShipSkin,
     math.Random? random,
-    PlayThrustTapSound? playThrustTapSound,
     StartEngineLoop? startEngineLoop,
     StopEngineLoop? stopEngineLoop,
     TriggerGameOverHaptic? triggerGameOverHaptic,
-  }) : playThrustTapSound = playThrustTapSound ?? _playNoThrustTapSound,
-       startEngineLoop = startEngineLoop ?? _noEngineLoop,
+  }) : startEngineLoop = startEngineLoop ?? _noEngineLoop,
        stopEngineLoop = stopEngineLoop ?? _noEngineLoop,
        triggerGameOverHaptic = triggerGameOverHaptic ?? _triggerGameOverHaptic,
        _random = random ?? math.Random() {
@@ -72,7 +69,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   final AudioPlayer deathPlayer;
 
-  final PlayThrustTapSound playThrustTapSound;
   final StartEngineLoop startEngineLoop;
   final StopEngineLoop stopEngineLoop;
   final TriggerGameOverHaptic triggerGameOverHaptic;
@@ -100,7 +96,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   Timer? _engineSoundStartTimer;
   bool _isEngineSoundRequested = false;
   bool _isEngineSoundPlaying = false;
-  bool _isJoystickActive = false;
 
   final List<AsteroidPairComponent> obstacles = [];
   final List<LooseMeteorComponent> looseMeteors = [];
@@ -200,7 +195,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       return;
     }
 
-    unawaited(playThrustTapSound());
     _startEngineSound();
     ship?.setThrustTarget(event.canvasPosition);
   }
@@ -229,7 +223,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
     if (controlMode == GameControlMode.touch && !isGameOver) {
-      unawaited(playThrustTapSound());
       _startEngineSound();
       ship?.setThrustTarget(event.canvasPosition);
     }
@@ -275,10 +268,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       return;
     }
 
-    if (!_isJoystickActive) {
-      unawaited(playThrustTapSound());
-    }
-    _isJoystickActive = true;
     _startEngineSound();
     ship?.setThrustDirection(direction);
   }
@@ -288,7 +277,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       return;
     }
 
-    _isJoystickActive = false;
     _stopEngineSound();
     ship?.clearThrust();
   }
@@ -315,7 +303,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   Future<void> restartRun() async {
     isGameOver = false;
-    _isJoystickActive = false;
     overlays.remove(gameOverOverlayKey);
     distanceKm = 0;
     scrollSpeed = initialDriftSpeed * driftVisualSpeedScale;
@@ -650,8 +637,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     }
   }
 }
-
-Future<void> _playNoThrustTapSound() async {}
 
 Future<void> _noEngineLoop() async {}
 

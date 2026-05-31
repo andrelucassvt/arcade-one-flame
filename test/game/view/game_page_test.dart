@@ -149,6 +149,8 @@ void main() {
       when(() => audioCubit.deathPlayer).thenReturn(deathPlayer);
       when(audioCubit.startEngineLoop).thenAnswer((_) async {});
       when(audioCubit.stopEngineLoop).thenAnswer((_) async {});
+      when(audioCubit.startBgm).thenAnswer((_) async {});
+      when(audioCubit.stopBgm).thenAnswer((_) async {});
     });
 
     testWidgets('toggles mute button correctly', (tester) async {

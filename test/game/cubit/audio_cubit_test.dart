@@ -1,5 +1,6 @@
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/cubit/cubit.dart';
+import 'package:arcade_one/game/game_audio_assets.dart';
 import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:bloc_test/bloc_test.dart';
@@ -8,8 +9,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockAudioCache extends Mock implements AudioCache {}
-
-class _MockAudioPool extends Mock implements AudioPool {}
 
 class _MockAudioPlayer extends Mock implements AudioPlayer {}
 
@@ -22,9 +21,9 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
 
     late AudioCache audioCache;
-    late AudioPool thrustTapPool;
     late AudioPlayer enginePlayer;
     late AudioPlayer deathPlayer;
+    late AudioPlayer bgmPlayer;
     late StorageService storage;
 
     setUpAll(() {
@@ -34,9 +33,9 @@ void main() {
 
     setUp(() {
       audioCache = _MockAudioCache();
-      thrustTapPool = _MockAudioPool();
       enginePlayer = _MockAudioPlayer();
       deathPlayer = _MockAudioPlayer();
+      bgmPlayer = _MockAudioPlayer();
       storage = _MockStorageService();
 
       when(() => enginePlayer.audioCache).thenReturn(audioCache);
@@ -44,18 +43,21 @@ void main() {
 
       when(enginePlayer.dispose).thenAnswer((_) async {});
       when(deathPlayer.dispose).thenAnswer((_) async {});
-      when(thrustTapPool.dispose).thenAnswer((_) async {});
-      when(
-        () => thrustTapPool.start(volume: any(named: 'volume')),
-      ).thenAnswer((_) async => () async {});
+      when(bgmPlayer.dispose).thenAnswer((_) async {});
 
       when(() => enginePlayer.setVolume(any())).thenAnswer((_) async {});
       when(() => deathPlayer.setVolume(any())).thenAnswer((_) async {});
+      when(() => bgmPlayer.setVolume(any())).thenAnswer((_) async {});
       when(
         () => enginePlayer.play(any(), volume: any(named: 'volume')),
       ).thenAnswer((_) async {});
+      when(
+        () => bgmPlayer.play(any(), volume: any(named: 'volume')),
+      ).thenAnswer((_) async {});
       when(() => enginePlayer.setReleaseMode(any())).thenAnswer((_) async {});
+      when(() => bgmPlayer.setReleaseMode(any())).thenAnswer((_) async {});
       when(enginePlayer.stop).thenAnswer((_) async {});
+      when(bgmPlayer.stop).thenAnswer((_) async {});
 
       when(() => storage.getDouble(any())).thenAnswer((_) async => null);
       when(() => storage.setDouble(any(), any())).thenAnswer((_) async {});
@@ -70,7 +72,11 @@ void main() {
     test(
       'can be instantiated',
       () => expect(
-        AudioCubit(enginePlayer: enginePlayer, deathPlayer: deathPlayer),
+        AudioCubit(
+          enginePlayer: enginePlayer,
+          deathPlayer: deathPlayer,
+          bgmPlayer: bgmPlayer,
+        ),
         isA<AudioCubit>(),
       ),
     );
@@ -87,6 +93,7 @@ void main() {
       build: () => AudioCubit(
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
+        bgmPlayer: bgmPlayer,
         storage: storage,
       ),
       act: (cubit) => cubit.init(),
@@ -94,6 +101,7 @@ void main() {
       verify: (_) {
         verify(() => enginePlayer.setVolume(any(that: equals(0)))).called(1);
         verify(() => deathPlayer.setVolume(any(that: equals(0)))).called(1);
+        verify(() => bgmPlayer.setVolume(any(that: equals(0)))).called(1);
       },
     );
 
@@ -102,6 +110,7 @@ void main() {
       build: () => AudioCubit(
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
+        bgmPlayer: bgmPlayer,
         storage: storage,
       ),
       act: (cubit) => cubit.init(),
@@ -113,6 +122,7 @@ void main() {
       build: () => AudioCubit.test(
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
+        bgmPlayer: bgmPlayer,
         storage: storage,
       ),
       act: (cubit) => cubit.toggleVolume(),
@@ -127,6 +137,7 @@ void main() {
       build: () => AudioCubit.test(
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
+        bgmPlayer: bgmPlayer,
         storage: storage,
         volume: 0,
       ),
@@ -144,6 +155,7 @@ void main() {
       build: () => AudioCubit.test(
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
+        bgmPlayer: bgmPlayer,
         storage: storage,
       ),
       act: (cubit) => cubit.toggleVolume(),
@@ -151,6 +163,7 @@ void main() {
       verify: (_) {
         verify(() => enginePlayer.setVolume(any(that: equals(0)))).called(1);
         verify(() => deathPlayer.setVolume(any(that: equals(0)))).called(1);
+        verify(() => bgmPlayer.setVolume(any(that: equals(0)))).called(1);
       },
     );
 
@@ -159,6 +172,7 @@ void main() {
       build: () => AudioCubit.test(
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
+        bgmPlayer: bgmPlayer,
         storage: storage,
         volume: 0,
       ),
@@ -171,6 +185,7 @@ void main() {
           ),
         ).called(1);
         verify(() => deathPlayer.setVolume(any(that: equals(1)))).called(1);
+        verify(() => bgmPlayer.setVolume(any(that: equals(1)))).called(1);
       },
     );
 
@@ -178,6 +193,7 @@ void main() {
       final cubit = AudioCubit.test(
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
+        bgmPlayer: bgmPlayer,
         storage: storage,
       );
 
@@ -207,6 +223,7 @@ void main() {
       final cubit = AudioCubit.test(
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
+        bgmPlayer: bgmPlayer,
         storage: storage,
         volume: 0,
       );
@@ -223,6 +240,7 @@ void main() {
       final cubit = AudioCubit.test(
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
+        bgmPlayer: bgmPlayer,
         storage: storage,
       );
 
@@ -232,41 +250,67 @@ void main() {
       verify(enginePlayer.stop).called(1);
     });
 
-    test('playThrustTap starts pooled sound with current volume', () async {
+    // ── Testes de BGM ─────────────────────────────────────────────────────
+
+    test('startBgm plays BGM in loop with current volume', () async {
       final cubit = AudioCubit.test(
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
-        thrustTapPool: Future.value(thrustTapPool),
+        bgmPlayer: bgmPlayer,
         storage: storage,
       );
 
-      await cubit.playThrustTap();
+      await cubit.startBgm();
 
+      verify(() => bgmPlayer.setReleaseMode(ReleaseMode.loop)).called(1);
       verify(
-        () => thrustTapPool.start(
-          volume: any(named: 'volume', that: equals(1)),
+        () => bgmPlayer.play(
+          any(
+            that: isA<AssetSource>().having(
+              (source) => source.path,
+              'path',
+              bgmAudioAsset,
+            ),
+          ),
+          volume: any(named: 'volume', that: equals(1.0)),
         ),
       ).called(1);
     });
 
-    test('playThrustTap does not start sound when muted', () async {
+    test('startBgm does not start when muted', () async {
       final cubit = AudioCubit.test(
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
-        thrustTapPool: Future.value(thrustTapPool),
+        bgmPlayer: bgmPlayer,
         storage: storage,
         volume: 0,
       );
 
-      await cubit.playThrustTap();
+      await cubit.startBgm();
 
-      verifyNever(() => thrustTapPool.start(volume: any(named: 'volume')));
+      verifyNever(() => bgmPlayer.setReleaseMode(any()));
+      verifyNever(() => bgmPlayer.play(any(), volume: any(named: 'volume')));
+    });
+
+    test('stopBgm stops the bgm player', () async {
+      final cubit = AudioCubit.test(
+        enginePlayer: enginePlayer,
+        deathPlayer: deathPlayer,
+        bgmPlayer: bgmPlayer,
+        storage: storage,
+      );
+
+      await cubit.startBgm();
+      await cubit.stopBgm();
+
+      verify(bgmPlayer.stop).called(1);
     });
 
     test('close disposes every audio player', () async {
       final cubit = AudioCubit.test(
         enginePlayer: enginePlayer,
         deathPlayer: deathPlayer,
+        bgmPlayer: bgmPlayer,
         storage: storage,
       );
 
@@ -274,19 +318,7 @@ void main() {
 
       verify(enginePlayer.dispose).called(1);
       verify(deathPlayer.dispose).called(1);
-    });
-
-    test('close disposes thrust tap pool when present', () async {
-      final cubit = AudioCubit.test(
-        enginePlayer: enginePlayer,
-        deathPlayer: deathPlayer,
-        thrustTapPool: Future.value(thrustTapPool),
-        storage: storage,
-      );
-
-      await cubit.close();
-
-      verify(thrustTapPool.dispose).called(1);
+      verify(bgmPlayer.dispose).called(1);
     });
   });
 }

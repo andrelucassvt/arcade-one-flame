@@ -52,7 +52,6 @@ void main() {
     late AppLocalizations l10n;
     late AudioPlayer deathPlayer;
     late StorageService storage;
-    late int thrustTapSoundCount;
     late int startEngineLoopCount;
     late int stopEngineLoopCount;
     late int gameOverHapticCount;
@@ -71,7 +70,6 @@ void main() {
 
       deathPlayer = _MockAudioPlayer();
       storage = _MockStorageService();
-      thrustTapSoundCount = 0;
       startEngineLoopCount = 0;
       stopEngineLoopCount = 0;
       gameOverHapticCount = 0;
@@ -89,9 +87,6 @@ void main() {
       final game = ArcadeOne(
         l10n: l10n,
         deathPlayer: deathPlayer,
-        playThrustTapSound: () async {
-          thrustTapSoundCount += 1;
-        },
         startEngineLoop: () async {
           startEngineLoopCount += 1;
         },
@@ -395,7 +390,6 @@ void main() {
       await Future<void>.delayed(engineSoundStartDelay);
       await Future<void>.delayed(Duration.zero);
 
-      expect(thrustTapSoundCount, equals(1));
       expect(startEngineLoopCount, equals(0));
       expect(stopEngineLoopCount, equals(0));
     });
@@ -422,12 +416,10 @@ void main() {
 
         game.onTapDown(tapDown(game));
 
-        expect(thrustTapSoundCount, equals(0));
         expect(game.ship!.isThrusting, isFalse);
 
         game.setJoystickDirection(Vector2(1, 0));
 
-        expect(thrustTapSoundCount, equals(1));
         expect(game.ship!.isThrusting, isTrue);
 
         game.clearJoystick();
@@ -444,7 +436,6 @@ void main() {
       ) async {
         game.setJoystickDirection(Vector2(1, 0));
 
-        expect(thrustTapSoundCount, equals(0));
         expect(game.ship!.isThrusting, isFalse);
       },
     );

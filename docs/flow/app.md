@@ -1,33 +1,49 @@
+---
+generated_at: 2026-07-27
+source_commit: 2bc98a5
+source_state: dirty
+verified_at: 2026-07-27
+status: current
+related_plans: []
+---
+
 # Flow: App
 
-> **Resumo:** Inicializa o aplicativo Flutter, registra dependencias globais e exibe a tela de loading como primeira experiencia.
+> **Resumo:** Inicializa o flavor escolhido, prepara serviços globais e monta o `MaterialApp` com locale, tema, Cubits e `LoadingPage`.
 
 ## Visão Geral
 
-O fluxo do App começa em um dos entry points de flavor (`main_development`, `main_staging` ou `main_production`). Todos chamam `bootstrap`, que configura o tratamento global de erros, o observer de Bloc e a licenca da fonte Poppins antes de executar `runApp`.
+O fluxo começa em um dos três entry points de flavor. Cada `main` chama `bootstrap` e fornece um builder que cria `App` com a instância de `SharedPreferences` carregada durante a inicialização.
 
-Depois do bootstrap, `App` cria providers globais para `StorageService`, `AppLocaleCubit`, `PreloadCubit` e `AudioCubit`. O `AppLocaleCubit` controla o idioma da sessao, o `PreloadCubit` mantem caches de imagens e audio sem prefixo, e o `AudioCubit` usa o cache de audio para manter os players de motor/fogo e morte disponiveis tanto na Title quanto na Game. Quando nenhum idioma foi escolhido, o locale fica `null` e o `MaterialApp` resolve pelo sistema. A carga dos assets e iniciada imediatamente via `loadSequentially`, sem aguardar o fim antes de renderizar a UI.
+O bootstrap configura o binding do Flutter, logs globais de erros e mudanças de Bloc, registra a licença Poppins, define o contexto de áudio e inicializa o Google Mobile Ads. Depois obtém `SharedPreferences` e executa `runApp`.
 
-`AppView` monta o `MaterialApp` dentro de um `BlocBuilder<AppLocaleCubit, Locale>`, aplica tema com Poppins, configura localizacoes, passa o locale atual e define `LoadingPage` como `home`. A partir dai, o fluxo segue para a feature de loading.
+`App` expõe `StorageService` e os Cubits globais de locale, preload e áudio. `AppView` limita a orientação a retrato, reage ao locale atual e monta o `MaterialApp` com tema Poppins, localizações em inglês e português e `LoadingPage` como tela inicial.
 
 ## Passo a Passo
 
 1. **Entry point** — `lib/main_development.dart`, `lib/main_staging.dart`, `lib/main_production.dart` → `main`
-   Cada flavor chama `bootstrap(() => const App())`.
-2. **Bootstrap** — `lib/bootstrap.dart` → `bootstrap`
-   Registra `FlutterError.onError`, `AppBlocObserver`, licenca Poppins e executa `runApp(await builder())`.
-3. **Observer** — `lib/bootstrap.dart` → `AppBlocObserver`
-   Loga mudancas e erros de Bloc/Cubit via `dart:developer`.
-4. **Provider global de storage** — `lib/app/view/app.dart` → `App.build`
-   Cria `SharedPreferencesStorageService` a partir das preferencias recebidas no construtor.
-5. **Provider global de idioma** — `lib/app/view/app.dart` → `App.build`
-   Cria `AppLocaleCubit` dentro de `MultiBlocProvider` e chama `init()` para restaurar o locale salvo.
-6. **Provider global de preload** — `lib/app/view/app.dart` → `App.build`
-   Cria `PreloadCubit(Images(prefix: ''), AudioCache(prefix: ''))` dentro de `MultiBlocProvider` e dispara `loadSequentially`.
-7. **Provider global de audio** — `lib/app/view/app.dart` → `App.build`
-   Cria `AudioCubit` com `enginePlayer` e `deathPlayer` ligados ao `AudioCache` do `PreloadCubit`, passa `StorageService` e chama `init()` para restaurar o volume salvo.
-8. **Shell visual** — `lib/app/view/app.dart` → `AppView.build`
-   Escuta `AppLocaleCubit`, configura `MaterialApp`, tema, localizacoes, locale atual e `home: const LoadingPage()`.
+   O flavor selecionado chama `bootstrap((prefs) => App(prefs: prefs))`.
+2. **Inicialização Flutter** — `lib/bootstrap.dart` → `bootstrap`
+   Executa `WidgetsFlutterBinding.ensureInitialized`, registra `FlutterError.onError` e instala `AppBlocObserver` para logar mudanças e erros de Bloc/Cubit.
+3. **Configuração global** — `lib/bootstrap.dart` → `bootstrap`
+   Registra a licença Poppins, configura `AudioPlayer.global` com categoria ambiente no iOS e sem foco exclusivo no Android e inicializa `AdService`.
+4. **Persistência e montagem** — `lib/bootstrap.dart` → `bootstrap`
+   Obtém `SharedPreferences.getInstance()`, chama o builder recebido e entrega o widget resultante a `runApp`.
+5. **Provider de persistência** — `lib/app/view/app.dart` → `App.build`
+   Cria `SharedPreferencesStorageService` e o fornece como `StorageService` por `RepositoryProvider`.
+6. **Cubits globais** — `lib/app/view/app.dart` → `App.build`
+   Cria `AppLocaleCubit`, `PreloadCubit` e `AudioCubit`; dispara `init()` ou `loadSequentially()` sem bloquear a primeira renderização.
+7. **Restauração do locale** — `lib/app/cubit/app_locale_cubit.dart` → `AppLocaleCubit.init`
+   Lê `app_locale` no storage e emite um `Locale` quando existe um valor salvo.
+8. **Orientação** — `lib/app/view/app.dart` → `_AppViewState.initState`
+   Após o primeiro frame, solicita apenas `DeviceOrientation.portraitUp`.
+9. **Shell visual** — `lib/app/view/app.dart` → `AppView.build`
+   `BlocBuilder<AppLocaleCubit, Locale?>` monta o `MaterialApp`, aplica tema Poppins, delegates, locales suportados e `home: const LoadingPage()`.
+
+### Caminhos alternativos
+
+- **Locale ainda não escolhido:** `AppLocaleCubit` permanece com estado `null`; o `MaterialApp` deixa o Flutter resolver o idioma pelo sistema.
+- **Locale persistido:** `AppLocaleCubit.init` emite `Locale(saved)` e o `BlocBuilder` reconstrói o `MaterialApp` com esse locale.
 
 ## Arquivos Envolvidos
 
@@ -36,37 +52,39 @@ Depois do bootstrap, `App` cria providers globais para `StorageService`, `AppLoc
 | Entry point | `lib/main_development.dart` | Entrada do flavor development. |
 | Entry point | `lib/main_staging.dart` | Entrada do flavor staging. |
 | Entry point | `lib/main_production.dart` | Entrada do flavor production. |
-| Bootstrap | `lib/bootstrap.dart` | Configura erros, Bloc observer, licenca Poppins e `runApp`. |
-| Apresentacao | `lib/app/view/app.dart` | Compoe providers globais, tema, l10n e tela inicial. |
-| Barrel | `lib/app/app.dart` | Exporta cubits e view da feature App. |
-| Estado / Cubit | `lib/app/cubit/app_locale_cubit.dart` | Mantem o locale atual da sessao. |
-| Estado / Cubit | `lib/loading/cubit/preload/preload_cubit.dart` | Cubit global criado pelo App para carregar assets. |
-| Estado / Cubit | `lib/game/cubit/audio/audio_cubit.dart` | Cubit global criado pelo App para controlar volume e players de audio usados pela Title e pela Game. |
-| Estado | `lib/game/cubit/audio/audio_state.dart` | Guarda o volume atual usado pelos botoes de mute. |
-| Servico | `lib/common/services/storage_service.dart` | Interface de persistencia usada por locale, volume e melhor distancia. |
-| Servico | `lib/common/services/shared_preferences_storage_service.dart` | Implementacao de storage usada pelo App em runtime. |
-| Configuracao | `pubspec.yaml` | Declara assets, dependencias e geracao Flutter. |
-| Configuracao | `l10n.yaml` | Define a geracao de localizacoes usadas pelo `MaterialApp`. |
-| Testes | `test/app/view/app_test.dart` | Cobre a montagem da feature App. |
-| Testes | `test/helpers/pump_app.dart` | Helper para montar widgets com l10n, locale e providers em testes. |
+| Bootstrap | `lib/bootstrap.dart` | Configura erros, Bloc, licença, áudio, anúncios, preferências e `runApp`. |
+| Apresentação | `lib/app/view/app.dart` | Compõe providers, orientação, tema, localização e tela inicial. |
+| Estado / Cubit | `lib/app/cubit/app_locale_cubit.dart` | Restaura, persiste e emite o locale escolhido. |
+| Serviços | `lib/common/services/storage_service.dart` | Define a interface de persistência consumida pelos Cubits e pelo jogo. |
+| Serviços | `lib/common/services/shared_preferences_storage_service.dart` | Implementa `StorageService` com `SharedPreferences`. |
+| Serviços | `lib/common/services/ads/ad_service.dart` | Inicializa o Google Mobile Ads uma vez por instância. |
+| Estado / Cubit | `lib/loading/cubit/preload/preload_cubit.dart` | Mantém os caches globais e inicia o preload. |
+| Estado / Cubit | `lib/game/cubit/audio/audio_cubit.dart` | Controla players, volume persistido e BGM. |
+| Configuração | `l10n.yaml` | Define a geração das localizações usadas no `MaterialApp`. |
+| Testes | `test/app/cubit/app_locale_cubit_test.dart` | Cobre estado inicial, restauração e persistência do locale. |
+| Testes | `test/app/view/app_test.dart` | Verifica que `App` monta `AppView`. |
+| Testes | `test/common/services/storage_service_test.dart` | Cobre a implementação de storage com `SharedPreferences`. |
 
 ## Regras de Negócio Relevantes
 
-- **Preload comeca no startup** — `lib/app/view/app.dart`: o `PreloadCubit.loadSequentially()` e disparado assim que o provider e criado.
-- **Idioma global persistido** — `lib/app/view/app.dart` e `lib/app/cubit/app_locale_cubit.dart`: o locale selecionado pelo usuario e salvo em storage, restaurado no startup e aplicado no `MaterialApp`; sem selecao manual, o app usa a resolucao padrao do sistema.
-- **Volume global persistido** — `lib/app/view/app.dart` e `lib/game/cubit/audio/audio_cubit.dart`: o volume e restaurado no startup e compartilhado entre Title e Game pelo mesmo `AudioCubit`.
-- **Tema global Poppins** — `lib/app/view/app.dart` e `lib/bootstrap.dart`: `GoogleFonts.poppinsTextTheme()` define o texto, e a licenca Poppins e registrada no bootstrap.
-- **Tela inicial fixa** — `lib/app/view/app.dart`: `LoadingPage` e sempre o `home` do `MaterialApp`.
+- **Mesma inicialização para todos os flavors** — `lib/main_development.dart`, `lib/main_staging.dart`, `lib/main_production.dart`: os três entry points executam o mesmo builder.
+- **Dependência por abstração** — `lib/app/view/app.dart`: consumidores recebem `StorageService`; somente a composição global conhece `SharedPreferencesStorageService`.
+- **Inicialização assíncrona não bloqueante dos Cubits** — `lib/app/view/app.dart`: `AppLocaleCubit.init`, `PreloadCubit.loadSequentially` e `AudioCubit.init` são disparados com `unawaited`.
+- **Locale persistido** — `lib/app/cubit/app_locale_cubit.dart`: a chave é `app_locale`, e selecionar o locale atual novamente não grava nem emite outro estado.
+- **Orientação retrato** — `lib/app/view/app.dart`: a aplicação solicita somente `portraitUp`.
+- **Tela inicial fixa** — `lib/app/view/app.dart`: o `home` do `MaterialApp` é sempre `LoadingPage`.
 
 ## Dependências Externas
 
-- `flutter_bloc` para `MultiBlocProvider`, `BlocProvider` e `BlocBuilder`.
-- `flame/cache.dart` para `Images`.
-- `audioplayers` para `AudioCache`.
+- Flutter para binding, orientação, `MaterialApp`, localização e registro de licença.
+- `bloc` e `flutter_bloc` para observer, Cubits e providers.
+- `shared_preferences` para persistência local.
+- `audioplayers` para contexto global, cache e players.
+- `flame` para o cache global de imagens.
+- `google_mobile_ads` para inicialização do SDK.
 - `google_fonts` para o tema Poppins.
-- `flutter_localizations` e `intl` por meio dos delegates gerados.
 
 ## Observações
 
-- Os tres entry points de flavor ainda executam a mesma configuracao.
-- `bootstrap.dart` contem o comentario `Add cross-flavor configuration here`, indicando um ponto preparado para diferenciacao futura entre flavors.
+- O comentário `Add cross-flavor configuration here` em `lib/bootstrap.dart` marca o ponto previsto para diferenças futuras entre flavors.
+- `bootstrap` não captura falhas da inicialização de anúncios ou de `SharedPreferences`; uma exceção nessas etapas impede que `runApp` seja alcançado.

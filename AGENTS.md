@@ -1,57 +1,69 @@
 # Arcade One
 
-Flutter/Dart game app generated from Very Good CLI, using Bloc/Cubit for UI state and Flame for the playable scene.
+Jogo arcade espacial multiplataforma em Flutter, com Cubits na interface e Flame na cena jogável.
 
 ## Stack
 
-- Dart `^3.11.0` and Flutter `^3.41.0`
-- `flutter_bloc`/`bloc` for Cubits, `flame`/`flame_audio` for gameplay
-- Very Good Analysis plus `bloc_lint`; generated files in `lib/gen` and `lib/l10n/gen` are analyzer-excluded
-- Flutter flavors: `development`, `staging`, `production`
+- Dart `^3.11.0` e Flutter `^3.41.0`
+- `flutter_bloc`/`bloc` para Cubits e providers globais
+- `flame` para gameplay; `audioplayers` para BGM e efeito de morte
+- `shared_preferences` atrás de `StorageService`; Google Mobile Ads para banners
+- Very Good Analysis e `bloc_lint`; flavors `development`, `staging` e `production`
 
 ## Estrutura
 
-- `lib/main_*.dart` — flavor entry points that call `bootstrap(() => const App())`
-- `lib/bootstrap.dart` — global Flutter error logging, Bloc observer, Poppins license registration, `runApp`
-- `lib/app/` — global providers, theme, l10n delegates, and initial `LoadingPage`
-- `lib/loading/` — asset preload Cubit, loading screen, animated progress bar
-- `lib/title/` — title screen and Start button navigation
-- `lib/game/` — Flame game, audio Cubit, entities, obstacle components, HUD components, game page
-- `lib/l10n/` — ARB files, generated localizations, and `context.l10n`
-- `assets/` — audio, image spritesheet, and Poppins license assets
-- `test/` — mirrors feature structure and contains helpers in `test/helpers/`
+- `lib/main_development.dart`, `lib/main_staging.dart`, `lib/main_production.dart` — entry points que chamam `bootstrap((prefs) => App(prefs: prefs))`
+- `lib/bootstrap.dart` — erros globais, observer de Bloc, licença Poppins, áudio, anúncios, preferências e `runApp`
+- `lib/app/` — providers globais, locale, tema, orientação e `LoadingPage`
+- `lib/common/` — abstração/implementação de storage, anúncios e widgets compartilhados
+- `lib/loading/` — preload sequencial, estado de progresso e tela de loading
+- `lib/title/` — idioma, volume, controle, seleção de nave e início da partida
+- `lib/game/` — `ArcadeOne`, áudio, entidades, componentes, HUD, background, anúncios e tela do jogo
+- `lib/l10n/` — ARBs, localizações geradas e extensão `context.l10n`
+- `assets/` — áudios, sprites, cenários e licença Poppins
+- `test/` — espelha os módulos e mantém helpers em `test/helpers/`
 
 ## Comandos
 
-- `flutter run --flavor development --target lib/main_development.dart` — run development flavor
-- `flutter run --flavor staging --target lib/main_staging.dart` — run staging flavor
-- `flutter run --flavor production --target lib/main_production.dart` — run production flavor
-- `flutter test --coverage --test-randomize-ordering-seed random` — run the project test suite as documented
-- `dart run bloc_tools:bloc lint .` — run Bloc-specific lint checks
-- `flutter gen-l10n` — regenerate `lib/l10n/gen` after ARB changes
+- `flutter run --flavor development --target lib/main_development.dart` — executa development
+- `flutter run --flavor staging --target lib/main_staging.dart` — executa staging
+- `flutter run --flavor production --target lib/main_production.dart` — executa production
+- `flutter test --coverage --test-randomize-ordering-seed random` — executa a suíte documentada
+- `dart run bloc_tools:bloc lint .` — executa os lints específicos de Bloc
+- `flutter gen-l10n` — regenera `lib/l10n/gen/` após mudanças nos ARBs
 
 ## Convenções
 
-- Use Cubits for state management in the existing style; preload state lives in `loading`, audio state lives in `game`.
-- Navigation is currently manual with `Navigator.pushReplacement` and `MaterialPageRoute`; there is no router package.
-- Add user-facing strings in `lib/l10n/arb/app_en.arb` and access them through `context.l10n`.
-- Keep generated files (`lib/gen/*`, `lib/l10n/gen/*`) treated as generated output, not hand-authored code.
-- Tests should follow the existing mirrored feature structure and reuse `test/helpers/pump_app.dart` for widget setup.
+- Siga o padrão atual de Cubits: locale em `app`, preload em `loading`, áudio em `game` e escolhas da tela inicial em `title`.
+- Forneça dependências globais com os providers existentes; consumidores de persistência dependem de `StorageService`, não de `SharedPreferences`.
+- Mantenha a navegação manual com `Navigator.pushReplacement` e `MaterialPageRoute`; não há router.
+- Adicione strings visíveis em `lib/l10n/arb/app_en.arb` e `lib/l10n/arb/app_pt.arb`; acesse-as por `context.l10n`.
+- Trate `lib/gen/` e `lib/l10n/gen/` como saída gerada, nunca como código autoral.
+- Espelhe a feature em `test/` e reutilize `test/helpers/pump_app.dart` na montagem de widgets.
 
 ## Gotchas
 
-- All three flavor entry points currently do the same thing; flavor-specific setup belongs in `bootstrap.dart` where the existing comment marks it.
-- `PreloadCubit` loads only `Assets.audio.background`, `Assets.audio.effect`, and `Assets.images.unicornAnimation.path`; new game assets need preload updates if they must be cached before gameplay.
-- `GamePage` expects a `PreloadCubit` above it because it reads the preloaded audio and image caches.
-- The best distance is kept only in the current `ArcadeOne` instance; there is no local persistence yet.
+- Os três entry points fazem a mesma inicialização; configuração específica de flavor pertence ao ponto marcado em `lib/bootstrap.dart`.
+- `PreloadCubit` antecipa `Assets.audio.death`, `Assets.images.unicornAnimation.path` e `gameImageAssets`; a BGM `assets/audio/background_2.mp3` inicia no `AudioCubit`.
+- `GamePage` espera `PreloadCubit`, `AudioCubit` e `StorageService` acima dela.
+- A melhor distância usa a chave `best_distance_km` e persiste por `StorageService`; ela também controla o desbloqueio de naves.
+- O banner possui IDs apenas para Android e iOS; outras plataformas omitem o anúncio.
 
 ## Não fazer
 
-- Do not run `flutter pub upgrade` unless explicitly asked.
-- Do not hardcode visible UI strings in widgets; use ARB/l10n.
-- Do not hand-edit generated localization or asset files.
-- Do not replace the current `Navigator` flow with a router package unless the task is specifically about navigation architecture.
+- Não rode `flutter pub upgrade` sem solicitação explícita.
+- Não hardcode strings visíveis em widgets.
+- Não edite manualmente localizações ou assets gerados.
+- Não substitua o fluxo atual de `Navigator` por um router sem uma tarefa específica de arquitetura de navegação.
 
 ## 📖 Documentação de Flows
 
-Para qualquer feature ou fluxo, verifique a pasta `./flow/`: leia os títulos dos arquivos `.md` disponíveis e, se algum for relevante para a tarefa atual, leia-o antes de implementar ou debugar. Use `/flow <nome>` para criar ou atualizar flows individuais.
+Para qualquer feature ou fluxo, verifique a pasta `./docs/flow/`: leia os títulos dos arquivos `.md` disponíveis e, se algum for relevante para a tarefa atual, leia-o antes de implementar ou debugar. Invoque a skill `flow` para criar ou atualizar flows individuais.
+
+## 🧪 Teste funcional
+
+Após implementar, não execute o projeto para validar o resultado (rodar o app, emulador/simulador, dispositivo físico, servidor local, screenshots ou interação simulada). Teste funcional/visual é responsabilidade do usuário.
+
+- Limite a verificação a análise estática, build/compile e testes automatizados
+- Ao concluir, liste objetivamente o que o usuário deve testar manualmente
+- Não pergunte se deve executar o projeto — só faça isso se o usuário pedir explicitamente

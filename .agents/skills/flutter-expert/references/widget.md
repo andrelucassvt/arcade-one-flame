@@ -2,7 +2,7 @@
 
 ## Leitura Rápida
 
-- **Quando extrair um widget**: bloco de UI maior que 20 linhas ou repetido em mais de um lugar.
+- **Quando extrair um widget da View**: bloco que passa na regra de corte (>45 linhas, repetido 2+ vezes, ou com estado próprio); caso contrário, deixe inline no `build()` da View. Dentro de um arquivo já extraído, divida somente por identidade — não por tamanho.
 - **Quando usar StatelessWidget**: widget apenas renderiza dados recebidos, sem estado interno.
 - **Quando usar StatefulWidget**: widget tem controllers, timers ou animações internas.
 - **Quando definir parâmetros**: prefira passar a Entity completa em vez de campos individuais.
@@ -37,7 +37,7 @@ lib/
 | Auxiliar específico de uma View? | ❌ Não | ✅ Sim | ❌ Não |
 | Exemplo | `ProfileCard`, `HomeItemList` | `RecursosContent`, `HomeEmptySection` | `AppButton`, `AppCard` |
 
-**Regra:** se o bloco é específico de uma única View, comece em `content/`. Use `widgets/` quando houver identidade própria ou intenção real de reutilização dentro da feature. Use `common/widgets/` somente quando outra feature também precisar.
+**Antes de escolher a pasta, aplique a regra de corte** (ver `view.md`): se o bloco não passar — ≤45 linhas, usado 1x, sem estado — ele fica inline na View. **Somente se passar:** se o bloco é específico de uma única View, comece em `content/`. Use `widgets/` quando houver identidade própria ou intenção real de reutilização dentro da feature. Use `common/widgets/` somente quando outra feature também precisar.
 
 > Para entender **por que** não usar `Widget _buildXxx()` na View, ver `view.md`.
 
@@ -304,20 +304,30 @@ class ProfileSaveBar extends StatelessWidget {
 
 ## Quando Criar Widgets
 
-### ✅ CRIE quando:
-1. Bloco de UI tem mais de 20 linhas
-2. Código se repete em dois ou mais lugares
-3. Há separação lógica clara (cabeçalho, card, lista, formulário)
+> **Contexto**: Esta regra de corte se aplica quando você está decidindo se um bloco **sai da View**. Para decidir se um arquivo já extraído deve ser subdividido, veja "Estrutura interna de um arquivo extraído".
+
+### ✅ CRIE quando (regra de corte — qualquer um basta):
+1. Bloco tem **mais de 45 linhas** dentro do `build`
+2. Código se **repete em 2+ lugares**
+3. Bloco tem **estado próprio** (controller, timer, animação, `setState`)
+
+Caso contrário → mantenha inline no `build()` da View.
 
 ### ❌ NÃO crie quando:
-1. É muito simples (< 10 linhas)
-2. É usado apenas uma vez e é trivial
+1. O bloco não passa em nenhum dos 3 gatilhos acima
+2. É usado apenas uma vez e é trivial (≤45 linhas, sem estado)
 
 ---
 
 ## Decisão Rápida
 
+### Extraindo da View
+
 ```
+Passou na regra de corte (>45 linhas OU repetido 2+ vezes OU tem estado próprio)?
+  ├─ NÃO → inline no build() da View
+  └─ SIM → (continua abaixo)
+
 Precisa de controller/timer/animação?
   ├─ SIM → StatefulWidget
   └─ NÃO → StatelessWidget
@@ -332,6 +342,41 @@ Tem entity relacionada?
   ├─ SIM → prefira passar a entity completa
   └─ NÃO → passe parâmetros primitivos
 ```
+
+### Dentro de um arquivo content/ ou widgets/
+
+```
+O arquivo já é terminal por padrão — pode ser longo sem que isso seja problema.
+Existe um sub-bloco com identidade própria?
+  (você o nomearia sozinho, ele se repete em lista, ou é unidade interativa autocontida)
+  ├─ NÃO → mantenha tudo no mesmo arquivo (default: não dividir)
+  └─ SIM → arquivo irmão em widgets/ ou content/
+              (nunca _buildXxx() nem classe privada — invariante universal)
+```
+
+---
+
+## Estrutura interna de um arquivo extraído
+
+Um arquivo em `content/` ou `widgets/` já é uma unidade coesa — ele *já foi extraído*. Por padrão, é **terminal**: um card ou form coeso com 80 linhas está correto, não é cheiro.
+
+- **Não** reaplicar o gatilho de 45 linhas.
+- **Nunca** criar `Widget _buildXxx()` ou classe privada de widget — invariante universal (vale também aqui, não só na View).
+- Subdividir **somente** quando houver um sub-bloco com **identidade própria**: algo que você nomearia independentemente (`PriceTag`, `QuantityStepper`, `AvatarBadge`), que se repete em lista, ou é uma unidade interativa autocontida.
+- Ao subdividir → **arquivo irmão** em `widgets/` ou `content/`, nunca método privado.
+
+Tamanho vira **sinal fraco**: um `build()` muito longo é uma *dica* para procurar identidade escondida — mas extrai-se pela identidade encontrada, não por bater num número.
+
+```dart
+// ✅ componente coeso — pode ser longo
+class ProfileContent extends StatelessWidget { /* header + bio + stats inline */ }
+
+// ✅ só divide quando há identidade própria de verdade
+class ProfileContent extends StatelessWidget { /* ... usa QuantityStepper(...) */ }
+class QuantityStepper extends StatefulWidget { /* tem estado/identidade próprios */ }
+```
+
+**Default = não dividir.** Divisão extra = minoria genuína (identidade).
 
 ---
 

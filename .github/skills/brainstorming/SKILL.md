@@ -1,178 +1,119 @@
 ---
 name: brainstorming
-description: You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.
+description: Explora intenção, requisitos e design antes da implementação. Use antes de qualquer trabalho criativo — criar features, construir componentes, adicionar funcionalidade ou modificar comportamento existente.
 ---
 
 # Brainstorming
 
-## O que esta skill faz
+Explora intenção e design antes de qualquer implementação e encerra com um design aprovado + um bloco **Handoff** que o `writing-plan` consome. Não escreve código nem gera o plano.
 
-Funciona como a camada de inteligência de contexto antes de qualquer implementação. Antes de criar features, modificar comportamentos ou adicionar funcionalidades:
-
-1. **Explora a intenção** do usuário para garantir entendimento preciso do que precisa ser feito
-2. **Lê os flows relevantes** em `./flow/` para entender como o sistema funciona hoje
-3. **Detecta a skill `*-expert`** da stack do projeto (flutter-expert, spring-expert, etc.) e aponta as referências relevantes
-4. **Produz um briefing de contexto** com o que é necessário saber para implementar com segurança
-5. **Ao final do trabalho, garante que flows afetados sejam atualizados** se mudanças estruturais aconteceram
-
-Esta skill é puramente de análise e contexto — não gera planos, não escreve código, não chama outras skills. Após o briefing, o próximo passo fica a critério do usuário.
+**Entrada:** o pedido do usuário — primeiro elo da cadeia, não depende de artefato anterior. **Saída:** design aprovado + bloco **Handoff para o Plano** (Fase 4), que sobrevive à compactação de contexto entre as skills.
 
 ---
 
-## Fase 1 — Entender a intenção
+## Fase 0 — Vale brainstorming?
 
-Antes de buscar qualquer arquivo, fixe mentalmente:
+Siga o fluxo completo quando houver criação ou decisão de comportamento, experiência, arquitetura, regra de negócio ou interação entre componentes.
 
-- **O quê?** O que o usuário quer criar, mudar ou adicionar?
-- **Por quê?** Qual problema ou objetivo isso resolve?
-- **Onde?** Quais features, telas ou camadas são afetadas?
-- **Impacto?** O que muda no comportamento existente? O que permanece igual?
-
-Se o pedido for ambíguo ou tiver múltiplas interpretações possíveis, faça **uma única pergunta de clarificação** — a mais importante para desbloquear o entendimento. Não pergunte o que você pode inferir do código.
+Dispense quando a mudança for puramente mecânica — nenhuma decisão a tomar porque a solução já está determinada pelo pedido, pelo padrão existente ou pela natureza da correção. Nesse caso, registre em uma frase por que não há design a decidir e libere a execução direta. Se surgir qualquer escolha com impacto observável, volte ao fluxo completo.
 
 ---
 
-## Fase 2 — Carregar contexto dos flows
+## Fase 1 — Intenção e contexto
 
-Verifique se existe documentação em `./flow/`:
+Primeiro fixe **o quê** o usuário quer, **por quê**, **onde** (features, telas e camadas afetadas) e **qual o impacto** no comportamento atual. Se o pedido for ambíguo, faça **uma pergunta de clarificação por vez**, começando pela que mais altera o design; não pergunte o que dá para inferir com segurança do código; pare quando houver contexto para comparar abordagens.
 
-```bash
-ls ./flow/ 2>/dev/null
-```
+Depois reúna o contexto já existente:
 
-### Se não existir a pasta `./flow/` ou estiver vazia
-
-Continue para o Fase 3 sem contexto documental. Mencione ao usuário no briefing que não há flows documentados e sugira `/flow-init` para criar uma base documental do projeto — mas não bloqueie o trabalho por isso.
-
-### Se existir
-
-Identifique quais flows são relevantes para o pedido do usuário:
-
-- Mapeie as palavras-chave do pedido (ex: "login", "perfil", "pagamento", "notificação")
-- Verifique os nomes dos arquivos em `./flow/` — prefira `project-structure.md` para contexto geral, e flows específicos para features afetadas
-- Leia os flows relevantes **na íntegra** — não pule seções
-
-**O que extrair de cada flow lido:**
-
-| Informação | Para que serve |
-|---|---|
-| Arquivos envolvidos (tabela do flow) | Saber exatamente onde mexer |
-| Passo a Passo (ordem de execução) | Não quebrar o fluxo existente |
-| Regras de Negócio | Não violar contratos existentes |
-| Observações / pontos frágeis | Evitar bugs conhecidos |
-| Dependências Externas | Saber quais integrações são afetadas |
-
-Se o pedido afeta múltiplas features e cada uma tem flow, leia todos.
+- **Flows**: rode `grep -n '\*\*Resumo:\*\*' docs/flow/*.md` para ver nome + resumo de **todos** os flows de uma vez e escolher por **relevância semântica** — não só por correspondência de nome — quais abrir por completo (use `project-structure.md` para o geral). Leia integralmente só os relevantes, aproveitando arquivos envolvidos, ordem de execução, regras de negócio, pontos frágeis e dependências. Se o `grep` não retornar nada (flows sem a linha de resumo), caia para `ls ./docs/flow/` e selecione pelo nome. Sem pasta ou flows: siga sem contexto documental e sugira `flow-init` no briefing, sem bloquear.
+- **Skill `*-expert`** da stack: procure candidatos `*-expert` em **uma única fonte** — o catálogo de skills da plataforma, ou a raiz nativa (`.claude/skills` no Claude Code, `.agents/skills` no Codex), usando a outra raiz apenas como fallback; nunca agregue as duas. Se achar, leia só o `SKILL.md` (nunca os `references/`) e extraia stack, arquitetura proposta e a tabela de "quando ler cada referência". A brainstorming **referencia** a expert — não invoca, não copia código. Se não achar, use só o arquivo nativo de instruções (`CLAUDE.md` no Claude Code, `AGENTS.md` no Codex).
 
 ---
 
-## Fase 2.5 — Detectar skill de especialista da linguagem
+## Fase 2 — Briefing
 
-Cada projeto pode ter uma skill `*-expert` (ex: `flutter-expert`, `spring-expert`, `react-expert`, `node-expert`) com as boas práticas e arquitetura de referência da stack. Antes do briefing, descubra se existe alguma:
-
-```bash
-ls -d .claude/skills/*-expert 2>/dev/null
-```
-
-### Se encontrar uma ou mais
-
-- Leia o `SKILL.md` de cada uma encontrada (apenas o SKILL.md — **não** leia os arquivos em `references/`, isso é responsabilidade da fase de implementação)
-- Extraia: qual é a stack, qual a arquitetura proposta, e a tabela de "quando ler cada referência" (se houver)
-- No briefing, na seção **Boas Práticas Disponíveis**, liste o nome da skill e aponte quais arquivos de referência são relevantes para o pedido atual
-
-### Se não encontrar nenhuma
-
-Omita a seção **Boas Práticas Disponíveis** do briefing. Não bloqueie o trabalho — siga apenas com o `CLAUDE.md` e os flows.
-
-### Regra de uso
-
-A brainstorming **identifica e referencia** a skill expert — não invoca, não copia código, não duplica regras. A leitura das references da skill expert deve acontecer na fase de implementação (writing-plan, geração de código, etc.), guiada pelo briefing.
-
----
-
-## Fase 3 — Briefing de contexto
-
-Após entender a intenção e ler os flows, apresente ao usuário um briefing estruturado:
+Sintetize o contexto — não repita os flows palavra por palavra. Inclua apenas as seções com conteúdo real:
 
 ```
 ## Entendimento do Pedido
-[Uma frase descrevendo o que você entendeu que precisa ser feito]
-
-## Contexto Carregado
-- Flows lidos: [lista dos arquivos lidos, ou "nenhum — ./flow/ não existe"]
-- Features afetadas: [lista]
-- Arquivos-chave envolvidos: [caminhos reais encontrados nos flows]
-
-## Boas Práticas Disponíveis
-[Omita esta seção inteira se nenhuma skill *-expert foi encontrada.
-Caso contrário:]
-- Skill: `<nome-expert>` — stack <linguagem/framework>
-- Referências relevantes para este pedido:
-  - `references/<arquivo>.md` — [motivo, ex: "criar View"]
-  - `references/<arquivo>.md` — [motivo]
-- Consulte esta skill antes de implementar para não violar a arquitetura de referência.
+[Uma frase descrevendo o que precisa ser feito.]
 
 ## O que já existe
-[2–4 frases descrevendo como a feature funciona hoje, com base nos flows.
-Se não houver flows, escreva "Nenhuma documentação disponível — análise baseada no código."]
+[2–4 frases sobre como a feature funciona hoje, com base nos flows.
+Sem flows: "Nenhuma documentação disponível — análise baseada no código."]
 
 ## Pontos de Atenção
-[Lista de conflitos, regras de negócio que podem ser afetadas, dependências surpresa,
-ou avisos encontrados nas Observações dos flows. Se não houver nada relevante, omita.]
+[Conflitos, regras de negócio afetadas, dependências surpresa, avisos das Observações dos flows.
+Inclua qualquer API/widget/pacote/padrão deprecated que o pedido envolva, com o substituto correto. Omita se vazio.]
 
-## Flows a Revisitar Após Implementação
-- `flow/<nome>.md` — revisitar se [quais seções podem mudar com as mudanças planejadas]
-- (ou: "Nenhum — não há flows documentados para as features afetadas")
+## Boas Práticas Disponíveis
+[Só se houver skill *-expert: `<nome-expert>` (stack) + referências relevantes ao pedido.
+Consulte esta skill antes de implementar para não violar a arquitetura de referência.]
 
 ## Próximos Passos Sugeridos
-[Sugestão breve do caminho natural: ex: "Use /writing-plan para montar o plano antes de implementar,
-consultando `<nome-expert>` para os padrões da camada"
-ou "Feature simples — pode implementar diretamente seguindo o CLAUDE.md e `<nome-expert>`"]
+[Ex: "Invoque `writing-plan` para montar o plano, consultando `<nome-expert>`"
+ou "Feature simples — pode implementar diretamente seguindo as instruções do projeto e `<nome-expert>`".]
 ```
 
-O briefing deve ser conciso. Não repita informações dos flows palavra por palavra — sintetize o que é relevante para o pedido atual.
+Se o pedido for pequeno e claro (uma única feature, sem conflitos aparentes), reduza a **Entendimento do Pedido**, **Pontos de Atenção** e **Próximos Passos Sugeridos**.
 
 ---
 
-## Fase 4 — Após a implementação: atualizar flows afetados
+## Fase 3 — Alternativas e design
 
-Esta fase acontece **depois que o trabalho for concluído**, antes de declarar a tarefa completa.
+Há **decisão real** quando duas abordagens plausíveis mudam responsabilidades, dependências, experiência do usuário, custo de manutenção, risco ou testabilidade.
 
-### Quando atualizar um flow
+- **Com decisão real:** apresente 2–3 alternativas com vantagens, desvantagens e impactos concretos no projeto; recomende uma e explique por que ela equilibra melhor requisitos e contexto.
+- **Caminho direto:** não invente alternativas artificiais; diga por que a abordagem é determinada pelo padrão existente ou pelo pedido e apresente só o design recomendado.
 
-Atualize se qualquer um destes aconteceu:
+O design é proporcional à mudança — cubra apenas o relevante: componentes/camadas e responsabilidades, fluxo de dados ou interação, erros e casos limite, verificação/testes quando houver comportamento testável, flows afetados. Mudança pequena: poucos parágrafos. Mudança ampla: apresente em partes coesas, confirmando entendimento entre elas em vez de despejar tudo de uma vez.
 
-- Novos arquivos foram criados em uma feature que já tem flow documentado
-- Responsabilidade de uma camada mudou (ex: lógica movida do Cubit para um Service)
-- Ordem de execução do fluxo mudou
-- Novas regras de negócio foram adicionadas
-- Arquivos foram movidos, renomeados ou removidos
-- Novas dependências externas foram adicionadas ao fluxo
+```markdown
+## Alternativas Consideradas
+### Opção A — [nome] · Vantagens / Desvantagens
+### Opção B — [nome] · Vantagens / Desvantagens
 
-### Quando NÃO atualizar
+## Recomendação
+[Opção preferida e motivo baseado no contexto do projeto.]
 
-Não atualize se:
+## Design Proposto
+- Componentes e responsabilidades · Fluxo de dados/interação · Erros e casos limite · Verificação · Flows afetados
+```
 
-- Mudança foi puramente interna sem impacto na estrutura (ex: renomear variável local, extrair método privado)
-- Correção de bug que mantém exatamente o mesmo comportamento observável
-- Mudança de UI sem impacto em estado, domínio ou dados
+---
 
-### Como atualizar
+## Fase 4 — Aprovação e handoff
 
-Use a skill `flow` para regenerar o flow completo, ou edite diretamente o `./flow/<feature>.md` seguindo o template e as regras de qualidade definidos nela. Não duplique a lógica de documentação aqui — a skill `flow` é a fonte de verdade sobre como escrever e atualizar flows.
+Peça **aprovação explícita** do design antes de criar um plano ou implementar. Se o usuário pedir ajustes, revise só as partes afetadas e reconfirme. Aprovação de design **não** autoriza alterar código.
 
-### Informe o usuário
+Após a aprovação:
 
-Ao final, mencione quais flows foram atualizados e o que mudou em cada um. Se nenhum flow precisou ser atualizado, não mencione esta etapa.
+- Mudança com múltiplas etapas → recomende ou use `writing-plan` para gerar o plano e entregue o **Handoff** abaixo.
+- Mudança pequena e direta → informe que pode seguir direto à implementação, se o usuário preferir; o handoff é dispensável.
+
+### Handoff para o Plano
+
+Interface com o `writing-plan`: ele copia este bloco para a seção **Design de Origem** do plano, tornando-o auto-contido. Preencha só o que se aplica:
+
+```markdown
+## Handoff para o Plano
+- **Decisão aprovada:** [opção escolhida em uma frase]
+- **Alternativas descartadas:** [opção + motivo curto, ou "nenhuma — caminho direto"]
+- **Tipo de mudança:** UI-only | Logic
+  <!-- UI-only: só View/layout/estilo/rota sem lógica nova, textos, assets.
+       Logic: toca estado/domínio/serviço/repositório/datasource/HTTP/banco.
+       Você acabou de desenhar a solução — decida aqui, não deixe o writing-plan re-derivar. -->
+- **Arquivos-chave:** [caminhos reais citados no design]
+- **Skill expert:** `<nome-expert>` + referências relevantes, ou "nenhuma encontrada"
+- **Flows a revisitar após implementação:** `docs/flow/<nome>.md` — [seções], ou "nenhum"
+```
+
+**Tipo de mudança** é a única classificação de TDD da cadeia — o `writing-plan` a reutiliza em vez de reclassificar. A atualização final dos flows pertence à execução (`executing-plan`), não ao brainstorming.
 
 ---
 
 ## Regras Gerais
 
-**Seja preciso** — cite apenas arquivos que você encontrou nos flows ou no código. Não invente caminhos.
-
-**Não bloqueie** — se não houver flows ou se os flows não cobrirem a feature pedida, o briefing ainda tem valor (entendimento da intenção + sugestão de próximo passo). Nunca impeça o trabalho por falta de documentação.
-
-**Não duplique** — se a informação já está clara nos flows, referencie em vez de transcrever. O briefing é uma síntese, não uma cópia.
-
-**Idioma** — use o mesmo idioma da conversa com o usuário.
+- **Seja preciso** — cite apenas arquivos que você encontrou nos flows ou no código; não invente caminhos.
+- **Não bloqueie** — sem flows, o briefing ainda vale (intenção + próximo passo). Nunca impeça o trabalho por falta de documentação.
+- **Nada deprecated** — nunca indique API/widget/pacote/padrão deprecated na versão atual da stack (ex: `withOpacity`, `WillPopScope` em Flutter); aponte o substituto nos Pontos de Atenção.

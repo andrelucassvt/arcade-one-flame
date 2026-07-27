@@ -1,21 +1,29 @@
 ---
 name: flow-init
-description: Analisa o projeto inteiro e inicializa a pasta ./flow/ com um documento de estrutura geral do projeto e, opcionalmente, flows individuais de cada feature. Use sempre que o usuário pedir "inicializar flows", "criar flows do projeto", "mapear o projeto inteiro", "documentar a estrutura do projeto", "gerar todos os flows", "flow-init", "quero criar os flows do projeto", "criar mapa do projeto", "iniciar documentação de flows", "mapear features do projeto", ou qualquer pedido para ter uma visão documental completa de um projeto antes de começar a trabalhar nele. Prefira sempre esta skill sobre criar flows individuais manualmente quando o objetivo for ter uma base documental inicial do projeto.
-disable-model-invocation: true
+description: Analisa o projeto inteiro e inicializa a pasta ./docs/flow/ com um documento de estrutura geral do projeto e, opcionalmente, flows individuais de cada feature. Use quando o usuário pedir "inicializar flows", "criar flows do projeto", "mapear o projeto inteiro", "documentar a estrutura do projeto", "gerar todos os flows", "flow-init", "criar mapa do projeto", ou qualquer pedido de visão documental completa de um projeto antes de começar a trabalhar nele.
 ---
 
 # Flow Init
 
 ## O que esta skill faz
 
-Varre o repositório e inicializa a pasta `./flow/` com dois tipos de documentos:
+Varre o repositório e inicializa a pasta `./docs/flow/` com:
 
-1. **`flow/project-structure.md`** — sempre criado. Documenta a estrutura geral do projeto: stack detectado, arquitetura adotada, camadas, features existentes, serviços compartilhados e configuração.
-2. **Flows individuais por feature** — opcionais. Criados seguindo o mesmo formato da skill `flow`, um por feature detectada.
+1. **`docs/flow/project-structure.md`** — sempre criado. Estrutura geral: stack, arquitetura, camadas, features, serviços compartilhados e configuração.
+2. **Flows individuais por feature** — opcionais, no formato da skill `flow`.
 
-Se o usuário optar por não gerar os flows completos agora, cria **`flow/flow-suggestions.md`** com a lista das features detectadas e um resumo do que cada flow cobriria — para que a equipe saiba o que falta documentar.
+Se o usuário optar por não gerar os flows completos agora, cria **`docs/flow/flow-suggestions.md`** com a lista das features detectadas e o que cada flow cobriria.
 
-Por fim, atualiza o `CLAUDE.md` do projeto para registrar a existência da pasta `./flow/`, para que futuras sessões saibam que essa documentação existe.
+Por fim, atualiza `AGENTS.md` como arquivo canônico de instruções compartilhadas e garante que o Claude Code o carregue por meio de um `CLAUDE.md` com o import `@AGENTS.md`.
+
+### Referências
+
+Resolvidas a partir do diretório desta skill. Leia cada uma no momento indicado, não antes:
+
+| Arquivo | Quando ler |
+|---------|-----------|
+| `references/document-templates.md` | Nos passos 2 e 4b, antes de escrever `project-structure.md` ou `flow-suggestions.md` |
+| `references/guide-project-instructions.md` | No passo 5, antes de gerar `AGENTS.md` — princípios, template enxuto, blocos finais obrigatórios e checklist |
 
 ---
 
@@ -23,139 +31,34 @@ Por fim, atualiza o `CLAUDE.md` do projeto para registrar a existência da pasta
 
 ### Passo 1 — Detectar o stack e varrer o projeto
 
-Antes de gerar qualquer arquivo, identifique o stack e mapeie o código real. Não invente arquivos nem suponha estruturas.
+Não invente arquivos nem suponha estruturas — mapeie o código real.
 
-#### 1a — Identificar o stack
+**1a — Identificar o stack:** localize o manifesto de dependências (`pubspec.yaml`, `package.json`, `pyproject.toml`/`requirements.txt`, `go.mod`, `Cargo.toml`, `pom.xml`/`build.gradle`, `Gemfile`, `*.csproj`, `composer.json`…) e extraia nome do projeto, versão e dependências principais.
 
-Procure os arquivos de manifesto/configuração de dependências mais comuns:
+**1b — Mapear a estrutura**, com base no stack: ponto de entrada do app (`main.*`, `index.*`, `cmd/`…), rotas/navegação, injeção de dependência (arquivos com `injector`, `container`, `locator`, `di`, `module` no nome), inicialização/bootstrap, features/módulos (pastas de primeiro nível em `src/`, `lib/`, `app/`, `features/`…), código compartilhado (`common`, `shared`, `core`, `utils`, `services`), temas/estilos e testes.
 
-| Stack | Arquivo indicador |
-|-------|------------------|
-| Flutter / Dart | `pubspec.yaml` |
-| Node.js / JS / TS | `package.json` |
-| Python | `requirements.txt`, `pyproject.toml`, `setup.py`, `Pipfile` |
-| Java / Kotlin (Maven) | `pom.xml` |
-| Java / Kotlin (Gradle) | `build.gradle`, `build.gradle.kts` |
-| Ruby | `Gemfile` |
-| Go | `go.mod` |
-| Rust | `Cargo.toml` |
-| .NET / C# | `*.csproj`, `*.sln` |
-| PHP | `composer.json` |
+O objetivo é uma lista real de features, serviços e camadas antes de escrever uma linha de documentação.
 
-Leia o arquivo encontrado para extrair: nome do projeto, versão e dependências principais.
-
-#### 1b — Mapear a estrutura do projeto
-
-Com base no stack identificado, escaneie as pastas e arquivos mais relevantes:
-
-- **Ponto de entrada do app**: `main.*`, `index.*`, `app.*`, `server.*`, `cmd/`, `src/main/`, ou equivalente
-- **Configuração de rotas / navegação**: arquivos com `router`, `routes`, `navigation`, `urls` no nome
-- **Injeção de dependência / Service Locator / Container**: arquivos com `injector`, `container`, `locator`, `di`, `provider`, `module` no nome
-- **Inicialização / bootstrap**: arquivos com `initializer`, `bootstrap`, `setup`, `startup` no nome
-- **Features / módulos / domínios**: pastas de primeiro nível dentro de `src/`, `lib/`, `app/`, `modules/`, `features/`, `pages/` ou equivalente
-- **Código compartilhado**: pastas com `common`, `shared`, `core`, `utils`, `helpers`, `components`, `services` no nome
-- **Temas / estilos**: pastas com `theme`, `styles`, `design`, `tokens` no nome
-- **Testes**: pastas `test/`, `tests/`, `spec/`, `__tests__/` — verifique se há testes e qual a cobertura geral
-
-O objetivo é ter uma lista real de features, serviços e camadas antes de escrever uma linha de documentação.
+**1c — Registrar a origem da análise:** execute `git rev-parse --short HEAD` e `git status --porcelain` quando Git estiver disponível, para preencher `source_commit` e `source_state`.
 
 ---
 
-### Passo 2 — Criar `flow/project-structure.md`
+### Passo 2 — Criar `docs/flow/project-structure.md`
 
-Crie sempre, independente da resposta do usuário.
+Crie sempre, independente da resposta do usuário (`mkdir -p ./docs/flow`). Se o arquivo já existir, pergunte se deve atualizar ou regenerar antes de continuar.
 
-```bash
-mkdir -p ./flow
-```
-
-Se o arquivo já existir, informe o usuário e pergunte se deve atualizar ou regenerar do zero antes de continuar.
-
-#### Template obrigatório para `project-structure.md`
-
-```markdown
-# Estrutura do Projeto: [Nome do Projeto]
-
-> **Resumo:** Uma frase descrevendo o que o projeto faz, qual stack utiliza e qual arquitetura adota.
-
-## Stack e Tecnologias
-
-| Elemento | Valor |
-|----------|-------|
-| Linguagem | [ex: Dart, TypeScript, Python, Java] |
-| Framework | [ex: Flutter, Next.js, FastAPI, Spring Boot] |
-| Gerenciador de pacotes | [ex: pub, npm, pip, maven] |
-| Principais dependências | [lista resumida das libs mais relevantes] |
-
-## Arquitetura
-
-[Descreva a arquitetura adotada — Clean Architecture, MVVM, MVC, Hexagonal, Feature-first, Layered, etc. — em 2–4 frases. Mencione as camadas principais e como elas se comunicam. Use o vocabulário real do código — se o projeto usa "Cubit", escreva "Cubit"; se usa "ViewModel", escreva "ViewModel"; se usa "Controller", escreva "Controller".]
-
-```
-[Diagrama em texto da arquitetura, ex:]
-Presentation → Domain ← Data
-UI → Store → API
-Request → Handler → Service → Repository → Database
-```
-
-### Regras de dependência
-
-- [Regra real encontrada no projeto, ex: "domain não importa data"]
-- [Se não houver regras explícitas, omita esta subseção]
-
-## Features
-
-Lista das features/módulos/domínios detectados no projeto.
-
-| Feature | Caminho principal | Descrição resumida |
-|---------|------------------|-------------------|
-| [feature] | `caminho/feature/` | O que essa feature faz |
-| ... | ... | ... |
-
-## Camadas / Módulos Compartilhados
-
-Liste os componentes de uso global (fora das features individuais).
-
-| Tipo | Caminho | Responsabilidade |
-|------|---------|-----------------|
-| [ex: Widgets / Components] | `caminho/` | ... |
-| [ex: Serviços / Services] | `caminho/` | ... |
-| [ex: Utils / Helpers] | `caminho/` | ... |
-| [ex: Estilos / Theme] | `caminho/` | ... |
-
-## Configuração
-
-| Componente | Arquivo | Responsabilidade |
-|-----------|---------|-----------------|
-| [ex: DI / Injeção / Container] | `caminho/arquivo.ext` | Registro de dependências |
-| [ex: Rotas / URLs] | `caminho/arquivo.ext` | Declaração e navegação |
-| [ex: Inicialização / Bootstrap] | `caminho/arquivo.ext` | Startup do app |
-| [ex: Error handling] | `caminho/arquivo.ext` | Padrão de tratamento de erros |
-
-_(Inclua apenas os componentes que existem no projeto. Adapte os nomes ao vocabulário real.)_
-
-## Dependências Externas Principais
-
-| Pacote / Biblioteca | Versão | Uso no projeto |
-|--------------------|--------|---------------|
-| [pacote] | x.y.z | Para que é usado |
-| ... | ... | ... |
-
-## Observações
-
-[Notas relevantes sobre o projeto: padrões não óbvios, TODOs encontrados no setup, inconsistências na estrutura, pontos de atenção para quem for trabalhar no projeto. Se não houver nada relevante, omita esta seção.]
-```
+Siga o template de `references/document-templates.md`, preenchido com o que você descobriu no Passo 1.
 
 ---
 
 ### Passo 3 — Perguntar sobre flows individuais
 
-Após criar `project-structure.md`, exiba para o usuário a lista de features detectadas e faça a pergunta:
+Exiba a lista de features detectadas e pergunte:
 
 ```
-Criei o documento de estrutura do projeto em `./flow/project-structure.md`.
+Criei o documento de estrutura do projeto em `./docs/flow/project-structure.md`.
 
-Features detectadas: [feature-1], [feature-2], [feature-3], ...
+Features detectadas: [feature-1], [feature-2], ...
 
 Deseja que eu crie os flows completos de todas as features agora?
 - **Sim** — gero todos seguindo o formato da skill `flow`
@@ -168,108 +71,80 @@ Aguarde a resposta antes de continuar.
 
 ### Passo 4a — Se SIM: criar flows individuais
 
-Para cada feature detectada, crie um documento `./flow/<feature>.md` seguindo **exatamente** o mesmo template e processo da skill `flow`:
+Para cada feature, crie `./docs/flow/<feature>.md` seguindo **exatamente** o template e o processo da skill `flow`: varra o código real da feature e referencie apenas arquivos que existem. Ao final, informe quantos flows foram criados e liste os caminhos.
 
-1. Varra o código real da feature (ponto de entrada, camadas, arquivos envolvidos)
-2. Escreva o documento com: Resumo, Visão Geral, Passo a Passo, Arquivos Envolvidos, Regras de Negócio, Dependências Externas, Observações
-3. Referencie apenas arquivos que existem no repositório
+### Passo 4b — Se NÃO: criar `docs/flow/flow-suggestions.md`
 
-Ao final, informe o usuário quantos flows foram criados e liste os caminhos.
+Siga o template de `references/document-templates.md`, listando as features detectadas no Passo 1.
 
 ---
 
-### Passo 4b — Se NÃO: criar `flow/flow-suggestions.md`
+### Passo 5 — Atualizar as instruções compartilhadas
 
-Crie o arquivo com a lista de flows sugeridos. Cada item deve ter título e um resumo curto — suficiente para alguém entender o que o flow cobriria e decidir qual criar primeiro.
+Após criar os arquivos de flow, use esta estrutura independentemente da plataforma ativa:
 
-#### Template obrigatório para `flow-suggestions.md`
+- **`AGENTS.md` é o arquivo canônico:** concentra as instruções completas e compartilhadas do projeto.
+- **`CLAUDE.md` é a ponte para o Claude Code:** importa o arquivo canônico com `@AGENTS.md`.
 
-```markdown
-# Sugestões de Flows a Documentar
+Antes de substituir qualquer arquivo, leia `AGENTS.md` e `CLAUDE.md` quando existirem e preserve instruções válidas e específicas. Como o Claude Code também receberá o conteúdo de `AGENTS.md`, escreva nele apenas convenções compatíveis com ambas as plataformas. Prefira formulações neutras como "invoque a skill `flow`"; não use sintaxes exclusivas como `/brain-flows:flow` ou `$flow` nas instruções compartilhadas.
 
-> Gerado em [data]. Execute `/flow <nome>` para criar qualquer um destes flows.
+**5a — Ler o guia de boas práticas** em `references/guide-project-instructions.md`. Internalize: menos é mais, instruções específicas e acionáveis, sem redundância com o que o código já comunica.
 
-## Flows Sugeridos
+**5b — Gerar `AGENTS.md` do zero** usando o template enxuto do guia (seção 4), preenchido com o que você descobriu no Passo 1, e anexe os blocos finais obrigatórios (seção 4.1). Aplique o checklist (seção 7) antes de salvar.
 
-### [Nome da Feature]
-**Arquivo a criar:** `flow/<nome-kebab-case>.md`
-**Resumo:** O que este flow documentaria — qual o gatilho, quais camadas percorre e qual o resultado final.
+Não invente seções — inclua apenas o que sabe de fato. Migre instruções anteriores válidas e específicas; descarte as genéricas.
 
----
+**5c — Criar ou validar a ponte `CLAUDE.md`:**
 
-### [Nome da Feature]
-**Arquivo a criar:** `flow/<nome-kebab-case>.md`
-**Resumo:** ...
+- Se `CLAUDE.md` não existir, crie-o com exatamente:
 
----
+  ```markdown
+  @AGENTS.md
+  ```
 
-[repita para cada feature detectada]
-
-## Já documentados
-
-- `flow/project-structure.md` — Estrutura geral do projeto
-```
-
-Mantenha os resumos concisos (1–2 frases cada). O objetivo é uma lista rápida de consulta, não documentação completa.
+- Se a primeira linha já for exatamente `@AGENTS.md`, mantenha o arquivo. Preserve abaixo do import qualquer instrução realmente exclusiva do Claude Code.
+- Se `CLAUDE.md` for um symlink válido para `AGENTS.md`, considere a ponte funcional e preserve-o.
+- Se `CLAUDE.md` for um arquivo regular sem o import, ou um symlink para outro destino, não o substitua silenciosamente. Separe as instruções compartilháveis das exclusivas do Claude, proponha migrar as compartilháveis para `AGENTS.md` e manter as exclusivas abaixo de `@AGENTS.md`, e peça confirmação antes de reescrever o arquivo.
+- Nunca use apenas o texto `AGENTS.md`: sem o prefixo `@`, o Claude Code não o trata como import.
+- Não duplique em `CLAUDE.md` as instruções já presentes em `AGENTS.md`.
 
 ---
 
-### Passo 5 — Reescrever o `CLAUDE.md`
+### Passo 6 — Autorrevisar a documentação
 
-Após criar os arquivos de flow, **sempre** gere um `CLAUDE.md` novo do zero — independente de já existir um. Não faça atualização parcial; substitua o arquivo inteiro.
+Antes de finalizar, confronte cada documento criado ou atualizado com o repositório:
 
-#### 5a — Ler o guia de boas práticas
+- Todos os caminhos citados existem?
+- Features, módulos, dependências e comandos foram encontrados em arquivos reais?
+- O vocabulário corresponde ao usado pelo projeto?
+- Não existem placeholders ou afirmações sem evidência?
+- `source_commit` e `source_state` correspondem ao estado analisado?
+- `verified_at` registra a data desta revisão?
+- Em arquivos atualizados, `generated_at` original e seções customizadas foram preservados?
+- `related_plans` contém somente caminhos existentes e relacionados, ou `[]`?
+- `AGENTS.md` concentra as instruções compartilhadas sem sintaxe exclusiva de plataforma?
+- `CLAUDE.md` começa com `@AGENTS.md` ou é um symlink válido para `AGENTS.md`, sem duplicar as instruções canônicas?
 
-Antes de escrever o `CLAUDE.md`, leia o guia em:
+Use `status: current` somente nos documentos que passaram por essa revisão. Se uma referência não puder ser confirmada, explique a limitação em **Observações** e marque o documento como `possibly-stale`. Use `draft` para documento incompleto e `archived` apenas por decisão explícita do usuário.
 
-```
-.claude/skills/flow-init/references/guide-claude-md.md
-```
-
-Internalize os princípios: menos é mais, instruções específicas e acionáveis, sem redundância com o que o código já comunica.
-
-#### 5b — Gerar o `CLAUDE.md` do zero
-
-Use o template enxuto do guia (seção 4) como base. Preencha com o que você descobriu no Passo 1. Aplique o checklist (seção 7) antes de salvar:
-
-- Cabeçalho de 1 frase descrevendo o projeto
-- Stack com versões importantes e decisões que o Claude não infere do código
-- Estrutura: diretórios e seus propósitos (não arquivos individuais)
-- Comandos que serão usados de verdade
-- Convenções específicas e acionáveis (não genéricas)
-- Gotchas: armadilhas reais encontradas na análise + workarounds
-- Não fazer: comportamentos concretos a evitar
-
-Não invente seções — inclua apenas o que sabe de fato sobre o projeto. Se o `CLAUDE.md` anterior tinha instruções válidas e específicas, migre-as; descarte genéricas.
-
-Adicione ao final a seção de flows:
-
-```markdown
-## 📖 Documentação de Flows
-
-Para qualquer feature ou fluxo, verifique a pasta `./flow/`: leia os títulos dos arquivos `.md` disponíveis e, se algum for relevante para a tarefa atual, leia-o antes de implementar ou debugar. Use `/flow <nome>` para criar ou atualizar flows individuais.
-```
+Os flows individuais criados no Passo 4a também devem passar pela autorrevisão definida na skill `flow`.
 
 ---
 
 ## Regras de Qualidade
 
-**Apenas o que existe** — não documente arquivos, classes ou rotas que você não encontrou no código. Se algo parece estar faltando, registre em Observações.
+**Apenas o que existe** — não documente arquivos, classes ou rotas que você não encontrou. Se algo parece faltar, registre em Observações.
 
-**Use o vocabulário do projeto** — se o projeto chama de "Cubit", use "Cubit". Se usa "Controller", use "Controller". Se usa "Handler", use "Handler". Não imponha terminologia externa.
+**Vocabulário do projeto** — use os nomes que o código usa; não imponha terminologia externa. Os documentos são escritos no idioma da conversa com o usuário.
 
-**Seja conservador nas sugestões** — liste como feature apenas o que você encontrou como pasta ou módulo distinto. Não fragmente demais nem agrupe features não relacionadas.
+**Conservador nas sugestões** — liste como feature apenas o que existe como pasta ou módulo distinto; não fragmente nem agrupe à força.
 
-**Não modifique código** — esta skill é puramente documental. Não altere arquivos de código-fonte ou configuração além do `CLAUDE.md`.
+**Rastreabilidade honesta** — preserve a data original de criação em atualizações e sinalize alterações locais com `source_state: dirty`; não apresente um documento parcialmente verificado como atual.
 
-**Idioma** — use o mesmo idioma da conversa com o usuário.
+**Não modifique código** — skill puramente documental; não altere nada além dos arquivos de flow, de `AGENTS.md` e da ponte `CLAUDE.md` descrita no Passo 5.
 
 ---
 
 ## Ao finalizar
 
-Informe o usuário:
-
-1. Quais arquivos foram criados em `./flow/`
-2. Que o `CLAUDE.md` foi reescrito do zero com base no guia de boas práticas
-3. Como usar a skill `flow` para criar ou atualizar flows individuais no futuro
+Informe: quais arquivos foram criados em `./docs/flow/`, o status de verificação de cada um, que `AGENTS.md` foi reescrito com base no guia, o estado da ponte `CLAUDE.md`, e como invocar a skill `flow` para criar ou atualizar flows individuais no futuro.

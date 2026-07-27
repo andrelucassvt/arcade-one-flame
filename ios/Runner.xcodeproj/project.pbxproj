@@ -241,8 +241,6 @@
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
-				43D76A9B7386EE8C8D7C751C /* [CP] Embed Pods Frameworks */,
-				DBA1D6B3DBDFE03195360285 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -333,23 +331,6 @@
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
 		};
-		43D76A9B7386EE8C8D7C751C /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 		4A2528F5DF7F559DFC9E587F /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -408,23 +389,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
-		};
-		DBA1D6B3DBDFE03195360285 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources.sh\"\n";
-			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -537,8 +501,8 @@
 				DEVELOPMENT_TEAM = QNW59SGYAU;
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "Drift Space";
-				INFOPLIST_FILE = Runner/Info.plist;
 				FLUTTER_TARGET = lib/main_production.dart;
+				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -673,8 +637,8 @@
 				DEVELOPMENT_TEAM = QNW59SGYAU;
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "[DEV] Drift Space";
-				INFOPLIST_FILE = Runner/Info.plist;
 				FLUTTER_TARGET = lib/main_development.dart;
+				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -775,8 +739,8 @@
 				DEVELOPMENT_TEAM = QNW59SGYAU;
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "[DEV] Drift Space";
-				INFOPLIST_FILE = Runner/Info.plist;
 				FLUTTER_TARGET = lib/main_development.dart;
+				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -872,8 +836,8 @@
 				DEVELOPMENT_TEAM = QNW59SGYAU;
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "[DEV] Drift Space";
-				INFOPLIST_FILE = Runner/Info.plist;
 				FLUTTER_TARGET = lib/main_development.dart;
+				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -974,8 +938,8 @@
 				DEVELOPMENT_TEAM = QNW59SGYAU;
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "[STG] Drift Space";
-				INFOPLIST_FILE = Runner/Info.plist;
 				FLUTTER_TARGET = lib/main_staging.dart;
+				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1076,8 +1040,8 @@
 				DEVELOPMENT_TEAM = QNW59SGYAU;
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "[STG] Drift Space";
-				INFOPLIST_FILE = Runner/Info.plist;
 				FLUTTER_TARGET = lib/main_staging.dart;
+				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1173,8 +1137,8 @@
 				DEVELOPMENT_TEAM = QNW59SGYAU;
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "[STG] Drift Space";
-				INFOPLIST_FILE = Runner/Info.plist;
 				FLUTTER_TARGET = lib/main_staging.dart;
+				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1327,8 +1291,8 @@
 				DEVELOPMENT_TEAM = QNW59SGYAU;
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "Drift Space";
-				INFOPLIST_FILE = Runner/Info.plist;
 				FLUTTER_TARGET = lib/main_production.dart;
+				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1359,8 +1323,8 @@
 				DEVELOPMENT_TEAM = QNW59SGYAU;
 				ENABLE_BITCODE = NO;
 				FLAVOR_APP_NAME = "Drift Space";
-				INFOPLIST_FILE = Runner/Info.plist;
 				FLUTTER_TARGET = lib/main_production.dart;
+				INFOPLIST_FILE = Runner/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Drift Space";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				LD_RUNPATH_SEARCH_PATHS = (

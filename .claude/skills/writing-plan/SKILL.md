@@ -1,202 +1,115 @@
 ---
 name: writing-plan
-description: Generates a structured Markdown implementation plan and saves it to the /plan folder. Use this skill whenever the user asks to "create a plan", "write a plan", "make a plan", "plan this feature", "draft a plan for", "gerar um plano", "criar um plano", "escrever um plano", or describes any multi-step task they want planned out — even if they just say "plan this" or "how should I approach X". Also triggers when the user shares a feature description, refactoring goal, or implementation request and wants a roadmap before coding. Always prefer this skill over ad-hoc bullet lists when the user wants a reusable, saveable plan document.
+description: Gera um plano de implementação estruturado em Markdown e salva em ./docs/plan/. Use quando o usuário pedir para criar, escrever ou gerar um plano ("crie um plano", "escreva um plano", "planeje essa feature", "create a plan", "how should I approach X") ou descrever uma feature, refactor ou implementação de várias etapas que queira planejada antes de codar.
 ---
 
 # Writing Plan
 
 ## O que esta skill faz
 
-Gera um plano estruturado em Markdown e salva em `./plan/<nome-do-plano>.md` (cria a pasta se não existir).
+Gera um plano estruturado em Markdown e salva em `./docs/plan/<nome-do-plano>.md` (cria a pasta se não existir): objetivo claro, o design de origem, fases com checkboxes, passos acionáveis, verificações e critérios de sucesso.
 
-O plano segue o padrão das melhores práticas de planejamento de software: objetivo claro, fases com checkboxes, passos acionáveis, verificações e critérios de sucesso.
+### Entrada esperada
+
+O ideal é o **Handoff para o Plano** produzido pelo `brainstorming` (decisão aprovada, alternativas descartadas, tipo de mudança, arquivos-chave, skill expert, flows a revisitar). O plano também pode nascer direto de um pedido do usuário, sem brainstorming prévio — nesse caso esta skill reconstrói o mínimo necessário.
+
+### Saída (Handoff)
+
+Um arquivo de plano auto-contido — inclui a seção **Design de Origem**, para que o `executing-plan` execute e defenda a intenção original sem depender do histórico de conversa.
+
+### Referências
+
+Resolvidas a partir do diretório desta skill. Leia cada uma no momento indicado, não antes:
+
+| Arquivo | Quando ler |
+|---------|-----------|
+| `references/plan-template.md` | No passo 4, antes de escrever o arquivo — estrutura obrigatória e os dois templates de fases |
+| `references/headless-testing.md` | No passo 1.5, ao classificar uma mudança UI-only e decidir se a stack suporta teste de componente headless |
 
 ---
 
 ## Fluxo de Execução
 
+### 0. Absorver o Handoff do brainstorming
+
+**Se o `brainstorming` rodou e entregou o bloco Handoff:** use-o como fonte. Copie decisão, alternativas descartadas, tipo de mudança, arquivos-chave e flows para o plano — não reabra decisões já aprovadas nem reclassifique o tipo de mudança.
+
+**Se não houver handoff** (plano pedido direto, ou brainstorming perdido na compactação de contexto): reconstrua uma decisão de design em uma ou duas frases a partir do pedido e do código. Se a mudança tiver decisão de design real e ambígua, prefira sugerir o `brainstorming` antes de planejar, em vez de inventar a decisão silenciosamente.
+
 ### 1. Entender o contexto
 
-Antes de escrever o plano, responda mentalmente:
+Responda mentalmente: **o que** precisa ser feito, **por quê**, **quais arquivos/sistemas** estão envolvidos e **qual o critério de conclusão**.
 
-- **O que** precisa ser feito? (feature, refactor, fix, investigação, deploy)
-- **Por quê?** Qual problema resolve?
-- **Quais arquivos/sistemas** estão envolvidos?
-- **Qual o critério de conclusão?** Como saber que está pronto?
-
-Se o prompt for vago, faça **uma única pergunta de clarificação** antes de prosseguir. Não faça múltiplas perguntas — escolha a mais importante.
+Se o prompt for vago e não houver handoff, faça **uma única pergunta de clarificação** — a mais importante.
 
 ### 1.5. Classificar o tipo de mudança
 
-Antes de montar as fases, classifique o escopo:
+**Se o Handoff já trouxe o `Tipo de mudança`, use-o** — não reclassifique. Só reavalie se o código contradisser claramente a classificação recebida (ex.: o handoff diz UI-only mas o design exige um novo Repository); nesse caso, ajuste e registre o motivo em uma frase.
 
-**UI-only** — mudanças que envolvem apenas:
-- Estrutura visual de Views/telas (layout, componentes, estilos, animações)
-- Extração de componentes para subpastas de UI
-- Ajustes de rota sem nova lógica
-- Textos, traduções, assets
+Sem handoff, classifique agora:
 
-→ **Não inclua fases de teste no plano.**
+**UI-only** — apenas estrutura visual de Views (layout, componentes, estilos, animações), extração de componentes de UI, ajustes de rota sem lógica nova, textos/traduções/assets.
+→ Leia `references/headless-testing.md` e inspecione as dependências do projeto. Se a stack tiver teste de componente headless, inclua uma fase de teste de componente **depois** de construir a UI; se não tiver, não inclua fases de teste.
 
-**Logic** — mudanças que envolvem qualquer um dos itens abaixo:
-- Camada de estado/domínio (ViewModels, Cubits, Controllers, Stores, Reducers…)
-- Serviços de negócio ou sistema
-- Interfaces ou implementações de Repository
-- DataSources, clientes HTTP, acesso a banco
-
+**Logic** — envolve camada de estado/domínio (ViewModels, Cubits, Controllers, Stores…), serviços de negócio ou sistema, interfaces/implementações de Repository, DataSources, clientes HTTP ou acesso a banco.
 → **Aplique TDD: a fase de testes vem ANTES da implementação da lógica.** Os testes definem o contrato; a implementação os faz passar.
 
 ### 2. Verificar flows existentes
 
-Antes de escrever o plano, verifique se já existe um flow da funcionalidade em `./flow/`.
-
 ```bash
-ls ./flow/ 2>/dev/null
+ls ./docs/flow/ 2>/dev/null
 ```
 
-**Se existir um flow relacionado** (ex: planejando mudanças no login → existe `./flow/login.md`):
-- Leia o arquivo completo
-- Use as informações do flow (arquivos envolvidos, ordem de execução, regras de negócio) para preencher o plano com caminhos reais de arquivo e detalhes de implementação mais precisos
-- Se o plano envolver mudanças **estruturais** (novos arquivos, renomeação de camadas, mudança de responsabilidade), adicione uma fase final no plano: **"Atualizar Flow"** com os passos concretos de o que atualizar em `./flow/<nome>.md`
-- Se for apenas mudança interna sem impacto estrutural, não precisa de fase de atualização
+**Se o brainstorming já rodou nesta conversa e leu os flows relevantes** (o Handoff lista os "flows a revisitar"), reutilize esse conteúdo do contexto — não releia os arquivos. Registre esses flows no cabeçalho **Flows relacionados** do plano.
 
-**Se não existir nenhum flow relacionado:**
-- Continue normalmente com o plano
-- Adicione uma seção ao final do plano (fora das fases) chamada `## Após a Implementação` com o seguinte conteúdo:
+**Se existir flow relacionado ainda não lido:** leia-o e use arquivos envolvidos, ordem de execução e regras de negócio para preencher o plano com caminhos reais. Se o plano envolver mudanças **estruturais** (novos arquivos, camadas renomeadas, responsabilidade movida), adicione uma fase final **"Atualizar Flow"** com os passos concretos do que atualizar em `./docs/flow/<nome>.md`. Mudança interna sem impacto estrutural não precisa dessa fase.
+
+**Se não existir flow relacionado:** siga com o plano e adicione ao final (fora das fases):
 
 ```markdown
 ## Após a Implementação
 
-> Perguntar ao usuário: "Deseja criar um flow dessa funcionalidade em `./flow/`? Ele documenta o caminho completo do fluxo (UI → Cubit → Repository → DataSource) e serve de referência para futuros planos e revisões."
+> Perguntar ao usuário: "Deseja criar um flow dessa funcionalidade em `./docs/flow/`? Ele documenta o caminho completo do fluxo e serve de referência para futuros planos e revisões."
 ```
 
 Essa pergunta deve **sempre** ser feita quando não há flow — nunca assuma que o usuário não quer.
 
-### 3. Escolher o nome do arquivo
+### 2.5. Revisão de simplicidade
 
-Derive um `kebab-case` conciso do objetivo. Exemplos:
-- "plano para tela de login" → `login-screen.md`
-- "refatorar repositório de usuário" → `refactor-user-repository.md`
-- "implementar push notifications" → `implement-push-notifications.md`
+Antes de escrever as fases, revise o rascunho da tabela de Arquitetura/Escopo com a pergunta: **essa complexidade é exigida pelo problema, ou é só a primeira solução que veio à mente?**
 
-### 4. Criar a pasta e o arquivo
+- Cada arquivo novo ou camada extra precisa de razão concreta (regra de negócio, separação já usada no projeto, requisito explícito do usuário)
+- Prefira a menor mudança que resolve o problema real; não crie abstrações "para o futuro" — isso é over-engineering, não planejamento
+- Se o escopo encolher nessa revisão, é o resultado esperado. Se genuinamente precisa de vários arquivos/fases, mantenha — a revisão é contra inchaço injustificado, não contra complexidade real.
 
-```bash
-mkdir -p ./plan
-# salvar em ./plan/<nome>.md
-```
+### 3. Criar o arquivo
 
-### 5. Escrever o plano usando a estrutura abaixo
+Derive um nome `kebab-case` conciso do objetivo (ex: "plano para tela de login" → `login-screen.md`; "refatorar repositório de usuário" → `refactor-user-repository.md`) e salve em `./docs/plan/` (`mkdir -p ./docs/plan`).
 
----
+### 4. Escrever o plano
 
-## Estrutura do Plano (template obrigatório)
-
-```markdown
-# [Título do Plano]
-
-> **Objetivo:** Uma frase descrevendo o que será entregue ao final.
-
-## Contexto
-
-[2–4 frases explicando o estado atual, o problema ou a motivação. Por que isso precisa ser feito agora?]
-
-## Arquitetura / Escopo
-
-[Diagrama textual ou tabela mapeando os arquivos/módulos afetados e suas responsabilidades. Inclua apenas o que muda ou é criado.]
-
-| Arquivo | Ação | Responsabilidade |
-|---------|------|-----------------|
-| `<caminho>` | criar | ... |
-
-## Fases
-
-<!-- 
-  ATENÇÃO AO GERAR O PLANO:
-  - Mudança UI-only → use o template A (sem testes)
-  - Mudança que envolve camada de estado / serviço / repositório / datasource → use o template B (TDD: testes antes da implementação)
-  Remova este comentário e o template que não se aplica antes de salvar.
--->
-
-<!-- TEMPLATE A — UI-only (sem testes) -->
-### Fase 1 — [Nome da Fase]
-
-- [ ] Passo 1: [ação concreta com arquivo e componente]
-- [ ] Passo 2: ...
-- [ ] Verificação: [como confirmar visualmente que a fase está completa]
-
-### Fase 2 — [Nome da Fase]
-
-- [ ] ...
-- [ ] Verificação: ...
-
-_(repita para cada fase)_
-
----
-
-<!-- TEMPLATE B — Logic (TDD: testes primeiro) -->
-### Fase 1 — Testes (contrato antes da implementação)
-
-> Escreva os testes que definem o comportamento esperado. Eles vão falhar inicialmente — isso é intencional.
-
-- [ ] Criar `<caminho>/test/<arquivo>.test.<ext>`
-- [ ] Testar caso de sucesso: [descrição]
-- [ ] Testar caso de erro/falha: [descrição]
-- [ ] Testar estado de loading (quando aplicável)
-- [ ] Verificação: todos os testes compilam e falham pelos motivos certos (não por erro de sintaxe)
-
-### Fase 2 — Implementação (fazer os testes passarem)
-
-- [ ] Implementar [ViewModel / Service / Repository / DataSource] em `<caminho>`
-- [ ] Registrar no container de DI se necessário
-- [ ] Verificação: testes passam sem erros
-
-### Fase 3 — UI (se houver interface para a lógica implementada)
-
-- [ ] Conectar View à camada de estado
-- [ ] Verificação: fluxo visual funciona de ponta a ponta
-
-_(repita fases de implementação/UI conforme necessário)_
-
-## Critérios de Sucesso
-
-- [ ] [resultado observável 1]
-- [ ] [resultado observável 2]
-- [ ] Build sem erros
-- [ ] _(somente para mudanças Logic)_ Todos os testes unitários passando
-
-## Riscos e Mitigações
-
-| Risco | Probabilidade | Mitigação |
-|-------|--------------|-----------|
-| ... | Baixa/Média/Alta | ... |
-
-## Rollback
-
-[Como desfazer as mudanças se algo der errado. Se não aplicável, escreva "N/A".]
-```
+Leia `references/plan-template.md` e siga a estrutura obrigatória, escolhendo o template de fases correspondente ao tipo de mudança classificado no passo 1.5.
 
 ---
 
 ## Regras de Qualidade
 
-**Passos acionáveis** — cada item de checkbox deve ser específico o suficiente para ser executado sem ambiguidade. Ruim: "adicionar validação". Bom: "adicionar validação de email em `src/features/login/components/EmailField.tsx`".
+**Passos acionáveis** — cada checkbox deve ser executável sem ambiguidade. Ruim: "adicionar validação". Bom: "adicionar validação de email em `src/features/login/components/EmailField.tsx`".
 
-**Sem placeholders vagos** — nunca escreva "TBD", "ver depois", "adicionar lógica aqui". Se não souber, diga explicitamente o que precisa ser investigado e por quê.
+**Sem placeholders vagos** — nunca "TBD" ou "ver depois". Se não souber, diga o que precisa ser investigado e por quê.
 
-**Fases sequenciais e seguras** — ordene para que cada fase possa ser concluída e verificada antes da próxima começar. Mudanças de tipos/interfaces vêm antes de implementações.
+**Fases sequenciais e seguras** — cada fase deve poder ser concluída e verificada antes da próxima. Mudanças de tipos/interfaces vêm antes de implementações.
 
-**Tamanho das fases** — idealmente 3–7 passos por fase. Se uma fase ficar grande, divida.
+**Tamanho das fases** — 3–7 passos por fase; se ficar grande, divida.
 
-**Seção de riscos não é opcional para planos com 3+ fases** — qualquer plano não trivial deve listar pelo menos um risco real.
+**Riscos obrigatórios para planos com 3+ fases** — liste pelo menos um risco real.
+
+**Verificação nunca executa o app** — nenhum passo pode subir app, emulador, simulador, device, browser real ou suíte E2E/instrumentada. Testar componente no harness não é rodar o app; os limites estão em `references/headless-testing.md`.
 
 ---
 
 ## Após salvar o arquivo
 
-Informe o usuário:
-1. O caminho do arquivo gerado (ex: `./plan/login-screen.md`)
-2. Um resumo de 2–3 linhas do plano (quantas fases, escopo geral)
-3. Pergunte se quer ajustar algo antes de começar a execução
+Informe o usuário: o caminho do arquivo gerado, um resumo de 2–3 linhas (quantas fases, escopo geral) e pergunte se quer ajustar algo antes da execução. Não execute o plano automaticamente — a decisão de começar é do usuário.
 
-Não execute o plano automaticamente — a decisão de começar é do usuário.
+Quando o usuário aprovar a execução, use `executing-plan`. Essa skill é responsável por revisar o plano contra o repositório atual, retomar pelo primeiro checkbox pendente, executar e verificar cada tarefa, registrar o progresso e atualizar os flows afetados.

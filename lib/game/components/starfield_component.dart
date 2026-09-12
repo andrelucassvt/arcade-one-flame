@@ -1,9 +1,12 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:flame/components.dart';
-import 'package:flutter/material.dart';
 
 const double _starfieldLoopScreens = 100;
+const double _smallStarRadius = 1;
+const double _largeStarRadius = 1.6;
 
 class StarfieldComponent extends PositionComponent {
   StarfieldComponent({
@@ -15,7 +18,21 @@ class StarfieldComponent extends PositionComponent {
   Vector2 gameSize;
   final int seed;
 
+  final Paint _backgroundPaint = Paint()..color = const Color(0xFF080A19);
+  final Paint _smallStarPaint = Paint()
+    ..color = const Color(0xFFEAF7FF)
+    ..strokeCap = StrokeCap.round
+    ..strokeWidth = _smallStarRadius * 2;
+  final Paint _largeStarPaint = Paint()
+    ..color = const Color(0xFFEAF7FF)
+    ..strokeCap = StrokeCap.round
+    ..strokeWidth = _largeStarRadius * 2;
+
   final List<_Star> _stars = [];
+  final List<_Star> _smallStars = [];
+  final List<_Star> _largeStars = [];
+  Float32List _smallPoints = Float32List(0);
+  Float32List _largePoints = Float32List(0);
   double _scrollDistance = 0;
 
   @override
@@ -33,17 +50,29 @@ class StarfieldComponent extends PositionComponent {
 
   void _seedStars() {
     _stars.clear();
+    _smallStars.clear();
+    _largeStars.clear();
     final random = math.Random(seed);
     for (var i = 0; i < 95; i++) {
-      _stars.add(
-        _Star(
-          x: random.nextDouble() * gameSize.x,
-          y: random.nextDouble() * gameSize.y,
-          radius: random.nextBool() ? 1 : 1.6,
-          speedFactor: random.nextBool() ? 0.28 : 0.55,
-        ),
+      final x = random.nextDouble() * gameSize.x;
+      final y = random.nextDouble() * gameSize.y;
+      final isLarge = !random.nextBool();
+      final star = _Star(
+        x: x,
+        y: y,
+        isLarge: isLarge,
+        speedFactor: random.nextBool() ? 0.28 : 0.55,
       );
+      _stars.add(star);
+      if (isLarge) {
+        _largeStars.add(star);
+      } else {
+        _smallStars.add(star);
+      }
     }
+
+    _smallPoints = Float32List(_smallStars.length * 2);
+    _largePoints = Float32List(_largeStars.length * 2);
   }
 
   void advance(double scrollSpeed, double dt) {
@@ -60,16 +89,22 @@ class StarfieldComponent extends PositionComponent {
   void render(Canvas canvas) {
     super.render(canvas);
 
-    final backgroundPaint = Paint()..color = const Color(0xFF080A19);
-    final starPaint = Paint()..color = const Color(0xFFEAF7FF);
     canvas.drawRect(
       Offset.zero & Size(gameSize.x, gameSize.y),
-      backgroundPaint,
+      _backgroundPaint,
     );
 
-    for (final star in _stars) {
-      final y = _starY(star);
-      canvas.drawCircle(Offset(star.x, y), star.radius, starPaint);
+    _fillPoints(_smallPoints, _smallStars);
+    canvas.drawRawPoints(PointMode.points, _smallPoints, _smallStarPaint);
+    _fillPoints(_largePoints, _largeStars);
+    canvas.drawRawPoints(PointMode.points, _largePoints, _largeStarPaint);
+  }
+
+  void _fillPoints(Float32List points, List<_Star> stars) {
+    for (var i = 0; i < stars.length; i++) {
+      final star = stars[i];
+      points[i * 2] = star.x;
+      points[i * 2 + 1] = _starY(star);
     }
   }
 
@@ -82,12 +117,12 @@ class _Star {
   const _Star({
     required this.x,
     required this.y,
-    required this.radius,
+    required this.isLarge,
     required this.speedFactor,
   });
 
   final double x;
   final double y;
-  final double radius;
+  final bool isLarge;
   final double speedFactor;
 }

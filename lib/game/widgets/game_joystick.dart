@@ -22,7 +22,13 @@ class _GameJoystickState extends State<GameJoystick> {
   static const _knobSize = 40.0;
   static const _deadZone = 0.14;
 
-  Offset _knobOffset = Offset.zero;
+  final ValueNotifier<Offset> _knobOffset = ValueNotifier(Offset.zero);
+
+  @override
+  void dispose() {
+    _knobOffset.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +59,14 @@ class _GameJoystickState extends State<GameJoystick> {
             ],
           ),
           child: Center(
-            child: Transform.translate(
-              offset: _knobOffset * maxOffset,
+            child: ValueListenableBuilder<Offset>(
+              valueListenable: _knobOffset,
+              builder: (context, offset, child) {
+                return Transform.translate(
+                  offset: offset * maxOffset,
+                  child: child,
+                );
+              },
               child: SizedBox.square(
                 dimension: _knobSize,
                 child: DecoratedBox(
@@ -87,7 +99,7 @@ class _GameJoystickState extends State<GameJoystick> {
         : Offset(math.cos(angle), math.sin(angle));
     final knobOffset = unit * normalizedDistance;
 
-    setState(() => _knobOffset = knobOffset);
+    _knobOffset.value = knobOffset;
 
     if (normalizedDistance < _deadZone) {
       widget.onReleased();
@@ -98,7 +110,7 @@ class _GameJoystickState extends State<GameJoystick> {
   }
 
   void _release() {
-    setState(() => _knobOffset = Offset.zero);
+    _knobOffset.value = Offset.zero;
     widget.onReleased();
   }
 }

@@ -203,6 +203,17 @@
       }
     }
   },
+  "comboText": "COMBO x{combo}",
+  "@comboText": {
+    "description": "Text for the near miss combo counter",
+    "placeholders": {
+      "combo": {
+        "type": "int",
+        "example": "3",
+        "description": "The current near miss combo count"
+      }
+    }
+  },
   "gameOverTitle": "FIM DE JOGO",
   "@gameOverTitle": {
     "description": "Game over title shown after a crash"

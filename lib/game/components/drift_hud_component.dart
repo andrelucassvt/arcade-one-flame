@@ -11,6 +11,12 @@ class DriftHudComponent extends PositionComponent
 
   late final TextComponent distanceText;
   late final TextComponent bestText;
+  late final TextComponent comboText;
+
+  int _lastDistance = -1;
+  int _lastBest = -1;
+  int _lastCombo = -1;
+
   @override
   Future<void> onLoad() async {
     final baseRenderer = TextPaint(
@@ -26,6 +32,10 @@ class DriftHudComponent extends PositionComponent
         position: Vector2(0, 24),
         textRenderer: secondaryRenderer,
       ),
+      comboText = TextComponent(
+        position: Vector2(0, 42),
+        textRenderer: secondaryRenderer,
+      ),
     ]);
   }
 
@@ -33,8 +43,23 @@ class DriftHudComponent extends PositionComponent
   void update(double dt) {
     super.update(dt);
 
-    distanceText.text = game.l10n.distanceText(game.distanceKm.floor());
-    bestText.text = game.l10n.bestDistanceText(game.bestDistanceKm.floor());
+    final distance = game.distanceKm.floor();
+    if (distance != _lastDistance) {
+      _lastDistance = distance;
+      distanceText.text = game.l10n.distanceText(distance);
+    }
+
+    final best = game.bestDistanceKm.floor();
+    if (best != _lastBest) {
+      _lastBest = best;
+      bestText.text = game.l10n.bestDistanceText(best);
+    }
+
+    final combo = game.combo;
+    if (combo != _lastCombo) {
+      _lastCombo = combo;
+      comboText.text = combo > 1 ? game.l10n.comboText(combo) : '';
+    }
   }
 
   void reposition(

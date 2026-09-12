@@ -27,8 +27,9 @@ void main() {
     blocTest<AppLocaleCubit, Locale?>(
       'init emite Locale("pt") quando storage retorna "pt"',
       setUp: () {
-        when(() => storage.getString('app_locale'))
-            .thenAnswer((_) async => 'pt');
+        when(
+          () => storage.getString('app_locale'),
+        ).thenAnswer((_) async => 'pt');
       },
       build: () => AppLocaleCubit(storage: storage),
       act: (cubit) => cubit.init(),
@@ -38,8 +39,9 @@ void main() {
     blocTest<AppLocaleCubit, Locale?>(
       'init não emite nada quando storage retorna null',
       setUp: () {
-        when(() => storage.getString('app_locale'))
-            .thenAnswer((_) async => null);
+        when(
+          () => storage.getString('app_locale'),
+        ).thenAnswer((_) async => null);
       },
       build: () => AppLocaleCubit(storage: storage),
       act: (cubit) => cubit.init(),

@@ -43,6 +43,9 @@ void main() {
       when(() => l10n.bestDistanceText(any())).thenAnswer(
         (invocation) => 'Best ${invocation.positionalArguments.first} km',
       );
+      when(() => l10n.comboText(any())).thenAnswer(
+        (invocation) => 'COMBO x${invocation.positionalArguments.first}',
+      );
       when(() => l10n.gameOverTitle).thenReturn('GAME OVER');
       when(() => l10n.restartHint).thenReturn('Tap to restart');
     });
@@ -82,6 +85,23 @@ void main() {
 
       expect(hud.distanceText.text, equals('0 km'));
       expect(hud.bestText.text, equals('Best 0 km'));
+    });
+
+    testWithGame('shows and clears the near miss combo', createGame, (
+      game,
+    ) async {
+      final hud = DriftHudComponent(position: Vector2.zero());
+      await game.ensureAdd(hud);
+
+      game.combo = 3;
+      hud.update(0.1);
+
+      expect(hud.comboText.text, equals('COMBO x3'));
+
+      game.combo = 0;
+      hud.update(0.1);
+
+      expect(hud.comboText.text, isEmpty);
     });
   });
 }

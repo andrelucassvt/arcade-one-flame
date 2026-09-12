@@ -18,20 +18,48 @@ void main() {
       expect(ship.position.x, greaterThan(0));
     });
 
-    test('keeps moving with inertia when thrust is cleared', () {
+    test('keeps steering toward the current target every frame', () {
       final ship = Ship(position: Vector2.zero());
 
       ship.setThrustTarget(Vector2(100, 0));
       ship.update(0.1);
-      final velocityAfterThrust = ship.velocity.x;
+      expect(ship.velocity.y, equals(0));
 
-      ship.clearThrust();
+      ship.setThrustTarget(ship.position + Vector2(0, 100));
+      ship.update(0.1);
+
+      expect(ship.velocity.y, greaterThan(0));
+    });
+
+    test('stops thrusting when the target is inside the dead zone', () {
+      final ship = Ship(position: Vector2.zero());
+
+      ship.setThrustTarget(Vector2(shipThrustDeadZone - 1, 0));
       ship.update(0.1);
 
       expect(ship.isThrusting, isFalse);
-      expect(ship.velocity.x, equals(velocityAfterThrust));
-      expect(ship.position.x, greaterThan(velocityAfterThrust * 0.1));
+      expect(ship.velocity, equals(Vector2.zero()));
     });
+
+    test(
+      'keeps moving with inertia but decelerates when thrust is cleared',
+      () {
+        final ship = Ship(position: Vector2.zero());
+
+        ship.setThrustTarget(Vector2(100, 0));
+        ship.update(0.1);
+        final velocityAfterThrust = ship.velocity.x;
+        final positionAfterThrust = ship.position.x;
+
+        ship.clearThrust();
+        ship.update(0.1);
+
+        expect(ship.isThrusting, isFalse);
+        expect(ship.velocity.x, lessThan(velocityAfterThrust));
+        expect(ship.velocity.x, greaterThan(0));
+        expect(ship.position.x, greaterThan(positionAfterThrust));
+      },
+    );
 
     test('does not exceed max speed', () {
       final ship = Ship(position: Vector2.zero(), maxSpeed: 40);
@@ -54,6 +82,32 @@ void main() {
       expect(ship.position, equals(Vector2(10, 20)));
       expect(ship.velocity, equals(Vector2.zero()));
       expect(ship.isThrusting, isFalse);
+      expect(ship.hasShield, isFalse);
+      expect(ship.invulnerable, isFalse);
+    });
+
+    test('consumes a granted shield only once', () {
+      final ship = Ship(position: Vector2.zero());
+
+      expect(ship.hasShield, isFalse);
+      expect(ship.consumeShield(), isFalse);
+
+      ship.grantShield();
+
+      expect(ship.hasShield, isTrue);
+      expect(ship.consumeShield(), isTrue);
+      expect(ship.hasShield, isFalse);
+      expect(ship.consumeShield(), isFalse);
+    });
+
+    test('tracks the invulnerability flag', () {
+      final ship = Ship(position: Vector2.zero());
+
+      expect(ship.invulnerable, isFalse);
+
+      ship.invulnerable = true;
+
+      expect(ship.invulnerable, isTrue);
     });
   });
 }

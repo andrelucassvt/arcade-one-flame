@@ -39,6 +39,7 @@ flutter:
   generate: true
   uses-material-design: true
   config:
+    enable-lldb-debugging: false
     enable-swift-package-manager: false
   assets:
     - assets/audio/

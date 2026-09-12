@@ -1,7 +1,7 @@
 ---
 generated_at: 2026-07-27
-source_commit: 698131b
-source_state: clean
+source_commit: a3f02f7
+source_state: dirty
 verified_at: 2026-09-12
 status: current
 related_plans:
@@ -16,15 +16,17 @@ related_plans:
 
 # Flow: Game
 
-> **Resumo:** Executa uma rodada Flame configurada na tela de título, acumulando distância e dificuldade até colisão, quando persiste o recorde e oferece reinício ou retorno ao título.
+> **Resumo:** Executa uma rodada Flame configurada na tela de título, acumulando distância com combo de near miss, power-ups de escudo/câmera lenta e dificuldade crescente até uma colisão encerrar a rodada com hit-stop e oferecer reinício ou retorno ao título.
 
 ## Visão Geral
 
 O fluxo começa quando o usuário toca em Decolar/Launch. A rota recebe o modo de controle e a skin escolhidos; `GameView` inicia a BGM, obtém os providers globais e cria `ArcadeOne` dentro de um `GameWidget`.
 
-O jogo restaura a melhor distância, carrega imagens do cache e monta fundo, nave, HUD e a primeira sequência de paredes de asteroides. A cada frame, distância, velocidade visual e dificuldade crescem; cenário e obstáculos avançam enquanto toque/drag ou joystick controlam o thrust da nave.
+O jogo restaura a melhor distância, carrega imagens do cache e monta fundo, nave, HUD e a primeira sequência de paredes de asteroides. A rodada nasce com um período de invulnerabilidade (a nave pisca) para dar tempo de orientação. A cada frame, distância, velocidade visual e dificuldade crescem; no modo touch a direção do thrust é recalculada continuamente a partir do alvo segurado, com dead zone e suavização, e quando não há thrust a velocidade decai por damping.
 
-Colidir com uma parede, meteoro ou limite da tela encerra a rodada. Um novo recorde é persistido, o dispositivo recebe feedback háptico, o efeito de morte toca e um overlay Flutter permite reconstruir a rodada na mesma instância ou substituir a rota por `TitleView`. Em Android e iOS, um banner fica sobreposto na base da tela.
+Power-ups de escudo e câmera lenta nascem sobre gaps de paredes estáticas: o escudo absorve uma colisão e a câmera lenta reduz o `timeScale` da rodada. Passar raspando em obstáculos registra um near miss que alimenta um combo, e o combo multiplica o ganho de distância. Depois de 3000 km entra a curva "deep space", que aumenta a chance de gaps móveis, a quantidade de meteoros e a velocidade base.
+
+Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave explode em partículas e a tela treme; o overlay de game over só aparece após um atraso e o engine é pausado. Um novo recorde é persistido, o dispositivo recebe feedback háptico e o efeito de morte toca. O popup Flutter permite reconstruir a rodada na mesma instância (retomando o engine) ou substituir a rota por `TitleView`. Em Android e iOS, um banner fica sobreposto na base da tela.
 
 ## Passo a Passo
 
@@ -39,26 +41,32 @@ Colidir com uma parede, meteoro ou limite da tela encerra a rodada. Um novo reco
 5. **Carga inicial** — `lib/game/arcade_one.dart` → `ArcadeOne.onLoad`
    Restaura `best_distance_km` e chama `_buildRun`.
 6. **Montagem da rodada** — `lib/game/arcade_one.dart` → `_buildRun`
-   Carrega sprites, cria `SpaceBackgroundComponent`, `Ship` e `DriftHudComponent`, adiciona os componentes e gera a primeira sequência de obstáculos.
-7. **Input da nave** — `lib/game/arcade_one.dart` → callbacks de toque/drag, `setJoystickDirection` e `clearJoystick`
-   Apenas o modo selecionado altera o thrust; o joystick virtual aparece somente em partidas configuradas com `GameControlMode.joystick`.
+   Carrega sprites, cria `SpaceBackgroundComponent`, `Ship` e `DriftHudComponent`, define `_invulnerabilitySeconds` com `invulnerabilityGraceSeconds` e gera a primeira sequência de obstáculos.
+7. **Input da nave** — `lib/game/arcade_one.dart` → callbacks de toque/drag e `setJoystickDirection`
+   Toque/drag gravam o alvo no mundo via `Ship.setThrustTarget`; `Ship.update` recomputa a direção a cada frame com dead zone e suavização. O joystick virtual envia direção normalizada somente em partidas `GameControlMode.joystick`.
 8. **Atualização contínua** — `lib/game/arcade_one.dart` → `update`
-   Aumenta `distanceKm`, deriva `scrollSpeed`, avança o background, move obstáculos, detecta colisões, remove itens fora da tela, verifica limites e prepara a próxima sequência.
-9. **Movimento e HUD** — `lib/game/entities/ship/ship.dart` → `Ship.update`; `lib/game/components/drift_hud_component.dart` → `DriftHudComponent.update`
-   A nave aplica aceleração, inércia, giro e limite de velocidade; o HUD localiza e atualiza distância atual e recorde.
-10. **Fim da rodada** — `lib/game/arcade_one.dart` → `endRun`
-    Executa uma única vez, salva o recorde se superado, dispara háptico e som de morte, mostra o overlay e paralisa a nave.
-11. **Decisão pós-morte** — `lib/game/view/game_page.dart` → `overlayBuilderMap`
+   Limita `dt` por `maxGameUpdateDt`, aplica `timeScale` (câmera lenta), decai timers, avança `distanceKm` com `comboMultiplier`, deriva `scrollSpeed`, move background/obstáculos/meteoros/power-ups, registra near miss, absorve colisão com escudo, prepara a próxima sequência, aplica soft bounds e decai o screen shake.
+9. **Movimento, efeitos e HUD** — `lib/game/entities/ship/ship.dart` → `Ship.update`; `lib/game/components/drift_hud_component.dart` → `DriftHudComponent.update`
+   A nave aplica aceleração, inércia com damping, giro, limite de velocidade, trilha do motor e anel de escudo; o HUD reescreve textos apenas quando os inteiros mudam e exibe o combo.
+10. **Absorção de impacto** — `lib/game/arcade_one.dart` → `_tryAbsorbHit`
+    Com escudo ativo, consome o escudo, remove o obstáculo/meteoro, gera explosão e concede invulnerabilidade curta; sem escudo, cai em `endRun`.
+11. **Fim da rodada** — `lib/game/arcade_one.dart` → `endRun`
+    Ativa slow motion de morte, persiste recorde se superado, dispara háptico e som, explode a nave e treme a tela; o overlay só é adicionado depois de `deathOverlayDelaySeconds`, quando `pauseEngine` é chamado.
+12. **Decisão pós-morte** — `lib/game/view/game_page.dart` → `overlayBuilderMap`
     `GameOverPopup` chama `restartRun` ou substitui a rota atual por `TitleView.route()`.
-12. **Reinício** — `lib/game/arcade_one.dart` → `restartRun`
-    Remove o overlay, zera a rodada, reposiciona a nave, reseta o fundo, remove obstáculos antigos e inicia uma nova sequência, preservando o recorde.
+13. **Reinício** — `lib/game/arcade_one.dart` → `restartRun`
+    Retoma o engine, remove overlay, zera rodada/combo/efeitos, limpa bursts e power-ups, reposiciona a nave, reseta o fundo, remove obstáculos antigos e inicia uma nova sequência com grace period, preservando o recorde.
 
 ### Caminhos alternativos
 
-- **Touch:** toque e drag apontam o thrust para a posição do evento; soltar ou cancelar limpa o thrust.
+- **Touch:** toque e drag guardam o alvo no mundo; soltar ou cancelar limpa o alvo.
 - **Joystick:** `GameJoystick` normaliza o deslocamento fora da dead zone e chama `setJoystickDirection`; eventos touch do `FlameGame` são ignorados.
+- **Borda da tela:** `_applySoftBounds` fixa a posição dentro da área e reflete a velocidade com `bounceRestitution`, sem encerrar a rodada.
+- **Grace period:** colisões são ignoradas enquanto `isInvulnerable`; testes usam `invulnerabilityGraceSeconds: 0`.
+- **Near miss:** `tryRegisterNearMiss` marca o obstáculo uma única vez e `_rewardNearMiss` incrementa combo e renova a janela.
+- **Câmera lenta:** enquanto `isSlowMotionActive`, `timeScale` é `slowMotionTimeScale` e um tint azul é desenhado sobre a cena.
 - **Sem novo recorde:** `endRun` mantém `bestDistanceKm` e não grava no storage.
-- **Imagem ausente:** nave, obstáculos ou marcos usam renderização procedural/fallback prevista pelos componentes.
+- **Imagem ausente:** nave, obstáculos e marcos usam renderização procedural/fallback prevista pelos componentes.
 - **Plataforma sem banner:** quando `AdConfig.maybeBanner` é `null`, o banner é omitido e o joystick usa apenas o espaçamento inferior padrão.
 
 ## Arquivos Envolvidos
@@ -67,26 +75,39 @@ Colidir com uma parede, meteoro ou limite da tela encerra a rodada. Um novo reco
 |--------|---------|------------------|
 | Entrada | `lib/title/content/title_start_button.dart` | Inicia a rota com controle e nave escolhidos. |
 | Apresentação | `lib/game/view/game_page.dart` | Integra providers, Flame, overlays, áudio, joystick e banner. |
-| Apresentação | `lib/game/widgets/game_joystick.dart` | Converte gesto local em direção normalizada. |
+| Apresentação | `lib/game/widgets/game_joystick.dart` | Converte gesto local em direção normalizada com `ValueNotifier`. |
 | Apresentação | `lib/game/widgets/game_over_popup.dart` | Exibe resultado e ações pós-morte. |
 | Estado | `lib/game/cubit/audio/audio_cubit.dart` | Persiste volume e controla BGM e efeito de morte. |
-| Orquestração | `lib/game/arcade_one.dart` | Mantém ciclo da rodada, progressão, spawn, colisões e recorde. |
-| Entidade | `lib/game/entities/ship/ship.dart` | Implementa movimento, limites de velocidade e renderização da nave. |
-| Componentes | `lib/game/components/` | Implementa background, HUD, paredes, meteoros e starfield. |
-| Catálogos | `lib/game/background/`, `lib/game/player_ship/` | Define progressão visual e skins selecionáveis. |
+| Orquestração | `lib/game/arcade_one.dart` | Mantém ciclo da rodada, progressão, spawn, colisões, combos, power-ups, soft bounds e morte. |
+| Entidade | `lib/game/entities/ship/ship.dart` | Implementa input contínuo, inércia com damping, escudo, trilha e renderização da nave. |
+| Componentes | `lib/game/components/asteroid_pair_component.dart` | Modela paredes com gap fixo/móvel, colisão e near miss. |
+| Componentes | `lib/game/components/loose_meteor_component.dart` | Modela meteoro com drift, bounce, rotação e near miss. |
+| Componentes | `lib/game/components/power_up_component.dart` | Modela pickups de escudo e câmera lenta. |
+| Componentes | `lib/game/components/particle_burst_component.dart` | Animação de explosão/coleta em canvas. |
+| Componentes | `lib/game/components/drift_hud_component.dart` | Distância, recorde e combo com atualização cacheada. |
+| Componentes | `lib/game/components/space_background_component.dart` | Fundo por km com starfield e marcos otimizados. |
+| Componentes | `lib/game/components/starfield_component.dart` | Estrelas em parallax desenhadas com `drawRawPoints`. |
 | Dados | `lib/common/services/storage_service.dart` | Persiste melhor distância por contrato abstrato. |
 | Anúncios | `lib/common/services/ads/ad_config.dart` | Resolve unidades de banner por plataforma. |
-| Testes | `test/game/arcade_one_test.dart` | Cobre montagem, progressão, sequências, controles, colisão, restart e storage. |
+| Testes | `test/game/arcade_one_test.dart` | Cobre montagem, progressão, spawn, controles, colisão, escudo, slow-mo, combo, clamp de dt, morte e restart. |
+| Testes | `test/game/entities/ship/ship_test.dart` | Cobre alvo contínuo, dead zone, damping, escudo e limites de velocidade. |
 | Testes | `test/game/view/game_page_test.dart` | Cobre rota, parâmetros, volume, overlay, retorno e joystick. |
-| Testes | `test/game/components/` | Cobre comportamento isolado dos componentes Flame. |
+| Testes | `test/game/components/` | Cobre comportamento isolado dos componentes Flame, incluindo power-up e explosão. |
 
 ## Regras de Negócio Relevantes
 
-- **Velocidade crescente** — `lib/game/arcade_one.dart`: `driftSpeed` começa em `2` e soma `distanceKm * 0.0008`; o scroll visual multiplica o resultado por `42`.
-- **Dificuldade limitada** — `lib/game/arcade_one.dart`: `difficulty` cresce até `distanceKm / 3000` atingir `1`.
+- **Velocidade crescente** — `lib/game/arcade_one.dart`: `driftSpeed` começa em `2`, soma `distanceKm * 0.0008` e ganha `deepSpaceSpeedBonus` conforme `deepDifficulty`; o scroll visual multiplica o resultado por `42`.
+- **Dificuldade limitada + curva profunda** — `lib/game/arcade_one.dart`: `difficulty` atinge `1` em 3000 km; `deepDifficulty` cobre os 6000 km seguintes e amplia gaps móveis, meteoros e velocidade.
 - **Modos de controle distintos** — `lib/game/arcade_one.dart`: touch usa thrust `520` e velocidade máxima `250`; joystick usa `360` e `170`.
-- **Alternância de obstáculos** — `lib/game/arcade_one.dart`: meteoros só ficam elegíveis após três sequências de paredes, têm 25% de chance e não ultrapassam duas sequências consecutivas.
-- **Colisão encerra a rodada** — `lib/game/arcade_one.dart`: tocar qualquer obstáculo ou limite da área dispara `endRun` uma única vez.
+- **Input contínuo com dead zone** — `lib/game/entities/ship/ship.dart`: a direção é recalculada por frame com `shipThrustDeadZone`, suavizada por `shipDirectionSmoothing` e a inércia decai por `shipIdleDamping` sem thrust.
+- **Soft bounds sem morte** — `lib/game/arcade_one.dart`: a nave nunca morre por tocar a borda; a posição é fixada e a velocidade refletida com `bounceRestitution`.
+- **Grace period inicial** — `lib/game/arcade_one.dart`: colisões ficam desativadas por `invulnerabilityGraceSeconds` no começo da rodada e após o restart.
+- **Near miss vira combo** — `lib/game/arcade_one.dart`: cada obstáculo só pontua uma vez, a janela dura `comboDurationSeconds` e o ganho de distância é multiplicado por até `maxComboMultiplier`.
+- **Escudo absorve um impacto** — `lib/game/arcade_one.dart` e `lib/game/entities/ship/ship.dart`: `consumeShield` remove o obstáculo e concede `shieldInvulnerabilitySeconds`; sem escudo a colisão encerra a rodada.
+- **Power-ups nos gaps** — `lib/game/arcade_one.dart`: pickups nascem apenas em paredes estáticas com chance `powerUpSpawnChance`; escudo é booleano e câmera lenta renova o timer.
+- **Câmera lenta** — `lib/game/arcade_one.dart`: por `slowMotionDurationSeconds` todo o update usa `slowMotionTimeScale` (0,55) e a tela recebe um tint azul.
+- **Morte com hit-stop** — `lib/game/arcade_one.dart`: `endRun` ativa slow motion de morte, gera explosão/shake e revela o overlay após `deathOverlayDelaySeconds`, pausando o engine em seguida.
+- **Clamp de frame** — `lib/game/arcade_one.dart`: nenhum update processa `dt` maior que `maxGameUpdateDt` (1/30), evitando teleporte de obstáculos após hitches.
 - **Recorde persistente** — `lib/game/arcade_one.dart`: `best_distance_km` só é regravado quando a distância atual supera o valor restaurado.
 - **Volume binário** — `lib/game/cubit/audio/audio_cubit.dart`: o toggle alterna exclusivamente entre `0` e `1` e persiste em `audio_volume`.
 
@@ -101,4 +122,7 @@ Colidir com uma parede, meteoro ou limite da tela encerra a rodada. Um novo reco
 
 - A BGM `assets/audio/background_2.mp3` não faz parte da fase de áudio do `PreloadCubit`; `AudioCubit.startBgm` solicita sua reprodução ao entrar em `GameView`.
 - Se a tela do jogo for aberta enquanto o volume já está em `0`, `startBgm` retorna sem tocar; desmutar altera o volume do player, mas não chama `play` novamente.
-- `ArcadeOne` concentra orquestração, regras de spawn, persistência e carregamento de imagens no mesmo arquivo, por isso alterações de gameplay costumam atravessar esse núcleo e seus testes.
+- O engine é pausado junto com a revelação do overlay de game over; `restartRun` é o único caminho que retoma o loop.
+- O burst de explosão dura `particleBurstLifetime` (0,5 s) e é removido no restart para não vazar para a nova rodada.
+- O HUD de combo aparece somente com combo maior que 1 e os textos de distância/recorde só são reescritos quando o valor inteiro muda.
+- `lib/common/services/shared_preferences_storage_service.dart` e `test/app/cubit/app_locale_cubit_test.dart` tinham alterações locais prévias ao registro `source_commit`.

@@ -6,7 +6,6 @@ import 'dart:ui' as ui;
 
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/game.dart';
-import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flame/cache.dart';
@@ -63,6 +62,7 @@ void main() {
       l10n = _MockAppLocalizations();
       when(() => l10n.distanceText(any())).thenReturn('0 km');
       when(() => l10n.bestDistanceText(any())).thenReturn('Best 0 km');
+      when(() => l10n.comboText(any())).thenReturn('COMBO');
       when(() => l10n.gameOverTitle).thenReturn('GAME OVER');
       when(() => l10n.restartHint).thenReturn('Tap to restart');
 
@@ -79,6 +79,7 @@ void main() {
       GameControlMode controlMode = GameControlMode.touch,
       Images? images,
       PlayerShipSkin playerShip = defaultPlayerShipSkin,
+      double invulnerabilityGraceSeconds = 0,
     }) {
       final game = ArcadeOne(
         l10n: l10n,
@@ -91,6 +92,7 @@ void main() {
         storage: storage,
         controlMode: controlMode,
         playerShip: playerShip,
+        invulnerabilityGraceSeconds: invulnerabilityGraceSeconds,
         random: random ?? math.Random(1),
       );
       game.onGameResize(Vector2(390, 700));
@@ -288,33 +290,26 @@ void main() {
     testWithGame('updates background landmark as distance grows', createGame, (
       game,
     ) async {
-      game.distanceKm = 249;
+      game.distanceKm = 250;
 
       game.update(1);
 
       expect(game.background!.activeLandmark.id, equals('mars'));
     });
 
-    testWithGame('ends run when ship touches the edge', createGame, (
+    testWithGame('bounces off the edge without ending the run', createGame, (
       game,
     ) async {
-      game.ship!.position = Vector2(1, game.playArea.y / 2);
+      final ship = game.ship!;
+      ship.position = Vector2(1, game.playArea.y / 2);
+      ship.velocity.x = -100;
 
       game.update(0.1);
 
-      expect(game.isGameOver, isTrue);
-      expect(gameOverHapticCount, equals(1));
-      verify(
-        () => deathPlayer.play(
-          any(
-            that: isA<AssetSource>().having(
-              (source) => source.path,
-              'path',
-              Assets.audio.death,
-            ),
-          ),
-        ),
-      ).called(1);
+      expect(game.isGameOver, isFalse);
+      expect(gameOverHapticCount, equals(0));
+      expect(ship.position.x, closeTo(ship.collisionRadius, 1e-6));
+      expect(ship.velocity.x, greaterThanOrEqualTo(0));
     });
 
     testWithGame('ends run when ship hits a loose meteor', createGame, (
@@ -335,6 +330,143 @@ void main() {
 
       expect(game.isGameOver, isTrue);
       verify(() => deathPlayer.play(any())).called(1);
+    });
+
+    testWithGame(
+      'holds fire during the start grace period',
+      () =>
+          createGame(invulnerabilityGraceSeconds: startInvulnerabilitySeconds),
+      (game) async {
+        expect(game.isInvulnerable, isTrue);
+
+        removeAsteroidPairs(game);
+        final meteor = LooseMeteorComponent(
+          gameSize: game.playArea,
+          position: game.ship!.position.clone(),
+          radius: 16,
+        );
+        game.looseMeteors.add(meteor);
+        await game.add(meteor);
+
+        game.update(1 / 30);
+
+        expect(game.isGameOver, isFalse);
+
+        for (var i = 0; i < 60 && game.isInvulnerable; i++) {
+          meteor.position = game.ship!.position.clone();
+          game.update(1 / 30);
+        }
+
+        expect(game.isInvulnerable, isFalse);
+        expect(game.isGameOver, isTrue);
+      },
+    );
+
+    testWithGame('shield absorbs a hit before ending the run', createGame, (
+      game,
+    ) async {
+      removeActiveSequences(game);
+
+      final powerUp = PowerUpComponent(
+        gameSize: game.playArea,
+        position: game.ship!.position.clone(),
+        type: PowerUpType.shield,
+      );
+      game.powerUps.add(powerUp);
+      await game.add(powerUp);
+
+      game.update(1 / 30);
+
+      expect(game.ship!.hasShield, isTrue);
+      expect(game.powerUps, isEmpty);
+
+      final meteor = LooseMeteorComponent(
+        gameSize: game.playArea,
+        position: game.ship!.position.clone(),
+        radius: 16,
+      );
+      game.looseMeteors.add(meteor);
+      await game.add(meteor);
+
+      game.update(1 / 30);
+
+      expect(game.isGameOver, isFalse);
+      expect(game.ship!.hasShield, isFalse);
+      expect(game.looseMeteors, isNot(contains(meteor)));
+    });
+
+    testWithGame('slow motion power-up scales the run speed', createGame, (
+      game,
+    ) async {
+      removeActiveSequences(game);
+
+      final powerUp = PowerUpComponent(
+        gameSize: game.playArea,
+        position: game.ship!.position.clone(),
+        type: PowerUpType.slowMotion,
+      );
+      game.powerUps.add(powerUp);
+      await game.add(powerUp);
+
+      game.update(1 / 30);
+
+      expect(game.isSlowMotionActive, isTrue);
+      expect(game.timeScale, equals(slowMotionTimeScale));
+
+      for (var i = 0; i < 130; i++) {
+        game.update(1 / 30);
+      }
+
+      expect(game.isSlowMotionActive, isFalse);
+      expect(game.timeScale, equals(1));
+    });
+
+    testWithGame('near miss builds a combo', createGame, (game) async {
+      removeActiveSequences(game);
+
+      final ship = game.ship!;
+      final meteor = LooseMeteorComponent(
+        gameSize: game.playArea,
+        position: Vector2(
+          ship.position.x,
+          ship.position.y - (ship.collisionRadius + looseMeteorMinRadius + 6),
+        ),
+        radius: looseMeteorMinRadius,
+      );
+      game.looseMeteors.add(meteor);
+      await game.add(meteor);
+
+      game.update(1 / 30);
+
+      expect(game.combo, equals(1));
+      expect(game.comboMultiplier, greaterThan(1));
+    });
+
+    testWithGame('clamps huge frame deltas', createGame, (game) async {
+      game.update(1);
+
+      expect(
+        game.distanceKm,
+        closeTo(initialDriftSpeed * maxGameUpdateDt, 1e-9),
+      );
+      expect(
+        game.scrollSpeed,
+        equals(game.driftSpeed * driftVisualSpeedScale),
+      );
+    });
+
+    testWithGame('pauses the engine after the death hit-stop', createGame, (
+      game,
+    ) async {
+      game.endRun();
+
+      expect(game.paused, isFalse);
+
+      for (var i = 0; i < 30; i++) {
+        game.update(1 / 30);
+      }
+
+      expect(game.paused, isTrue);
     });
 
     testWithGame(

@@ -49,5 +49,51 @@ void main() {
 
       expect(meteor.collidesWith(ship), isFalse);
     });
+
+    test('bounces horizontally when drifting into the edge', () {
+      final meteor = LooseMeteorComponent(
+        gameSize: Vector2(390, 700),
+        position: Vector2(11, 100),
+        radius: 14,
+        horizontalDrift: -30,
+      )..moveByScroll(0, 0.5);
+
+      expect(meteor.position.x, equals(14));
+      expect(meteor.horizontalDrift, greaterThan(0));
+    });
+
+    test('rotates over time when rotation speed is configured', () {
+      final meteor = LooseMeteorComponent(
+        gameSize: Vector2(390, 700),
+        position: Vector2(100, 100),
+        radius: 14,
+        rotationSpeed: 2,
+      )..update(0.5);
+
+      expect(meteor.angle, closeTo(1, 1e-9));
+    });
+
+    test('registers a near miss only once', () {
+      final meteor = LooseMeteorComponent(
+        gameSize: Vector2(390, 700),
+        position: Vector2(120, 140),
+        radius: 14,
+      );
+      final ship = Ship(position: Vector2(120, 172));
+
+      expect(meteor.tryRegisterNearMiss(ship, 18), isTrue);
+      expect(meteor.tryRegisterNearMiss(ship, 18), isFalse);
+    });
+
+    test('does not register a near miss when the ship is far away', () {
+      final meteor = LooseMeteorComponent(
+        gameSize: Vector2(390, 700),
+        position: Vector2(120, 140),
+        radius: 14,
+      );
+      final ship = Ship(position: Vector2(120, 400));
+
+      expect(meteor.tryRegisterNearMiss(ship, 18), isFalse);
+    });
   });
 }

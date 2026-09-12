@@ -22,6 +22,10 @@ class SpaceBackgroundComponent extends PositionComponent {
   Vector2 _gameSize;
   final StarfieldComponent _starfield;
   final Map<String, ui.Image?> _landmarkImages;
+  final Map<String, ui.Size> _landmarkDrawSizes = {};
+  final Paint _landmarkPaint = Paint()..filterQuality = FilterQuality.low;
+  final Paint _fallbackPaint = Paint()
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
 
   double _distanceKm = 0;
   double _landmarkScrollDistance = 0;
@@ -53,7 +57,27 @@ class SpaceBackgroundComponent extends PositionComponent {
   void resizeGame(Vector2 gameSize) {
     _gameSize = gameSize.clone();
     size = gameSize.clone();
+    _landmarkDrawSizes.clear();
     _starfield.resizeGame(gameSize);
+  }
+
+  ui.Size _landmarkDrawSize(SpaceLandmark landmark, ui.Image image) {
+    final cached = _landmarkDrawSizes[landmark.assetPath];
+    if (cached != null) {
+      return cached;
+    }
+
+    final reference = math.min(_gameSize.x, _gameSize.y) * landmark.scale;
+    final coverScale = math.max(
+      reference / image.width,
+      reference / image.height,
+    );
+    final drawSize = ui.Size(
+      image.width * coverScale * landmark.scale,
+      image.height * coverScale * landmark.scale,
+    );
+    _landmarkDrawSizes[landmark.assetPath] = drawSize;
+    return drawSize;
   }
 
   @visibleForTesting
@@ -70,7 +94,10 @@ class SpaceBackgroundComponent extends PositionComponent {
   void render(Canvas canvas) {
     _starfield.render(canvas);
 
-    for (final landmark in visibleLandmarksForDistance(_distanceKm)) {
+    for (final landmark in spaceLandmarks) {
+      if (!landmark.isVisibleAt(_distanceKm)) {
+        continue;
+      }
       _renderLandmark(canvas, landmark);
     }
   }
@@ -91,19 +118,16 @@ class SpaceBackgroundComponent extends PositionComponent {
       return;
     }
 
+    final drawSize = _landmarkDrawSize(landmark, image);
+    if (drawSize.isEmpty) {
+      return;
+    }
+
     final source = ui.Rect.fromLTWH(
       0,
       0,
       image.width.toDouble(),
       image.height.toDouble(),
-    );
-    final coverScale = math.max(
-      (math.min(_gameSize.x, _gameSize.y) * landmark.scale) / image.width,
-      (math.min(_gameSize.x, _gameSize.y) * landmark.scale) / image.height,
-    );
-    final drawSize = ui.Size(
-      image.width * coverScale * landmark.scale,
-      image.height * coverScale * landmark.scale,
     );
     final center = _landmarkCenter(landmark, progress);
     final destination = ui.Rect.fromCenter(
@@ -111,11 +135,14 @@ class SpaceBackgroundComponent extends PositionComponent {
       width: drawSize.width,
       height: drawSize.height,
     );
-    final paint = Paint()
-      ..filterQuality = FilterQuality.low
-      ..color = Color.fromARGB((opacity * 255).round(), 255, 255, 255);
+    _landmarkPaint.color = Color.fromARGB(
+      (opacity * 255).round(),
+      255,
+      255,
+      255,
+    );
 
-    canvas.drawImageRect(image, source, destination, paint);
+    canvas.drawImageRect(image, source, destination, _landmarkPaint);
   }
 
   void _renderFallbackLandmark(
@@ -126,11 +153,11 @@ class SpaceBackgroundComponent extends PositionComponent {
   ) {
     final center = _landmarkCenter(landmark, progress);
     final radius = math.min(_gameSize.x, _gameSize.y) * landmark.scale * 0.5;
-    final paint = Paint()
-      ..color = _fallbackColor(landmark).withAlpha((opacity * 180).round())
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
+    _fallbackPaint.color = _fallbackColor(
+      landmark,
+    ).withAlpha((opacity * 180).round());
 
-    canvas.drawCircle(center, radius, paint);
+    canvas.drawCircle(center, radius, _fallbackPaint);
   }
 
   ui.Offset _landmarkCenter(SpaceLandmark landmark, double progress) {

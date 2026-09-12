@@ -31,9 +31,46 @@ const double obstacleSequenceHandoffY = -32;
 const int asteroidPairSequenceLength = 7;
 const int looseMeteorBaseSequenceLength = 9;
 const int looseMeteorDifficultyBonus = 5;
+const int looseMeteorDeepDifficultyBonus = 3;
 const int asteroidPairSequencesBeforeLooseMeteors = 3;
 const int maxConsecutiveLooseMeteorSequences = 2;
 const double looseMeteorSequenceChance = 0.25;
+const double maxGameUpdateDt = 1 / 30;
+const double startInvulnerabilitySeconds = 1.6;
+const double shieldInvulnerabilitySeconds = 1.2;
+const double nearMissThreshold = 18;
+const double nearMissShakeIntensity = 4;
+const double bounceShakeIntensity = 2;
+const double shieldShakeIntensity = 6;
+const double deathShakeIntensity = 11;
+const double shakeDecayPerSecond = 42;
+const double comboDurationSeconds = 2.5;
+const double comboMultiplierStep = 0.1;
+const double maxComboMultiplier = 2.5;
+const double slowMotionDurationSeconds = 4;
+const double slowMotionTimeScale = 0.55;
+const double deathSlowMotionTimeScale = 0.22;
+const double deathSlowMotionRecovery = 2.4;
+const double deathOverlayDelaySeconds = 0.55;
+const double deepSpaceStartKm = 3000;
+const double deepSpaceRangeKm = 6000;
+const double deepSpaceSpeedBonus = 1.2;
+const double movingGapBaseChance = 0.12;
+const double movingGapDifficultyChance = 0.33;
+const double movingGapDeepChance = 0.2;
+const double movingGapMaxChance = 0.7;
+const double movingGapBaseAmplitude = 18;
+const double movingGapDifficultyAmplitude = 34;
+const double movingGapRandomAmplitude = 26;
+const double movingGapBaseSpeed = 0.9;
+const double movingGapSpeedRange = 1.1;
+const double powerUpSpawnChance = 0.16;
+const double powerUpHorizontalDrift = 12;
+const double bounceRestitution = 0.5;
+const Color deathBurstColor = Color(0xFFFFB000);
+const Color shieldBurstColor = Color(0xFF57E4FF);
+const Color slowMotionTintColor = Color(0x2257E4FF);
+
 enum ObstacleSequence {
   asteroidPairs,
   looseMeteors,
@@ -48,10 +85,12 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     required this.storage,
     this.controlMode = GameControlMode.touch,
     this.playerShip = defaultPlayerShipSkin,
+    this.invulnerabilityGraceSeconds = startInvulnerabilitySeconds,
     math.Random? random,
     TriggerGameOverHaptic? triggerGameOverHaptic,
   }) : triggerGameOverHaptic = triggerGameOverHaptic ?? _triggerGameOverHaptic,
-       _random = random ?? math.Random() {
+       _random = random ?? math.Random(),
+       _effectsRandom = math.Random() {
     this.images = images;
   }
 
@@ -67,15 +106,19 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   final math.Random _random;
 
+  final math.Random _effectsRandom;
+
   final StorageService storage;
 
   final GameControlMode controlMode;
   final PlayerShipSkin playerShip;
+  final double invulnerabilityGraceSeconds;
 
   double distanceKm = 0;
   double bestDistanceKm = 0;
   double scrollSpeed = initialDriftSpeed * driftVisualSpeedScale;
   bool isGameOver = false;
+  int combo = 0;
 
   Ship? ship;
   DriftHudComponent? hud;
@@ -85,6 +128,16 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   EdgeInsets _safeAreaPadding = EdgeInsets.zero;
   final List<AsteroidPairComponent> obstacles = [];
   final List<LooseMeteorComponent> looseMeteors = [];
+  final List<PowerUpComponent> powerUps = [];
+  final Paint _slowMotionPaint = Paint()..color = slowMotionTintColor;
+
+  double _invulnerabilitySeconds = 0;
+  double _slowMotionSeconds = 0;
+  double _comboSeconds = 0;
+  double _shake = 0;
+  double _deathTimeScale = 1;
+  double _deathElapsed = 0;
+  bool _deathOverlayShown = false;
 
   ui.Image? _asteroidTileImage;
   ui.Image? _looseMeteorImage;
@@ -98,9 +151,26 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   int _consecutiveAsteroidPairSequences = 0;
   int _consecutiveLooseMeteorSequences = 0;
 
-  double get driftSpeed => initialDriftSpeed + distanceKm * driftSpeedGrowth;
+  double get driftSpeed =>
+      initialDriftSpeed +
+      distanceKm * driftSpeedGrowth +
+      deepDifficulty * deepSpaceSpeedBonus;
 
   double get difficulty => (distanceKm / 3000).clamp(0, 1);
+
+  double get deepDifficulty =>
+      ((distanceKm - deepSpaceStartKm) / deepSpaceRangeKm).clamp(0, 1);
+
+  bool get isInvulnerable => _invulnerabilitySeconds > 0;
+
+  bool get isSlowMotionActive => _slowMotionSeconds > 0;
+
+  double get timeScale => isSlowMotionActive ? slowMotionTimeScale : 1;
+
+  double get comboMultiplier =>
+      math.min(maxComboMultiplier, 1 + combo * comboMultiplierStep);
+
+  double get shakeIntensity => _shake;
 
   Vector2 get playArea {
     if (size.x <= 0 || size.y <= 0) {
@@ -121,42 +191,259 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   @override
   void update(double dt) {
-    super.update(dt);
+    final realDt = math.min(dt, maxGameUpdateDt);
 
+    if (isGameOver) {
+      _updateAfterDeath(realDt);
+      return;
+    }
+
+    _tickTimers(realDt);
+    final effectiveDt = realDt * timeScale;
+    super.update(effectiveDt);
+
+    distanceKm += driftSpeed * effectiveDt * comboMultiplier;
+    scrollSpeed = driftSpeed * driftVisualSpeedScale;
+    background?.advance(scrollSpeed, effectiveDt, distanceKm);
+
+    _updateObstacles(effectiveDt);
     if (isGameOver) {
       return;
     }
 
-    distanceKm += driftSpeed * dt;
-    scrollSpeed = driftSpeed * driftVisualSpeedScale;
-    background?.advance(scrollSpeed, dt, distanceKm);
+    _updateLooseMeteors(effectiveDt);
+    if (isGameOver) {
+      return;
+    }
 
-    for (final obstacle in obstacles.toList()) {
-      obstacle.moveByScroll(scrollSpeed, dt);
-      if (ship != null && obstacle.collidesWith(ship!)) {
-        endRun();
-        return;
+    _updatePowerUps(effectiveDt);
+    _advanceObstacleSequenceIfNeeded();
+    _applySoftBounds();
+    _updateShake(realDt);
+  }
+
+  void _updateAfterDeath(double dt) {
+    _deathTimeScale = (_deathTimeScale + deathSlowMotionRecovery * dt).clamp(
+      0.0,
+      1.0,
+    );
+    super.update(dt * _deathTimeScale);
+    _updateShake(dt);
+    _deathElapsed += dt;
+
+    if (!_deathOverlayShown && _deathElapsed >= deathOverlayDelaySeconds) {
+      _deathOverlayShown = true;
+      if (overlays.registeredOverlays.contains(gameOverOverlayKey)) {
+        overlays.add(gameOverOverlayKey);
       }
+      pauseEngine();
+    }
+  }
+
+  void _tickTimers(double dt) {
+    if (_invulnerabilitySeconds > 0) {
+      _invulnerabilitySeconds = math.max(0, _invulnerabilitySeconds - dt);
+    }
+    if (_slowMotionSeconds > 0) {
+      _slowMotionSeconds = math.max(0, _slowMotionSeconds - dt);
+    }
+    if (combo > 0) {
+      _comboSeconds -= dt;
+      if (_comboSeconds <= 0) {
+        combo = 0;
+        _comboSeconds = 0;
+      }
+    }
+    ship?.invulnerable = isInvulnerable;
+  }
+
+  void _updateObstacles(double dt) {
+    for (var i = obstacles.length - 1; i >= 0; i--) {
+      final obstacle = obstacles[i]..moveByScroll(scrollSpeed, dt);
+
+      final currentShip = ship;
+      if (currentShip != null && !isInvulnerable) {
+        if (obstacle.collidesWith(currentShip)) {
+          if (_tryAbsorbHit(currentShip.position)) {
+            obstacles.removeAt(i);
+            obstacle.removeFromParent();
+            continue;
+          }
+          endRun();
+          return;
+        }
+        if (obstacle.tryRegisterNearMiss(currentShip, nearMissThreshold)) {
+          _rewardNearMiss();
+        }
+      }
+
       if (obstacle.isOffscreen) {
-        obstacles.remove(obstacle);
+        obstacles.removeAt(i);
         obstacle.removeFromParent();
       }
     }
+  }
 
-    for (final meteor in looseMeteors.toList()) {
-      meteor.moveByScroll(scrollSpeed, dt);
-      if (ship != null && meteor.collidesWith(ship!)) {
-        endRun();
-        return;
+  void _updateLooseMeteors(double dt) {
+    for (var i = looseMeteors.length - 1; i >= 0; i--) {
+      final meteor = looseMeteors[i]..moveByScroll(scrollSpeed, dt);
+
+      final currentShip = ship;
+      if (currentShip != null && !isInvulnerable) {
+        if (meteor.collidesWith(currentShip)) {
+          if (_tryAbsorbHit(currentShip.position)) {
+            looseMeteors.removeAt(i);
+            meteor.removeFromParent();
+            continue;
+          }
+          endRun();
+          return;
+        }
+        if (meteor.tryRegisterNearMiss(currentShip, nearMissThreshold)) {
+          _rewardNearMiss();
+        }
       }
+
       if (meteor.isOffscreen) {
-        looseMeteors.remove(meteor);
+        looseMeteors.removeAt(i);
         meteor.removeFromParent();
       }
     }
+  }
 
-    _advanceObstacleSequenceIfNeeded();
-    _checkBounds();
+  void _updatePowerUps(double dt) {
+    for (var i = powerUps.length - 1; i >= 0; i--) {
+      final powerUp = powerUps[i]..moveByScroll(scrollSpeed, dt);
+
+      final currentShip = ship;
+      if (currentShip != null && powerUp.collidesWith(currentShip)) {
+        _collectPowerUp(powerUp);
+        continue;
+      }
+
+      if (powerUp.isOffscreen) {
+        powerUps.removeAt(i);
+        powerUp.removeFromParent();
+      }
+    }
+  }
+
+  void _collectPowerUp(PowerUpComponent powerUp) {
+    switch (powerUp.type) {
+      case PowerUpType.shield:
+        ship?.grantShield();
+      case PowerUpType.slowMotion:
+        _slowMotionSeconds = slowMotionDurationSeconds;
+    }
+
+    _spawnBurst(powerUp.position, powerUp.type.color);
+    powerUps.remove(powerUp);
+    powerUp.removeFromParent();
+  }
+
+  bool _tryAbsorbHit(Vector2 hitPosition) {
+    final currentShip = ship;
+    if (currentShip == null || !currentShip.consumeShield()) {
+      return false;
+    }
+
+    _invulnerabilitySeconds = math.max(
+      _invulnerabilitySeconds,
+      shieldInvulnerabilitySeconds,
+    );
+    _spawnBurst(hitPosition, shieldBurstColor);
+    _addShake(shieldShakeIntensity);
+    return true;
+  }
+
+  void _rewardNearMiss() {
+    combo += 1;
+    _comboSeconds = comboDurationSeconds;
+    _addShake(nearMissShakeIntensity);
+  }
+
+  void _applySoftBounds() {
+    final currentShip = ship;
+    if (currentShip == null) {
+      return;
+    }
+
+    final radius = currentShip.collisionRadius;
+    final area = playArea;
+    var bounced = false;
+
+    if (currentShip.position.x - radius < 0) {
+      currentShip.position.x = radius;
+      currentShip.velocity.x = currentShip.velocity.x.abs() * bounceRestitution;
+      bounced = true;
+    } else if (currentShip.position.x + radius > area.x) {
+      currentShip.position.x = area.x - radius;
+      currentShip.velocity.x =
+          -currentShip.velocity.x.abs() * bounceRestitution;
+      bounced = true;
+    }
+
+    if (currentShip.position.y - radius < 0) {
+      currentShip.position.y = radius;
+      currentShip.velocity.y = currentShip.velocity.y.abs() * bounceRestitution;
+      bounced = true;
+    } else if (currentShip.position.y + radius > area.y) {
+      currentShip.position.y = area.y - radius;
+      currentShip.velocity.y =
+          -currentShip.velocity.y.abs() * bounceRestitution;
+      bounced = true;
+    }
+
+    if (bounced) {
+      _addShake(bounceShakeIntensity);
+    }
+  }
+
+  void _addShake(double intensity) {
+    _shake = math.max(_shake, intensity);
+  }
+
+  void _updateShake(double dt) {
+    if (_shake <= 0) {
+      return;
+    }
+    _shake = math.max(0, _shake - shakeDecayPerSecond * dt);
+  }
+
+  void _spawnBurst(Vector2 position, Color color) {
+    final burst = ParticleBurstComponent(
+      position: position.clone(),
+      color: color,
+      random: _effectsRandom,
+    );
+    final addFuture = add(burst);
+    if (addFuture is Future<void>) {
+      unawaited(addFuture);
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final shake = _shake;
+    final hasShake = shake > 0.05;
+    if (hasShake) {
+      canvas
+        ..save()
+        ..translate(
+          (_effectsRandom.nextDouble() * 2 - 1) * shake,
+          (_effectsRandom.nextDouble() * 2 - 1) * shake,
+        );
+    }
+
+    super.render(canvas);
+
+    if (hasShake) {
+      canvas.restore();
+    }
+
+    if (isSlowMotionActive) {
+      canvas.drawRect(Offset.zero & Size(size.x, size.y), _slowMotionPaint);
+    }
   }
 
   @override
@@ -264,30 +551,51 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     }
 
     isGameOver = true;
+    _deathTimeScale = deathSlowMotionTimeScale;
+    _deathElapsed = 0;
+    _deathOverlayShown = false;
+
     if (distanceKm > bestDistanceKm) {
       bestDistanceKm = distanceKm;
       unawaited(storage.setDouble(_keyBestDistance, bestDistanceKm));
     }
+
     unawaited(triggerGameOverHaptic());
     unawaited(deathPlayer.play(AssetSource(Assets.audio.death)));
-    if (overlays.registeredOverlays.contains(gameOverOverlayKey)) {
-      overlays.add(gameOverOverlayKey);
+
+    final currentShip = ship;
+    if (currentShip != null) {
+      _spawnBurst(currentShip.position, deathBurstColor);
+      currentShip.clearThrust();
+      currentShip.velocity.setZero();
     }
-    ship?.clearThrust();
-    ship?.velocity.setZero();
+    _addShake(deathShakeIntensity);
   }
 
   Future<void> restartRun() async {
+    resumeEngine();
     isGameOver = false;
+    _deathTimeScale = 1;
+    _deathElapsed = 0;
+    _deathOverlayShown = false;
     overlays.remove(gameOverOverlayKey);
     distanceKm = 0;
     scrollSpeed = initialDriftSpeed * driftVisualSpeedScale;
+    combo = 0;
+    _comboSeconds = 0;
+    _slowMotionSeconds = 0;
+    _invulnerabilitySeconds = invulnerabilityGraceSeconds;
+    _shake = 0;
     _nextObstacleY = initialObstacleY;
     _nextLooseMeteorY = initialLooseMeteorY;
     _nextObstacleSequence = ObstacleSequence.asteroidPairs;
     _consecutiveAsteroidPairSequences = 0;
     _consecutiveLooseMeteorSequences = 0;
+
+    _removeBursts();
+    _removePowerUps();
     ship?.reset(_shipStartPosition());
+    ship?.invulnerable = isInvulnerable;
     background?.reset();
 
     _removeAsteroidPairs();
@@ -319,6 +627,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       hud!,
     ]);
 
+    _invulnerabilitySeconds = invulnerabilityGraceSeconds;
+    ship?.invulnerable = isInvulnerable;
     _spawnNextObstacleSequence();
     hud?.reposition(playArea, safeAreaPadding: _safeAreaPadding);
   }
@@ -388,6 +698,20 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     looseMeteors.clear();
   }
 
+  void _removePowerUps() {
+    for (final powerUp in powerUps.toList()) {
+      powerUp.removeFromParent();
+    }
+    powerUps.clear();
+  }
+
+  void _removeBursts() {
+    final bursts = children.whereType<ParticleBurstComponent>().toList();
+    for (final burst in bursts) {
+      burst.removeFromParent();
+    }
+  }
+
   void _spawnNextObstacleSequence({double? afterY}) {
     final spawnedSequence = _nextObstacleSequence;
     switch (_nextObstacleSequence) {
@@ -436,9 +760,11 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     _nextObstacleY = afterY == null
         ? initialObstacleY
         : math.min(initialObstacleY, afterY - obstacleSpacing);
+    final spawned = <AsteroidPairComponent>[];
     for (var i = 0; i < asteroidPairSequenceLength; i++) {
-      _spawnObstacle();
+      spawned.add(_spawnObstacle());
     }
+    _maybeSpawnPowerUp(spawned);
   }
 
   void _spawnLooseMeteorSequence({double? afterY}) {
@@ -447,22 +773,38 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
         : math.min(initialLooseMeteorY, afterY - looseMeteorSpacing);
     final sequenceLength =
         looseMeteorBaseSequenceLength +
-        (difficulty * looseMeteorDifficultyBonus).round();
+        (difficulty * looseMeteorDifficultyBonus).round() +
+        (deepDifficulty * looseMeteorDeepDifficultyBonus).round();
+    final area = playArea;
+    final formationCenter =
+        area.x / 2 + (_random.nextDouble() * 2 - 1) * area.x * 0.15;
+    final formationAmplitude = area.x * (0.12 + _random.nextDouble() * 0.16);
+    final formationWave = 0.7 + _random.nextDouble() * 0.6;
+    final formationPhase = _random.nextDouble() * math.pi * 2;
     for (var i = 0; i < sequenceLength; i++) {
-      _spawnLooseMeteor();
+      final x =
+          (formationCenter +
+                  math.sin(i * formationWave + formationPhase) *
+                      formationAmplitude)
+              .clamp(0.0, area.x);
+      _spawnLooseMeteor(x: x);
     }
   }
 
-  void _spawnObstacle() {
+  AsteroidPairComponent _spawnObstacle() {
     final area = playArea;
     final margin = math.min(area.x / 2, asteroidBaseGap / 2 + 24);
     final span = math.max(0, area.x - margin * 2);
     final gapCenter = margin + _random.nextDouble() * span;
+    final movingGap = _random.nextDouble() < _movingGapChance;
     final obstacle = AsteroidPairComponent(
       gameSize: area,
       y: _nextObstacleY,
       difficulty: difficulty,
       gapCenterX: gapCenter,
+      gapDriftAmplitude: movingGap ? _movingGapAmplitude : 0,
+      gapDriftSpeed: movingGap ? _movingGapSpeed : 0,
+      gapPhase: _random.nextDouble() * math.pi * 2,
       asteroidTileImage: _asteroidTileImageForDistance(distanceKm),
     );
     obstacles.add(obstacle);
@@ -471,9 +813,49 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       unawaited(addFuture);
     }
     _nextObstacleY -= obstacleSpacing;
+    return obstacle;
   }
 
-  void _spawnLooseMeteor() {
+  double get _movingGapChance =>
+      (movingGapBaseChance +
+              difficulty * movingGapDifficultyChance +
+              deepDifficulty * movingGapDeepChance)
+          .clamp(0, movingGapMaxChance);
+
+  double get _movingGapAmplitude =>
+      movingGapBaseAmplitude +
+      difficulty * movingGapDifficultyAmplitude +
+      _random.nextDouble() * movingGapRandomAmplitude;
+
+  double get _movingGapSpeed =>
+      movingGapBaseSpeed + _random.nextDouble() * movingGapSpeedRange;
+
+  void _maybeSpawnPowerUp(List<AsteroidPairComponent> spawned) {
+    final staticHosts = spawned
+        .where((obstacle) => !obstacle.isMovingGap)
+        .toList(growable: false);
+    if (staticHosts.isEmpty || _random.nextDouble() >= powerUpSpawnChance) {
+      return;
+    }
+
+    final host = staticHosts[_random.nextInt(staticHosts.length)];
+    final type = _random.nextBool()
+        ? PowerUpType.shield
+        : PowerUpType.slowMotion;
+    final powerUp = PowerUpComponent(
+      gameSize: playArea,
+      position: Vector2(host.gapCenterX, host.position.y),
+      type: type,
+      horizontalDrift: (_random.nextDouble() * 2 - 1) * powerUpHorizontalDrift,
+    );
+    powerUps.add(powerUp);
+    final addFuture = add(powerUp);
+    if (addFuture is Future<void>) {
+      unawaited(addFuture);
+    }
+  }
+
+  void _spawnLooseMeteor({double? x}) {
     final area = playArea;
     final margin = math.min(
       area.x / 2,
@@ -487,11 +869,14 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     final meteor = LooseMeteorComponent(
       gameSize: area,
       position: Vector2(
-        margin + _random.nextDouble() * span,
+        x ?? (margin + _random.nextDouble() * span),
         _nextLooseMeteorY,
       ),
       radius: radius,
-      horizontalDrift: (_random.nextDouble() * 2 - 1) * (14 + difficulty * 22),
+      horizontalDrift:
+          (_random.nextDouble() * 2 - 1) *
+          (14 + difficulty * 22 + deepDifficulty * 14),
+      rotationSpeed: (_random.nextDouble() * 2 - 1) * (0.6 + difficulty * 0.9),
       meteorImage: _looseMeteorImage,
     );
     looseMeteors.add(meteor);
@@ -500,21 +885,6 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       unawaited(addFuture);
     }
     _nextLooseMeteorY -= looseMeteorSpacing;
-  }
-
-  void _checkBounds() {
-    final currentShip = ship;
-    if (currentShip == null) {
-      return;
-    }
-
-    final radius = currentShip.collisionRadius;
-    if (currentShip.position.x - radius <= 0 ||
-        currentShip.position.x + radius >= playArea.x ||
-        currentShip.position.y - radius <= 0 ||
-        currentShip.position.y + radius >= playArea.y) {
-      endRun();
-    }
   }
 
   Future<void> _loadGameImages() async {

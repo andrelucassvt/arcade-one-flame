@@ -1,6 +1,9 @@
 ---
 name: writing-plan
 description: Gera um plano de implementação estruturado em Markdown e salva em ./docs/plan/. Use quando o usuário pedir para criar, escrever ou gerar um plano ("crie um plano", "escreva um plano", "planeje essa feature", "create a plan", "how should I approach X") ou descrever uma feature, refactor ou implementação de várias etapas que queira planejada antes de codar.
+license: MIT
+metadata:
+  version: "2.1.0"
 ---
 
 # Writing Plan
@@ -23,7 +26,9 @@ Resolvidas a partir do diretório desta skill. Leia cada uma no momento indicado
 
 | Arquivo | Quando ler |
 |---------|-----------|
-| `references/plan-template.md` | No passo 4, antes de escrever o arquivo — estrutura obrigatória e os dois templates de fases |
+| `references/plan-template.md` | No passo 4, antes de escrever o arquivo — estrutura obrigatória e formatos curto/completo de fases |
+| `references/plan-antipatterns.md` | No passo 4.5, com o plano escrito e ainda não salvo — rubrica de aceite com anti-padrões por dimensão |
+| `references/multi-part-plan.md` | No passo 2.7, quando a estimativa passar do teto de fases — estrutura da pasta, do índice, das partes e a avaliação de delegação para subagentes |
 | `references/headless-testing.md` | No passo 1.5, ao classificar uma mudança UI-only e decidir se a stack suporta teste de componente headless |
 
 ---
@@ -74,35 +79,33 @@ ls ./docs/flow/ 2>/dev/null
 
 Essa pergunta deve **sempre** ser feita quando não há flow — nunca assuma que o usuário não quer.
 
-### 2.5. Revisão de simplicidade
+### 2.7. Estimar o tamanho e decidir o formato
 
-Antes de escrever as fases, revise o rascunho da tabela de Arquitetura/Escopo com a pergunta: **essa complexidade é exigida pelo problema, ou é só a primeira solução que veio à mente?**
-
-- Cada arquivo novo ou camada extra precisa de razão concreta (regra de negócio, separação já usada no projeto, requisito explícito do usuário)
-- Prefira a menor mudança que resolve o problema real; não crie abstrações "para o futuro" — isso é over-engineering, não planejamento
-- Se o escopo encolher nessa revisão, é o resultado esperado. Se genuinamente precisa de vários arquivos/fases, mantenha — a revisão é contra inchaço injustificado, não contra complexidade real.
+Estime as fases antes de escrever. **Até 2:** use o template curto. **3–6:** use o arquivo único completo. **Mais de 6:** leia `references/multi-part-plan.md` e gere uma pasta `docs/plan/<nome>/` com índice e partes fechadas de até ~6 fases, avaliando a delegabilidade no índice. Todas as partes ficam detalhadas agora; a divisão só reduz o contexto por checkpoint, não adia decisões nem aprovação.
 
 ### 3. Criar o arquivo
 
-Derive um nome `kebab-case` conciso do objetivo (ex: "plano para tela de login" → `login-screen.md`; "refatorar repositório de usuário" → `refactor-user-repository.md`) e salve em `./docs/plan/` (`mkdir -p ./docs/plan`).
+Derive um nome `kebab-case` conciso do objetivo (ex: "plano para tela de login" → `login-screen.md`; "refatorar repositório de usuário" → `refactor-user-repository.md`) e salve em `./docs/plan/` (`mkdir -p ./docs/plan`). No modo multi-parte, o nome vira a pasta e cada parte recebe prefixo numérico (`mkdir -p ./docs/plan/<nome>`).
 
 ### 4. Escrever o plano
 
-Leia `references/plan-template.md` e siga a estrutura obrigatória, escolhendo o template de fases correspondente ao tipo de mudança classificado no passo 1.5.
+Leia `references/plan-template.md` e siga a estrutura obrigatória, escolhendo o template de fases correspondente ao tipo de mudança classificado no passo 1.5. No modo multi-parte, escreva o índice e cada parte conforme `references/multi-part-plan.md` — todas as partes são escritas agora, com detalhe completo.
+
+### 4.5. Auditar antes de salvar
+
+Com o plano escrito e ainda não salvo, leia `references/plan-antipatterns.md` e aplique a rubrica de aceite às cinco dimensões (acionabilidade, verificabilidade, fidelidade ao design, proporcionalidade, retomabilidade). Corrija o que a rubrica reprovar e só então salve.
+
+Esta é a única passada de auto-crítica da skill: escopo inflado e complexidade injustificada são pegos aqui, pela dimensão de proporcionalidade, e não em uma revisão anterior. No modo multi-parte, audite cada parte e o índice.
 
 ---
 
 ## Regras de Qualidade
 
-**Passos acionáveis** — cada checkbox deve ser executável sem ambiguidade. Ruim: "adicionar validação". Bom: "adicionar validação de email em `src/features/login/components/EmailField.tsx`".
-
-**Sem placeholders vagos** — nunca "TBD" ou "ver depois". Se não souber, diga o que precisa ser investigado e por quê.
-
 **Fases sequenciais e seguras** — cada fase deve poder ser concluída e verificada antes da próxima. Mudanças de tipos/interfaces vêm antes de implementações.
 
 **Tamanho das fases** — 3–7 passos por fase; se ficar grande, divida.
 
-**Riscos obrigatórios para planos com 3+ fases** — liste pelo menos um risco real.
+**Teto de fases por plano** — um plano executável tem no máximo ~6 fases. Escopo maior não vira um monólito de 10+ fases: vira plano multi-parte (passo 2.7), com o detalhe completo distribuído em partes numeradas.
 
 **Verificação nunca executa o app** — nenhum passo pode subir app, emulador, simulador, device, browser real ou suíte E2E/instrumentada. Testar componente no harness não é rodar o app; os limites estão em `references/headless-testing.md`.
 
@@ -110,6 +113,6 @@ Leia `references/plan-template.md` e siga a estrutura obrigatória, escolhendo o
 
 ## Após salvar o arquivo
 
-Informe o usuário: o caminho do arquivo gerado, um resumo de 2–3 linhas (quantas fases, escopo geral) e pergunte se quer ajustar algo antes da execução. Não execute o plano automaticamente — a decisão de começar é do usuário.
+Informe o usuário: o caminho do arquivo gerado (ou da pasta, no modo multi-parte, listando as partes), um resumo de 2–3 linhas (quantas fases/partes, escopo geral) e pergunte se quer ajustar algo antes da execução. Não execute o plano automaticamente — a decisão de começar é do usuário.
 
 Quando o usuário aprovar a execução, use `executing-plan`. Essa skill é responsável por revisar o plano contra o repositório atual, retomar pelo primeiro checkbox pendente, executar e verificar cada tarefa, registrar o progresso e atualizar os flows afetados.

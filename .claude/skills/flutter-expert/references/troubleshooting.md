@@ -22,3 +22,38 @@ Consulte quando um erro em runtime, build ou análise estática aparecer durante
 | Cubit emite depois de fechado (`Cannot emit new states after calling close`) | `emit` após `await` em um Cubit já descartado | Checar `isClosed` antes de emitir, ou cancelar a operação em `close()` |
 
 Para travamento de UI durante processamento pesado, use a skill `flutter-isolates`.
+
+---
+
+## Overflow de layout (`RenderFlex overflowed by N pixels`)
+
+Overflow é sintoma de **tamanho disponível**, não de widget errado: o mesmo `build()` que cabe no
+simulador do dev estoura em tela estreita, em landscape, com o teclado aberto ou com fonte de
+acessibilidade ampliada. Corrigir verificando um único tamanho é o mesmo que não ter corrigido.
+
+| Sintoma | Causa provável | Recovery |
+|---|---|---|
+| `RenderFlex overflowed ... on the right` | `Row` com `Text` longo — o `Row` não impõe constraint de largura ao filho | `Expanded`/`Flexible` no `Text` + `overflow: TextOverflow.ellipsis`; `Wrap` quando os itens podem quebrar linha |
+| `RenderFlex overflowed ... on the bottom` | `Column` mais alta que a tela em aparelho pequeno ou em landscape | `SingleChildScrollView` na `Column`, ou `Expanded` na seção que deve encolher |
+| Overflow aparece só ao focar um campo | O teclado reduz a altura disponível e a `Column` não rola | `SingleChildScrollView` + `resizeToAvoidBottomInset: true` (default); `MediaQuery.viewInsetsOf(context).bottom` para padding extra |
+| Overflow só com fonte grande | Altura fixa (`SizedBox(height:)`, `Container(height:)`) dimensionada para `textScaler` 1.0 | Trocar altura fixa por `Padding`/`ConstrainedBox(minHeight:)` e deixar o texto definir a altura |
+| `Vertical viewport was given unbounded height` | `ListView` dentro de `Column` sem constraint de altura | `Expanded` em volta do `ListView`, ou `shrinkWrap: true` quando a lista é curta |
+| Overflow só em tablet/desktop | Largura fixa em pixels ou conteúdo esticado sem largura máxima | `ConstrainedBox(maxWidth:)` no conteúdo de leitura; breakpoints — ver skill `flutter-adaptive-ui` |
+
+**Não resolva com `OverflowBox`, `ClipRect` ou `FittedBox` genérico** — eles apagam a faixa listrada
+sem devolver o conteúdo ao usuário: o corte continua, agora silencioso.
+
+### Verificação obrigatória depois de corrigir
+
+Toda correção de overflow é validada em mais de um tamanho:
+
+1. **Estreita** — 320×568 lógicos (iPhone SE) em portrait.
+2. **Larga** — largura ≥ 840 lógicos (iPad/desktop).
+3. **`textScaler` ampliado** — 1.5× no mínimo; 2.0× em telas com texto denso.
+4. **Landscape na tela estreita**, quando a tela permite rotação.
+
+Cubra ao menos os itens 1 e 3 com widget test (`tester.view.physicalSize` e
+`MediaQuery.withClampedTextScaling` — ver `testing.md`), porque são os que regridem em silêncio.
+
+Para entender **por que** o filho recebeu aquele tamanho (modelo de constraints do Flutter), leia
+`references/layout-constraints.md` da skill `flutter-adaptive-ui`.

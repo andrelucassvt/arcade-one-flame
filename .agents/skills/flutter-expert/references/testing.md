@@ -296,9 +296,22 @@ void main() {
     await AppInjector.inject.reset();
   });
 
-  Future<void> pumpProfileView(WidgetTester tester, ProfileState state) async {
+  Future<void> pumpProfileView(
+    WidgetTester tester,
+    ProfileState state, {
+    double textScale = 1.0,
+  }) async {
     when(() => mockCubit.state).thenReturn(state);
-    await tester.pumpWidget(const MaterialApp(home: ProfileView()));
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery.withClampedTextScaling(
+          minScaleFactor: textScale,
+          maxScaleFactor: textScale,
+          child: child!,
+        ),
+        home: const ProfileView(),
+      ),
+    );
   }
 
   testWidgets('profileView_whenLoaded_showsUserName', (tester) async {
@@ -316,10 +329,28 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
-  testWidgets('profileView_whenLoaded_hasNoOverflow', (tester) async {
+  // ⚠️ O binding de teste roda em 800×600 lógicos — tamanho em que quase nada
+  //    estoura. Um único teste de overflow nesse default dá falsa segurança:
+  //    verifique tela estreita E fonte ampliada.
+  testWidgets('profileView_whenNarrowScreen_hasNoOverflow', (tester) async {
+    tester.view.physicalSize = const Size(320, 568); // iPhone SE
+    tester.view.devicePixelRatio = 1.0; // sem isso o default 3.0 vira 107×189
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await pumpProfileView(
       tester,
       const ProfileLoaded(name: 'André', email: 'test@test.com'),
+    );
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('profileView_whenLargeTextScale_hasNoOverflow', (tester) async {
+    await pumpProfileView(
+      tester,
+      const ProfileLoaded(name: 'André', email: 'test@test.com'),
+      textScale: 2.0,
     );
 
     expect(tester.takeException(), isNull);
@@ -354,7 +385,9 @@ Pontos que quebram testes de View e não são óbvios:
 5. **Naming**: `<método>_<cenário>_<resultado>` — ex.: `loadProfile_whenFails_emitsError`
 6. **Um comportamento por teste** — não combine loading + loaded + verify na mesma asserção
 7. **`setUp` para instâncias** — nunca instancie fakes inline dentro do `blocTest`
-8. **Overflow em widgets** — após `pumpWidget`, verifique overflow com `expect(tester.takeException(), isNull)`
+8. **Overflow em widgets** — após `pumpWidget`, verifique com `expect(tester.takeException(), isNull)` em
+   **mais de um tamanho**: tela estreita (`tester.view.physicalSize`) e `textScaler` ampliado
+   (`MediaQuery.withClampedTextScaling`). Um único teste no default 800×600 não pega overflow real
 
 ---
 
@@ -379,7 +412,8 @@ Pontos que quebram testes de View e não são óbvios:
 - [ ] Métodos chamados no `initState` estão stubados
 - [ ] `await AppInjector.inject.reset()` no `tearDown`
 - [ ] Cobre estados visuais principais (loading, loaded, error)
-- [ ] Verifica overflow com `expect(tester.takeException(), isNull)`
+- [ ] Verifica overflow com `expect(tester.takeException(), isNull)` em tela estreita (320×568) **e**
+      com `textScale` 2.0 — não apenas no default 800×600 do binding
 
 ---
 

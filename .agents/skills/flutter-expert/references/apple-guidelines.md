@@ -107,7 +107,9 @@ Scaffold(
 
 - [ ] Sem larguras em pixels absolutos
 - [ ] Se suporta iPad: `UISupportedInterfaceOrientations~ipad` no `Info.plist`
-- [ ] Sem overflow em iPhone SE ou iPad
+- [ ] Sem overflow em iPhone SE (320×568) **e** em iPad (≥840 de largura) — não basta o simulador padrão
+- [ ] Sem overflow com Dynamic Type ampliado (`textScaler` 2.0) — altura fixa dimensionada para 1.0 é a causa mais comum
+- [ ] Sem overflow em landscape, se a tela permite rotação
 
 ---
 

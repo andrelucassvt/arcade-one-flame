@@ -18,6 +18,9 @@ Consulte quando a tarefa envolver layout adaptativo, sobreposição de widgets, 
 - **LayoutBuilder**: envolva a seção que adapta layout ao espaço do pai. No widget raiz da tela, `MediaQuery` costuma ser suficiente e mais barato.
 
 Para breakpoints, navegação responsiva e comportamento por tipo de input (mouse, teclado, toque), use a skill `flutter-adaptive-ui`.
+Ela também traz o diagnóstico do modelo de constraints em `references/layout-constraints.md` — é o material a ler quando um `RenderFlex overflowed` não tem causa óbvia.
+
+- **Overflow nunca é resolvido em um único tamanho de tela.** Toda correção é verificada em tela estreita (320×568), tela larga (≥840) e com `textScaler` ampliado. O passo a passo e as causas mais comuns estão em `troubleshooting.md`.
 
 ---
 

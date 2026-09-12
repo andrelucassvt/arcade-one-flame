@@ -1,98 +1,92 @@
+---
+generated_at: 2026-09-12
+source_commit: 698131b
+source_state: clean
+verified_at: 2026-09-12
+status: current
+related_plans:
+  - docs/plan/player-ship-unlocks.md
+  - docs/plan/space-background-by-km.md
+---
+
 # Flow: Player Ship Selection
 
-> **Resumo:** Permite escolher uma skin de nave na Title, persiste a escolha quando ela esta desbloqueada pelo melhor KM e usa essa nave na tela de jogo.
+> **Resumo:** Libera skins pelos recordes de distância, restaura e persiste uma escolha válida na tela de título e usa seu sprite na rodada seguinte.
 
 ## Visão Geral
 
-O fluxo comeca quando `TitleView` e aberta depois do loading ou ao voltar da Game. A tela cria `TitleShipSelectionCubit`, le o melhor KM salvo em `best_distance_km` e usa esse valor para validar a nave persistida em `title_player_ship`. Se a nave salva nao existir mais ou ainda estiver bloqueada para o melhor KM atual, a Title permanece com `defaultPlayerShipSkin`.
+Quando `TitleView` abre, a tela lê `best_distance_km` e cria `TitleShipSelectionCubit`. O Cubit começa com a nave padrão e só restaura `title_player_ship` quando o ID ainda existe no catálogo e seu requisito foi alcançado.
 
-O usuario abre o seletor pelo `TitleShipSelectorButton`. O bottom sheet renderizado por `TitleShipSelectionSheet` percorre `playerShipSkins`, mostra o sprite, nome localizado, status selecionada/liberada/bloqueada e requisito de desbloqueio em KM. O toque em uma nave bloqueada nao chama o Cubit; o toque em uma nave liberada chama `TitleShipSelectionCubit.setShip`, que salva o `id` em `StorageService` e emite a nova skin.
+O seletor exibe todas as skins, não apenas as liberadas. Cada tile mostra sprite, nome localizado e estado; naves bloqueadas não respondem ao toque. Selecionar uma nave liberada persiste o ID e atualiza hero, botão e parâmetro de início.
 
-Quando o usuario inicia a partida, `TitleStartButton` navega com `GamePage.route(controlMode: ..., playerShip: ...)`. `GameView` repassa a `PlayerShipSkin` para `ArcadeOne`, que carrega `playerShip.assetPath` junto dos demais assets do jogo e cria `Ship(shipImage: _playerShipImage)`. Se o PNG nao puder ser carregado, `Ship` mantem o fallback procedural existente.
+`GamePage` repassa a skin a `ArcadeOne`, que carrega o caminho escolhido e injeta a imagem em `Ship`. Se o arquivo não puder ser resolvido, a entidade mantém o fallback procedural.
 
 ## Passo a Passo
 
-1. **Entrada da Title** — `lib/title/view/title_page.dart` -> `TitleView.initState`
-   Cria `TitleShipSelectionCubit` com `StorageService` e chama `_initShipSelection()`.
-2. **Melhor distancia** — `lib/title/view/title_page.dart` -> `_initShipSelection`
-   Le `best_distance_km` usando `bestDistanceStorageKey`, atualiza `_bestDistanceKm` e chama `TitleShipSelectionCubit.init(bestDistanceKm: ...)`.
-3. **Restauracao** — `lib/title/cubit/title_ship_selection_cubit.dart` -> `init`
-   Le `title_player_ship`; se o id existe no catalogo e `isPlayerShipUnlocked(ship, bestDistanceKm)` retorna `true`, emite a skin salva. Caso contrario, mantem `defaultPlayerShipSkin`.
-4. **Hero e botao** — `lib/title/content/title_main_content.dart` -> `TitleMainContent.build`
-   Repassa a skin selecionada para `TitleHero`, `TitleShipSelectorButton` e `TitleStartButton`.
-5. **Preview na Title** — `lib/title/content/title_hero.dart` -> `TitleHero.build`
-   Renderiza `Image.asset(selectedShip.assetPath)` como nave principal do hero.
-6. **Abrir seletor** — `lib/title/content/title_ship_selector_button.dart` -> `TitleShipSelectorButton`
-   Mostra o botao localizado com preview pequeno e chama `TitleView._showShipSelectionSheet` ao tocar.
-7. **Listar naves** — `lib/title/content/title_ship_selection_sheet.dart` -> `TitleShipSelectionSheet`
-   Renderiza `playerShipSkins` em grid, calcula desbloqueio por `isPlayerShipUnlocked(ship, bestDistanceKm)` e mostra requisito com `titleShipUnlockRequirement`.
-8. **Persistir selecao** — `lib/title/cubit/title_ship_selection_cubit.dart` -> `setShip`
-   Ignora skins bloqueadas ou iguais ao estado atual. Para skins liberadas, salva `title_player_ship = ship.id` e emite a nova nave.
-9. **Iniciar jogo** — `lib/title/content/title_start_button.dart` -> `onPressed`
-   Chama `Navigator.pushReplacement(GamePage.route(controlMode: controlMode, playerShip: playerShip))`.
-10. **Rota da Game** — `lib/game/view/game_page.dart` -> `GamePage.route`
-    Cria `GamePage` com o modo de controle e a skin selecionados; `GamePage.build` repassa ambos para `GameView`.
-11. **Instancia Flame** — `lib/game/view/game_page.dart` -> `GameView.build`
-    Cria `ArcadeOne(playerShip: widget.playerShip, ...)` usando os caches do `PreloadCubit`.
-12. **Load do sprite** — `lib/game/arcade_one.dart` -> `_loadGameImages`
-    Carrega `playerShip.assetPath` no cache de imagens e guarda em `_playerShipImage`.
-13. **Criacao da entidade** — `lib/game/arcade_one.dart` -> `_buildRun`
-    Cria `Ship(shipImage: _playerShipImage)`, usando o sprite escolhido ou o fallback procedural se `_playerShipImage == null`.
+1. **Criação do estado** — `lib/title/view/title_page.dart` → `_TitleViewState.initState`
+   Obtém o `StorageService`, cria `TitleShipSelectionCubit` e dispara `_initShipSelection`.
+2. **Leitura do recorde** — `lib/title/view/title_page.dart` → `_initShipSelection`
+   Lê `best_distance_km`, atualiza `_bestDistanceKm` e chama `TitleShipSelectionCubit.init`.
+3. **Restauração validada** — `lib/title/cubit/title_ship_selection_cubit.dart` → `init`
+   Lê `title_player_ship`, busca o ID no catálogo e só emite a skin se ela existir e estiver desbloqueada.
+4. **Apresentação atual** — `lib/title/content/title_main_content.dart` → `TitleMainContent.build`
+   Entrega a skin selecionada ao hero, ao botão de seleção e ao botão de início.
+5. **Abertura do catálogo** — `lib/title/view/title_page.dart` → `_showShipSelectionSheet`
+   Abre `TitleShipSelectionSheet` com a seleção e o recorde atuais.
+6. **Cálculo por tile** — `lib/title/content/title_ship_selection_sheet.dart` → `_ShipSelectionTile`
+   Percorre `playerShipSkins`, resolve o nome localizado e compara `unlockKm` com `bestDistanceKm` para exibir status e habilitar o toque.
+7. **Persistência da escolha** — `lib/title/cubit/title_ship_selection_cubit.dart` → `setShip`
+   Para uma nave liberada e diferente da atual, grava seu `id` em `title_player_ship` e emite a nova skin.
+8. **Início configurado** — `lib/title/content/title_start_button.dart` → `onPressed`
+   Cria `GamePage.route` com a `PlayerShipSkin` selecionada.
+9. **Propagação à cena** — `lib/game/view/game_page.dart` → `GameView.build`
+   Repassa a skin ao construtor de `ArcadeOne`.
+10. **Carga e renderização** — `lib/game/arcade_one.dart` → `_loadGameImages` e `_buildRun`
+    Carrega `playerShip.assetPath` e cria `Ship(shipImage: _playerShipImage)`.
 
 ### Caminhos alternativos
 
-- **Sem nave persistida:** `TitleShipSelectionCubit.init` retorna sem emitir, mantendo `defaultPlayerShipSkin`.
-- **Id persistido invalido:** `playerShipSkinById` cai para default, mas `init` exige que o id retornado seja igual ao id salvo; a skin invalida e ignorada.
-- **Nave persistida bloqueada:** `init` valida `ship.unlockKm <= bestDistanceKm`; se falhar, a Title permanece com a nave default.
-- **Toque em nave bloqueada:** `TitleShipSelectionSheet` deixa `onTap` nulo, entao `setShip` nao e chamado.
-- **PNG ausente ou cache falha:** `ArcadeOne._loadGameImage` retorna `null`; `Ship.render` desenha o fallback procedural.
+- **Nenhum ID salvo:** o Cubit mantém `defaultPlayerShipSkin`.
+- **ID desconhecido:** `playerShipSkinById` retorna a nave padrão, mas a comparação com o ID salvo impede que esse fallback seja emitido como restauração válida.
+- **Nave salva ainda bloqueada:** o Cubit ignora a preferência e mantém a padrão.
+- **Toque em nave bloqueada:** o tile recebe `onTap: null` e não chama o Cubit.
+- **Sprite não carregado:** `Ship` desenha a nave procedural em canvas.
 
 ## Arquivos Envolvidos
 
 | Camada | Arquivo | Responsabilidade |
 |--------|---------|------------------|
-| Apresentacao — View | `lib/title/view/title_page.dart` | Cria o Cubit de nave, le melhor KM, abre o bottom sheet e passa estado/callbacks para o conteudo. |
-| Apresentacao — Content | `lib/title/content/title_main_content.dart` | Orquestra hero, botao de nave, seletor de controle e start. |
-| Apresentacao — Content | `lib/title/content/title_hero.dart` | Mostra a nave selecionada no hero da Title. |
-| Apresentacao — Content | `lib/title/content/title_ship_selector_button.dart` | Entrada visual do seletor de nave. |
-| Apresentacao — Content | `lib/title/content/title_ship_selection_sheet.dart` | Grid de naves desbloqueadas/bloqueadas e chamada de selecao. |
-| Apresentacao — Content | `lib/title/content/title_start_button.dart` | Navega para a Game com `controlMode` e `playerShip`. |
-| Estado / Cubit | `lib/title/cubit/title_ship_selection_cubit.dart` | Restaura, valida e persiste a nave escolhida. |
-| Jogo / Catalogo | `lib/game/player_ship/player_ship_skin.dart` | Modelo imutavel de skin. |
-| Jogo / Catalogo | `lib/game/player_ship/player_ship_catalog.dart` | Lista ordenada de skins, requisitos por KM, fallback por id e helper de nome localizado. |
-| Jogo / Assets | `lib/game/game_image_assets.dart` | Declara os caminhos das skins e os inclui em `gameImageAssets` para preload. |
-| Apresentacao — Game | `lib/game/view/game_page.dart` | Recebe `PlayerShipSkin` na rota e repassa para `ArcadeOne`. |
-| Jogo Flame | `lib/game/arcade_one.dart` | Carrega o sprite da nave selecionada e cria `Ship` com a imagem carregada. |
-| Entidade Flame | `lib/game/entities/ship/ship.dart` | Renderiza o sprite da nave ou fallback procedural. |
-| Servico | `lib/common/services/storage_service.dart` | Interface usada para ler `best_distance_km` e salvar `title_player_ship`. |
-| L10n | `lib/l10n/arb/app_en.arb` | Strings em ingles do seletor e nomes das naves. |
-| L10n | `lib/l10n/arb/app_pt.arb` | Strings em portugues do seletor e nomes das naves. |
-| Assets | `assets/images/player_ship.png` | Sprite default da nave. |
-| Assets | `assets/images/ships/*.png` | Sprites das skins desbloqueaveis. |
-| Testes | `test/game/player_ship/player_ship_catalog_test.dart` | Cobre requisitos por KM, desbloqueio e fallback. |
-| Testes | `test/title/cubit/title_ship_selection_cubit_test.dart` | Cobre restauracao, persistencia e bloqueio de selecoes invalidas. |
-| Testes | `test/title/view/title_page_test.dart` | Cobre UI do seletor, persistencia e rota para Game com nave. |
-| Testes | `test/game/view/game_page_test.dart` | Cobre repasse da nave para `GameView`. |
-| Testes | `test/game/arcade_one_test.dart` | Cobre carregamento do asset da nave selecionada. |
+| Modelo | `lib/game/player_ship/player_ship_skin.dart` | Define ID, caminho do asset e requisito de distância. |
+| Catálogo | `lib/game/player_ship/player_ship_catalog.dart` | Ordena skins, resolve IDs, desbloqueios e nomes localizados. |
+| Estado | `lib/title/cubit/title_ship_selection_cubit.dart` | Restaura, valida, persiste e publica a seleção. |
+| Apresentação | `lib/title/view/title_page.dart` | Lê o recorde, fornece o Cubit e abre o seletor. |
+| Apresentação | `lib/title/content/title_ship_selection_sheet.dart` | Lista estados de seleção e bloqueio. |
+| Apresentação | `lib/title/content/title_hero.dart` | Mostra o sprite escolhido no destaque da tela. |
+| Navegação | `lib/title/content/title_start_button.dart` | Transporta a skin para a rota do jogo. |
+| Gameplay | `lib/game/view/game_page.dart` | Transporta a skin até `ArcadeOne`. |
+| Gameplay | `lib/game/arcade_one.dart` | Carrega o asset escolhido e cria `Ship`. |
+| Dados | `lib/common/services/storage_service.dart` | Lê recorde e persiste o ID. |
+| Testes | `test/game/player_ship/player_ship_catalog_test.dart` | Cobre limiares, lista liberada e fallback de ID. |
+| Testes | `test/title/cubit/title_ship_selection_cubit_test.dart` | Cobre restauração, bloqueios e persistência. |
+| Testes | `test/title/view/title_page_test.dart` | Cobre abertura, seleção e parâmetro da rota. |
+| Testes | `test/game/view/game_page_test.dart` | Cobre propagação da skin para `GameView`. |
+| Testes | `test/game/arcade_one_test.dart` | Cobre carga do asset selecionado. |
 
 ## Regras de Negócio Relevantes
 
-- **Default sempre liberada** — `lib/game/player_ship/player_ship_catalog.dart`: `defaultPlayerShipSkin` usa `assets/images/player_ship.png` e `unlockKm = 0`.
-- **Desbloqueio por melhor KM** — `lib/game/player_ship/player_ship_catalog.dart`: uma skin fica liberada quando `ship.unlockKm <= bestDistanceKm`.
-- **Requisitos seguem marcos espaciais** — `lib/game/player_ship/player_ship_catalog.dart`: as skins usam `250`, `600`, `1000`, `1500`, `2100`, `2800`, `3600`, `4500`, `5600`, `7000` e `8500 km`.
-- **Storage da escolha** — `lib/title/cubit/title_ship_selection_cubit.dart`: a chave `title_player_ship` guarda somente o `id` de skins desbloqueadas.
-- **Fallback para valor invalido** — `lib/title/cubit/title_ship_selection_cubit.dart`: ids inexistentes ou bloqueados nao emitem estado novo e preservam a nave default.
-- **Sem estado global novo para gameplay** — `lib/title/content/title_start_button.dart`: a nave escolhida e enviada pela rota para `GamePage`.
-- **Fallback visual de desenvolvimento** — `lib/game/arcade_one.dart` e `lib/game/entities/ship/ship.dart`: falha no load do PNG nao quebra a partida; a entidade desenha a nave procedural.
+- **Nave padrão sempre liberada** — `lib/game/player_ship/player_ship_catalog.dart`: `default` exige `0 km`.
+- **Desbloqueios por recorde** — `lib/game/player_ship/player_ship_catalog.dart`: requisitos são `250`, `600`, `1000`, `1500`, `2100`, `2800`, `3600`, `4500`, `5600`, `7000` e `8500` km.
+- **Persistência somente de escolha válida** — `lib/title/cubit/title_ship_selection_cubit.dart`: uma skin bloqueada ou já ativa não é gravada.
+- **Validação na restauração** — `lib/title/cubit/title_ship_selection_cubit.dart`: a preferência precisa apontar para ID conhecido e desbloqueado no recorde atual.
+- **Nomes localizados por ID** — `lib/game/player_ship/player_ship_catalog.dart`: cada skin resolve uma chave específica de `AppLocalizations`.
 
 ## Dependências Externas
 
-- Flutter Material para `showModalBottomSheet`, `OutlinedButton`, grid e navegacao por `Navigator`.
-- `flutter_bloc` para expor e observar `TitleShipSelectionCubit`.
-- Flame `Images` para cache e load do sprite selecionado.
+- `flutter_bloc` para o Cubit local da tela de título.
+- Flame para carregar e renderizar o sprite selecionado na cena.
+- `shared_preferences`, via `StorageService`, para recorde e escolha.
 
 ## Observações
 
-- O melhor KM continua sendo gravado pela Game em `best_distance_km`; a Title apenas le esse valor para calcular desbloqueios.
-- Os nomes das naves ficam nos ARBs e sao acessados por `localizedPlayerShipName`, evitando strings visiveis hardcoded nos widgets.
-- O catalogo fica em `lib/game/player_ship/` porque tanto Title quanto Game dependem dele.
+- O catálogo de skins repete manualmente os limiares de `spaceLandmarks`; não há referência de dados direta entre os catálogos.
+- `TitleView` lê o recorde uma vez por instância. Ao voltar do game over, uma nova rota de título é construída e consulta o recorde atualizado.

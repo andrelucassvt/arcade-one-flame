@@ -2,13 +2,14 @@
 
 Jogo arcade espacial multiplataforma em Flutter, com Cubits na interface e Flame na cena jogável.
 
-## Stack
+## Stack e arquitetura
 
 - Dart `^3.11.0` e Flutter `^3.41.0`
-- `flutter_bloc`/`bloc` para Cubits e providers globais
-- `flame` para gameplay; `audioplayers` para BGM e efeito de morte
-- `shared_preferences` atrás de `StorageService`; Google Mobile Ads para banners
+- `flutter_bloc`/`bloc` para Cubits e providers globais; `flame` para gameplay
+- `audioplayers` para BGM e efeito de morte; Google Mobile Ads para banners
+- `shared_preferences` atrás de `StorageService`
 - Very Good Analysis e `bloc_lint`; flavors `development`, `staging` e `production`
+- Fluxo principal: entry point → `bootstrap` → providers globais → loading → title → `GameWidget<ArcadeOne>`
 
 ## Estrutura
 
@@ -45,6 +46,7 @@ Jogo arcade espacial multiplataforma em Flutter, com Cubits na interface e Flame
 
 - Os três entry points fazem a mesma inicialização; configuração específica de flavor pertence ao ponto marcado em `lib/bootstrap.dart`.
 - `PreloadCubit` antecipa `Assets.audio.death`, `Assets.images.unicornAnimation.path` e `gameImageAssets`; a BGM `assets/audio/background_2.mp3` inicia no `AudioCubit`.
+- `test/loading/cubit/preload/preload_cubit_test.dart` ainda espera `Assets.audio.engineFire`, embora a implementação atual do preload carregue apenas `Assets.audio.death`.
 - `GamePage` espera `PreloadCubit`, `AudioCubit` e `StorageService` acima dela.
 - A melhor distância usa a chave `best_distance_km` e persiste por `StorageService`; ela também controla o desbloqueio de naves.
 - O banner possui IDs apenas para Android e iOS; outras plataformas omitem o anúncio.

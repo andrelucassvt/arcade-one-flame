@@ -18,20 +18,24 @@ class GamePage extends StatelessWidget {
   const GamePage({
     this.controlMode = GameControlMode.touch,
     this.playerShip = defaultPlayerShipSkin,
+    this.quickPlay = false,
     super.key,
   });
 
   final GameControlMode controlMode;
   final PlayerShipSkin playerShip;
+  final bool quickPlay;
 
   static Route<void> route({
     GameControlMode controlMode = GameControlMode.touch,
     PlayerShipSkin playerShip = defaultPlayerShipSkin,
+    bool quickPlay = false,
   }) {
     return MaterialPageRoute<void>(
       builder: (_) => GamePage(
         controlMode: controlMode,
         playerShip: playerShip,
+        quickPlay: quickPlay,
       ),
     );
   }
@@ -39,7 +43,11 @@ class GamePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GameView(controlMode: controlMode, playerShip: playerShip),
+      body: GameView(
+        controlMode: controlMode,
+        playerShip: playerShip,
+        quickPlay: quickPlay,
+      ),
     );
   }
 }
@@ -48,12 +56,14 @@ class GameView extends StatefulWidget {
   const GameView({
     this.controlMode = GameControlMode.touch,
     this.playerShip = defaultPlayerShipSkin,
+    this.quickPlay = false,
     super.key,
     this.game,
   });
 
   final GameControlMode controlMode;
   final PlayerShipSkin playerShip;
+  final bool quickPlay;
   final FlameGame? game;
 
   @override
@@ -84,6 +94,7 @@ class _GameViewState extends State<GameView> {
     final textStyle = Theme.of(
       context,
     ).textTheme.bodySmall!.copyWith(color: Colors.white, fontSize: 4);
+    final l10n = context.l10n;
 
     final audioCubit = context.read<AudioCubit>();
     _game ??=
@@ -96,6 +107,7 @@ class _GameViewState extends State<GameView> {
           storage: context.read<StorageService>(),
           controlMode: widget.controlMode,
           playerShip: widget.playerShip,
+          waitingToStart: widget.quickPlay,
         );
     final game = _game!;
     if (game is ArcadeOne) {
@@ -113,13 +125,14 @@ class _GameViewState extends State<GameView> {
             game: game,
             overlayBuilderMap: {
               gameOverOverlayKey: (context, game) {
-                final distanceKm = switch (game) {
-                  ArcadeOne(:final distanceKm) => distanceKm.floor(),
-                  _ => 0,
-                };
+                final arcadeOne = game is ArcadeOne ? game : null;
 
                 return GameOverPopup(
-                  distanceKm: distanceKm,
+                  distanceKm: arcadeOne?.distanceKm.floor() ?? 0,
+                  bestDistanceKm: arcadeOne?.bestDistanceKm.floor() ?? 0,
+                  maxCombo: arcadeOne?.maxCombo ?? 0,
+                  isNewRecord: arcadeOne?.isNewRecord ?? false,
+                  playerShip: widget.playerShip,
                   onRestart: () {
                     if (game is ArcadeOne) {
                       unawaited(game.restartRun());
@@ -137,6 +150,48 @@ class _GameViewState extends State<GameView> {
             },
           ),
         ),
+        if (game is ArcadeOne && game.isWaitingToStart)
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (_) {
+                game.startRun();
+                setState(() {});
+              },
+              child: ColoredBox(
+                color: const Color(0xCC080A19),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.touch_app_rounded,
+                        color: Colors.white,
+                        size: 56,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.quickPlayTapToStart,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 2,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.quickPlayHint,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         if (game is ArcadeOne && game.controlMode == GameControlMode.joystick)
           SafeArea(
             child: Align(

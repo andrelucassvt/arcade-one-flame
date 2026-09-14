@@ -244,5 +244,43 @@
   "returnToTitleButtonLabel": "Title screen",
   "@returnToTitleButtonLabel": {
     "description": "Button label for returning to the title screen from the game over popup"
+  },
+  "quickPlayTapToStart": "TAP TO PLAY",
+  "@quickPlayTapToStart": {
+    "description": "Prompt shown on the first run before the game starts"
+  },
+  "quickPlayHint": "Hold and drag to fly",
+  "@quickPlayHint": {
+    "description": "Control hint shown with the quick play prompt"
+  },
+  "gameOverNewRecord": "NEW RECORD",
+  "@gameOverNewRecord": {
+    "description": "Badge shown in the game over popup when the player beats the best distance"
+  },
+  "gameOverMaxCombo": "Max combo x{combo}",
+  "@gameOverMaxCombo": {
+    "description": "Maximum near miss combo achieved in the run",
+    "placeholders": {
+      "combo": {
+        "type": "int",
+        "example": "8",
+        "description": "The maximum near miss combo count"
+      }
+    }
+  },
+  "shareButtonLabel": "Share run",
+  "@shareButtonLabel": {
+    "description": "Button label for sharing the run result from the game over popup"
+  },
+  "shareRunText": "I drifted {distance} km in DRIFT SPACE. Can you beat me?",
+  "@shareRunText": {
+    "description": "Text shared together with the run card image",
+    "placeholders": {
+      "distance": {
+        "type": "int",
+        "example": "320",
+        "description": "The distance traveled in kilometers"
+      }
+    }
   }
 }

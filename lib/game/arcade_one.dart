@@ -86,11 +86,13 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     this.controlMode = GameControlMode.touch,
     this.playerShip = defaultPlayerShipSkin,
     this.invulnerabilityGraceSeconds = startInvulnerabilitySeconds,
+    this.waitingToStart = false,
     math.Random? random,
     TriggerGameOverHaptic? triggerGameOverHaptic,
   }) : triggerGameOverHaptic = triggerGameOverHaptic ?? _triggerGameOverHaptic,
        _random = random ?? math.Random(),
-       _effectsRandom = math.Random() {
+       _effectsRandom = math.Random(),
+       _isWaitingToStart = waitingToStart {
     this.images = images;
   }
 
@@ -113,12 +115,15 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   final GameControlMode controlMode;
   final PlayerShipSkin playerShip;
   final double invulnerabilityGraceSeconds;
+  final bool waitingToStart;
 
   double distanceKm = 0;
   double bestDistanceKm = 0;
   double scrollSpeed = initialDriftSpeed * driftVisualSpeedScale;
   bool isGameOver = false;
+  bool isNewRecord = false;
   int combo = 0;
+  int maxCombo = 0;
 
   Ship? ship;
   DriftHudComponent? hud;
@@ -138,6 +143,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   double _deathTimeScale = 1;
   double _deathElapsed = 0;
   bool _deathOverlayShown = false;
+  bool _isWaitingToStart;
 
   ui.Image? _asteroidTileImage;
   ui.Image? _looseMeteorImage;
@@ -162,6 +168,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
       ((distanceKm - deepSpaceStartKm) / deepSpaceRangeKm).clamp(0, 1);
 
   bool get isInvulnerable => _invulnerabilitySeconds > 0;
+
+  bool get isWaitingToStart => _isWaitingToStart;
 
   bool get isSlowMotionActive => _slowMotionSeconds > 0;
 
@@ -192,6 +200,10 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void update(double dt) {
     final realDt = math.min(dt, maxGameUpdateDt);
+
+    if (_isWaitingToStart) {
+      return;
+    }
 
     if (isGameOver) {
       _updateAfterDeath(realDt);
@@ -358,6 +370,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
   void _rewardNearMiss() {
     combo += 1;
+    maxCombo = math.max(maxCombo, combo);
     _comboSeconds = comboDurationSeconds;
     _addShake(nearMissShakeIntensity);
   }
@@ -545,6 +558,10 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     ship?.clearThrust();
   }
 
+  void startRun() {
+    _isWaitingToStart = false;
+  }
+
   void endRun() {
     if (isGameOver) {
       return;
@@ -557,6 +574,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
 
     if (distanceKm > bestDistanceKm) {
       bestDistanceKm = distanceKm;
+      isNewRecord = true;
       unawaited(storage.setDouble(_keyBestDistance, bestDistanceKm));
     }
 
@@ -582,6 +600,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     distanceKm = 0;
     scrollSpeed = initialDriftSpeed * driftVisualSpeedScale;
     combo = 0;
+    maxCombo = 0;
+    isNewRecord = false;
     _comboSeconds = 0;
     _slowMotionSeconds = 0;
     _invulnerabilitySeconds = invulnerabilityGraceSeconds;

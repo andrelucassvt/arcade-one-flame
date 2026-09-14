@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:arcade_one/app/cubit/cubit.dart';
+import 'package:arcade_one/common/services/share/share_plus_share_service.dart';
+import 'package:arcade_one/common/services/share/share_service.dart';
 import 'package:arcade_one/common/services/shared_preferences_storage_service.dart';
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/cubit/cubit.dart';
@@ -21,8 +23,15 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RepositoryProvider<StorageService>(
-      create: (_) => SharedPreferencesStorageService(prefs),
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider<StorageService>(
+          create: (_) => SharedPreferencesStorageService(prefs),
+        ),
+        RepositoryProvider<ShareService>(
+          create: (_) => const SharePlusShareService(),
+        ),
+      ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider(

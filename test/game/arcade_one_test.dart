@@ -80,6 +80,7 @@ void main() {
       Images? images,
       PlayerShipSkin playerShip = defaultPlayerShipSkin,
       double invulnerabilityGraceSeconds = 0,
+      bool waitingToStart = false,
     }) {
       final game = ArcadeOne(
         l10n: l10n,
@@ -93,6 +94,7 @@ void main() {
         controlMode: controlMode,
         playerShip: playerShip,
         invulnerabilityGraceSeconds: invulnerabilityGraceSeconds,
+        waitingToStart: waitingToStart,
         random: random ?? math.Random(1),
       );
       game.onGameResize(Vector2(390, 700));
@@ -287,6 +289,24 @@ void main() {
       expect(game.scrollSpeed, greaterThanOrEqualTo(initialScrollSpeed));
     });
 
+    testWithGame(
+      'stays frozen until startRun is called',
+      () => createGame(waitingToStart: true),
+      (game) async {
+        expect(game.isWaitingToStart, isTrue);
+
+        game.update(1);
+
+        expect(game.distanceKm, equals(0));
+
+        game.startRun();
+        game.update(1);
+
+        expect(game.isWaitingToStart, isFalse);
+        expect(game.distanceKm, greaterThan(0));
+      },
+    );
+
     testWithGame('updates background landmark as distance grows', createGame, (
       game,
     ) async {
@@ -442,6 +462,30 @@ void main() {
       expect(game.comboMultiplier, greaterThan(1));
     });
 
+    testWithGame('tracks the maximum combo of the run', createGame, (
+      game,
+    ) async {
+      removeActiveSequences(game);
+
+      final ship = game.ship!;
+      for (var i = 0; i < 2; i++) {
+        final meteor = LooseMeteorComponent(
+          gameSize: game.playArea,
+          position: Vector2(
+            ship.position.x,
+            ship.position.y - (ship.collisionRadius + looseMeteorMinRadius + 6),
+          ),
+          radius: looseMeteorMinRadius,
+        );
+        game.looseMeteors.add(meteor);
+        await game.add(meteor);
+        game.update(1 / 30);
+      }
+
+      expect(game.combo, equals(2));
+      expect(game.maxCombo, equals(2));
+    });
+
     testWithGame('clamps huge frame deltas', createGame, (game) async {
       game.update(1);
 
@@ -519,6 +563,7 @@ void main() {
       game,
     ) async {
       game.distanceKm = 120;
+      game.maxCombo = 3;
       game.endRun();
       final previousObstacle = game.obstacles.first;
 
@@ -526,6 +571,8 @@ void main() {
 
       expect(game.isGameOver, isFalse);
       expect(game.distanceKm, equals(0));
+      expect(game.maxCombo, equals(0));
+      expect(game.isNewRecord, isFalse);
       expect(game.bestDistanceKm, equals(120));
       expect(game.background!.activeLandmark.id, equals('earth_moon'));
       expect(
@@ -569,6 +616,29 @@ void main() {
         game.endRun();
 
         verify(() => storage.setDouble('best_distance_km', 10)).called(1);
+      },
+    );
+
+    testWithGame(
+      'endRun marca isNewRecord quando a distância supera o recorde',
+      createGame,
+      (game) async {
+        game.distanceKm = 10;
+        game.endRun();
+
+        expect(game.isNewRecord, isTrue);
+      },
+    );
+
+    testWithGame(
+      'endRun mantém isNewRecord falso quando não supera o recorde',
+      createGame,
+      (game) async {
+        game.bestDistanceKm = 20;
+        game.distanceKm = 5;
+        game.endRun();
+
+        expect(game.isNewRecord, isFalse);
       },
     );
 

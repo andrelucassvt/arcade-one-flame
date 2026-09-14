@@ -244,5 +244,44 @@
   "returnToTitleButtonLabel": "Tela inicial",
   "@returnToTitleButtonLabel": {
     "description": "Button label for returning to the title screen from the game over popup"
+  },
+  "quickPlayTapToStart": "TOQUE PARA JOGAR",
+  "@quickPlayTapToStart": {
+    "description": "Prompt shown on the first run before the game starts"
+  },
+  "quickPlayHint": "Segure e arraste para voar",
+  "@quickPlayHint": {
+    "description": "Control hint shown with the quick play prompt"
+  },
+  "gameOverNewRecord": "NOVO RECORDE",
+  "@gameOverNewRecord": {
+    "description": "Badge shown in the game over popup when the player beats the best distance"
+  },
+  "gameOverMaxCombo": "Combo máximo x{combo}",
+  "@gameOverMaxCombo": {
+    "description": "Maximum near miss combo achieved in the run",
+    "placeholders": {
+      "combo": {
+        "type": "int",
+        "example": "8",
+        "description": "The maximum near miss combo count"
+      }
+    }
+  },
+  "shareButtonLabel": "Compartilhar corrida",
+  "@shareButtonLabel": {
+    "description": "Button label for sharing the run result from the game over popup"
+  },
+  "shareRunText": "Cheguei a {distance} km no DRIFT SPACE. Consegue me superar?",
+  "@shareRunText": {
+    "description": "Text shared together with the run card image",
+    "placeholders": {
+      "distance": {
+        "type": "int",
+        "example": "320",
+        "description": "The distance traveled in kilometers"
+      }
+    }
   }
 }
+

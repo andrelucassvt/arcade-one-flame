@@ -1,4 +1,5 @@
 import 'package:arcade_one/app/app.dart';
+import 'package:arcade_one/common/services/share/share_service.dart';
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/cubit/cubit.dart';
 import 'package:arcade_one/l10n/l10n.dart';
@@ -12,6 +13,11 @@ import 'package:mockingjay/mockingjay.dart';
 import 'helpers.dart';
 
 class _MockStorageService extends Mock implements StorageService {}
+
+class _NoopShareService implements ShareService {
+  @override
+  Future<void> shareRunResult(RunShareResult result) async {}
+}
 
 StorageService _buildMockStorage() {
   final storage = _MockStorageService();
@@ -29,6 +35,8 @@ StorageService _buildMockStorage() {
   return storage;
 }
 
+ShareService _buildNoopShareService() => _NoopShareService();
+
 extension PumpApp on WidgetTester {
   Future<void> pumpApp(
     Widget widget, {
@@ -37,6 +45,7 @@ extension PumpApp on WidgetTester {
     PreloadCubit? preloadCubit,
     AudioCubit? audioCubit,
     StorageService? storageService,
+    ShareService? shareService,
   }) {
     final storage = storageService ?? _buildMockStorage();
     final localeCubit = appLocaleCubit ?? AppLocaleCubit(storage: storage);
@@ -47,8 +56,13 @@ extension PumpApp on WidgetTester {
           bgmPlayer: AudioPlayer(),
         );
     return pumpWidget(
-      RepositoryProvider<StorageService>.value(
-        value: storage,
+      MultiRepositoryProvider(
+        providers: [
+          RepositoryProvider<StorageService>.value(value: storage),
+          RepositoryProvider<ShareService>.value(
+            value: shareService ?? _buildNoopShareService(),
+          ),
+        ],
         child: MultiBlocProvider(
           providers: [
             BlocProvider.value(value: localeCubit),

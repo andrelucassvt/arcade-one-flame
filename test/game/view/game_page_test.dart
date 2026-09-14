@@ -44,6 +44,7 @@ class _OverlayGame extends ArcadeOne {
     required super.images,
     required super.storage,
     super.controlMode,
+    super.waitingToStart,
   });
 
   @override
@@ -135,6 +136,22 @@ void main() {
       final view = tester.widget<GameView>(find.byType(GameView));
 
       expect(view.playerShip, equals(playerShip));
+    });
+
+    testWidgets('passes quick play to GameView and shows the prompt', (
+      tester,
+    ) async {
+      await tester.pumpApp(
+        const GamePage(quickPlay: true),
+        preloadCubit: preloadCubit,
+      );
+
+      final view = tester.widget<GameView>(find.byType(GameView));
+
+      expect(view.quickPlay, isTrue);
+      expect(find.text('TAP TO PLAY'), findsOneWidget);
+
+      await tester.pumpWidget(Container());
     });
   });
 
@@ -235,7 +252,8 @@ void main() {
 
       expect(find.text('GAME OVER'), findsOneWidget);
       expect(find.text('You died in the drift.'), findsOneWidget);
-      expect(find.text('Distance traveled: 73 km'), findsOneWidget);
+      expect(find.text('73 km'), findsOneWidget);
+      expect(find.text('Share run'), findsOneWidget);
       expect(find.text('Restart'), findsOneWidget);
       expect(find.text('Title screen'), findsOneWidget);
 
@@ -282,6 +300,33 @@ void main() {
 
       expect(find.byType(TitleView), findsOneWidget);
       expect(find.byType(GameView), findsNothing);
+    });
+
+    testWidgets('starts a quick play run after the tap prompt', (tester) async {
+      final game = _OverlayGame(
+        l10n: _MockAppLocalizations(),
+        deathPlayer: _MockAudioPlayer(),
+        textStyle: const TextStyle(),
+        images: Images(),
+        storage: _MockStorageService(),
+        waitingToStart: true,
+      );
+
+      await tester.pumpApp(
+        BlocProvider.value(
+          value: audioCubit,
+          child: Material(child: GameView(game: game)),
+        ),
+      );
+
+      expect(find.text('TAP TO PLAY'), findsOneWidget);
+      expect(find.text('Hold and drag to fly'), findsOneWidget);
+
+      await tester.tap(find.text('TAP TO PLAY'));
+      await tester.pump();
+
+      expect(game.isWaitingToStart, isFalse);
+      expect(find.text('TAP TO PLAY'), findsNothing);
     });
 
     testWidgets('renders joystick controls for joystick games', (tester) async {

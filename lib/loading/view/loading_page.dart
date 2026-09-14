@@ -1,3 +1,5 @@
+import 'package:arcade_one/common/services/storage_service.dart';
+import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:arcade_one/loading/loading.dart';
 import 'package:arcade_one/title/title.dart';
@@ -13,9 +15,15 @@ class LoadingPage extends StatefulWidget {
 
 class _LoadingPageState extends State<LoadingPage> {
   Future<void> onPreloadComplete(NavigatorState navigator) async {
+    final storage = context.read<StorageService>();
     await Future<void>.delayed(AnimatedProgressBar.intrinsicAnimationDuration);
     if (!mounted) return;
-    await navigator.pushReplacement<void, void>(TitleView.route());
+    final bestDistanceKm = await storage.getDouble(bestDistanceStorageKey);
+    if (!mounted) return;
+    final route = bestDistanceKm == null
+        ? GamePage.route(quickPlay: true)
+        : TitleView.route();
+    await navigator.pushReplacement<void, void>(route);
   }
 
   @override

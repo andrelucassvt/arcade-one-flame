@@ -34,15 +34,9 @@ void main() {
 
           audio = _MockAudioCache();
           when(
-            () => audio.loadAll([
-              Assets.audio.engineFire,
-              Assets.audio.death,
-            ]),
+            () => audio.loadAll([Assets.audio.death]),
           ).thenAnswer(
-            (invocation) async => [
-              Uri.parse(Assets.audio.engineFire),
-              Uri.parse(Assets.audio.death),
-            ],
+            (invocation) async => [Uri.parse(Assets.audio.death)],
           );
         },
         build: () => PreloadCubit(images, audio),
@@ -70,10 +64,7 @@ void main() {
         ],
         verify: (bloc) {
           verify(
-            () => audio.loadAll([
-              Assets.audio.engineFire,
-              Assets.audio.death,
-            ]),
+            () => audio.loadAll([Assets.audio.death]),
           ).called(1);
           verify(
             () => images.loadAll([

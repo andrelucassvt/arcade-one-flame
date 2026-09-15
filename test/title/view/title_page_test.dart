@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:arcade_one/app/app.dart';
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/title/title.dart';
@@ -11,6 +12,9 @@ import 'package:mockingjay/mockingjay.dart';
 import '../../helpers/helpers.dart';
 
 class _MockAudioCubit extends MockCubit<AudioState> implements AudioCubit {}
+
+class _MockRemoveAdsCubit extends MockCubit<RemoveAdsState>
+    implements RemoveAdsCubit {}
 
 class _MockStorageService extends Mock implements StorageService {}
 
@@ -78,6 +82,35 @@ void main() {
       await tester.pump();
 
       expect(find.byIcon(Icons.volume_off), findsOneWidget);
+    });
+
+    testWidgets('hides the remove ads button after the purchase', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final removeAdsCubit = _MockRemoveAdsCubit();
+      final controller = StreamController<RemoveAdsState>();
+      addTearDown(controller.close);
+      whenListen(
+        removeAdsCubit,
+        controller.stream,
+        initialState: const RemoveAdsState(),
+      );
+
+      await tester.pumpApp(const TitleView(), removeAdsCubit: removeAdsCubit);
+
+      expect(find.byIcon(Icons.block_rounded), findsOneWidget);
+      expect(find.text('Remove ads'), findsOneWidget);
+
+      controller.add(const RemoveAdsState(hasRemovedAds: true));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.block_rounded), findsNothing);
+      expect(find.text('Remove ads'), findsNothing);
     });
 
     testWidgets('starts the game when start button is tapped', (tester) async {

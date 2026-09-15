@@ -1,8 +1,8 @@
 ---
 generated_at: 2026-07-27
-source_commit: a3f02f7
+source_commit: 1f03b4f
 source_state: dirty
-verified_at: 2026-09-12
+verified_at: 2026-09-14
 status: current
 related_plans:
   - docs/plan/implement-drift-mvp.md
@@ -12,6 +12,7 @@ related_plans:
   - docs/plan/local-persistence.md
   - docs/plan/space-background-by-km.md
   - docs/plan/player-ship-unlocks.md
+  - docs/plan/remove-ads-iap.md
 ---
 
 # Flow: Game
@@ -26,7 +27,7 @@ O jogo restaura a melhor distância, carrega imagens do cache e monta fundo, nav
 
 Power-ups de escudo e câmera lenta nascem sobre gaps de paredes estáticas: o escudo absorve uma colisão e a câmera lenta reduz o `timeScale` da rodada. Passar raspando em obstáculos registra um near miss que alimenta um combo, e o combo multiplica o ganho de distância. Depois de 3000 km entra a curva "deep space", que aumenta a chance de gaps móveis, a quantidade de meteoros e a velocidade base.
 
-Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave explode em partículas e a tela treme; o overlay de game over só aparece após um atraso e o engine é pausado. Um novo recorde é persistido, o dispositivo recebe feedback háptico e o efeito de morte toca. O popup Flutter permite reconstruir a rodada na mesma instância (retomando o engine) ou substituir a rota por `TitleView`. Em Android e iOS, um banner fica sobreposto na base da tela.
+Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave explode em partículas e a tela treme; o overlay de game over só aparece após um atraso e o engine é pausado. Um novo recorde é persistido, o dispositivo recebe feedback háptico e o efeito de morte toca. O popup Flutter permite reconstruir a rodada na mesma instância (retomando o engine) ou substituir a rota por `TitleView`. Em Android e iOS, um banner fica sobreposto na base da tela, exceto quando o entitlement de remoção de anúncios está ativo.
 
 ## Passo a Passo
 
@@ -68,13 +69,15 @@ Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave expl
 - **Sem novo recorde:** `endRun` mantém `bestDistanceKm` e não grava no storage.
 - **Imagem ausente:** nave, obstáculos e marcos usam renderização procedural/fallback prevista pelos componentes.
 - **Plataforma sem banner:** quando `AdConfig.maybeBanner` é `null`, o banner é omitido e o joystick usa apenas o espaçamento inferior padrão.
+- **Anúncios removidos:** com `hasRemovedAds` verdadeiro no `RemoveAdsCubit`, `GameView` trata `bannerAdUnitId` como `null`, omite o `AdBannerWidget` e o joystick volta ao espaçamento inferior padrão.
 
 ## Arquivos Envolvidos
 
 | Camada | Arquivo | Responsabilidade |
 |--------|---------|------------------|
 | Entrada | `lib/title/content/title_start_button.dart` | Inicia a rota com controle e nave escolhidos. |
-| Apresentação | `lib/game/view/game_page.dart` | Integra providers, Flame, overlays, áudio, joystick e banner. |
+| Apresentação | `lib/game/view/game_page.dart` | Integra providers, Flame, overlays, áudio, joystick e banner (oculto com anúncios removidos). |
+| Estado global | `lib/app/cubit/remove_ads_cubit.dart` | Mantém o entitlement que remove o banner do jogo. |
 | Apresentação | `lib/game/widgets/game_joystick.dart` | Converte gesto local em direção normalizada com `ValueNotifier`. |
 | Apresentação | `lib/game/widgets/game_over_popup.dart` | Exibe resultado e ações pós-morte. |
 | Estado | `lib/game/cubit/audio/audio_cubit.dart` | Persiste volume e controla BGM e efeito de morte. |
@@ -91,7 +94,7 @@ Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave expl
 | Anúncios | `lib/common/services/ads/ad_config.dart` | Resolve unidades de banner por plataforma. |
 | Testes | `test/game/arcade_one_test.dart` | Cobre montagem, progressão, spawn, controles, colisão, escudo, slow-mo, combo, clamp de dt, morte e restart. |
 | Testes | `test/game/entities/ship/ship_test.dart` | Cobre alvo contínuo, dead zone, damping, escudo e limites de velocidade. |
-| Testes | `test/game/view/game_page_test.dart` | Cobre rota, parâmetros, volume, overlay, retorno e joystick. |
+| Testes | `test/game/view/game_page_test.dart` | Cobre rota, parâmetros, volume, overlay, retorno, joystick e banner oculto com anúncios removidos. |
 | Testes | `test/game/components/` | Cobre comportamento isolado dos componentes Flame, incluindo power-up e explosão. |
 
 ## Regras de Negócio Relevantes

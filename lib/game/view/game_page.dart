@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:arcade_one/app/app.dart';
 import 'package:arcade_one/common/services/ads/ad_config.dart';
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/common/widgets/ad_banner_widget.dart';
@@ -113,7 +114,11 @@ class _GameViewState extends State<GameView> {
     if (game is ArcadeOne) {
       game.updateSafeAreaPadding(MediaQuery.paddingOf(context));
     }
-    final bannerAdUnitId = AdConfig.maybeBanner;
+    final hasRemovedAds = context
+        .watch<RemoveAdsCubit>()
+        .state
+        .hasRemovedAds;
+    final bannerAdUnitId = hasRemovedAds ? null : AdConfig.maybeBanner;
     final joystickBottomPadding = bannerAdUnitId == null
         ? _joystickBottomSpacing
         : _bannerReservedHeight + _joystickBottomSpacing;

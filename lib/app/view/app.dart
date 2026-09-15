@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:arcade_one/app/cubit/cubit.dart';
+import 'package:arcade_one/common/services/in_app_purchase/in_app_purchase_service_impl.dart';
 import 'package:arcade_one/common/services/share/share_plus_share_service.dart';
 import 'package:arcade_one/common/services/share/share_service.dart';
 import 'package:arcade_one/common/services/shared_preferences_storage_service.dart';
@@ -60,6 +61,17 @@ class App extends StatelessWidget {
                 storage: ctx.read<StorageService>(),
               );
               unawaited(cubit.init());
+              return cubit;
+            },
+          ),
+          BlocProvider(
+            create: (ctx) {
+              final cubit = RemoveAdsCubit(
+                storage: ctx.read<StorageService>(),
+                service: InAppPurchaseServiceImpl(),
+              );
+              unawaited(cubit.init());
+              unawaited(cubit.loadProduct());
               return cubit;
             },
           ),

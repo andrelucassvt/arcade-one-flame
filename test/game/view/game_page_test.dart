@@ -5,7 +5,9 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:arcade_one/app/app.dart';
 import 'package:arcade_one/common/services/storage_service.dart';
+import 'package:arcade_one/common/widgets/ad_banner_widget.dart';
 import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:arcade_one/loading/cubit/cubit.dart';
@@ -33,6 +35,9 @@ class _MockImages extends Mock implements Images {}
 
 class _MockPreloadCubit extends MockCubit<PreloadState>
     implements PreloadCubit {}
+
+class _MockRemoveAdsCubit extends MockCubit<RemoveAdsState>
+    implements RemoveAdsCubit {}
 
 class _MockStorageService extends Mock implements StorageService {}
 
@@ -327,6 +332,26 @@ void main() {
 
       expect(game.isWaitingToStart, isFalse);
       expect(find.text('TAP TO PLAY'), findsNothing);
+    });
+
+    testWidgets('hides the banner when ads were removed', (tester) async {
+      final removeAdsCubit = _MockRemoveAdsCubit();
+      whenListen(
+        removeAdsCubit,
+        const Stream<RemoveAdsState>.empty(),
+        initialState: const RemoveAdsState(hasRemovedAds: true),
+      );
+
+      final game = TestGame();
+      await tester.pumpApp(
+        BlocProvider.value(
+          value: audioCubit,
+          child: Material(child: GameView(game: game)),
+        ),
+        removeAdsCubit: removeAdsCubit,
+      );
+
+      expect(find.byType(AdBannerWidget), findsNothing);
     });
 
     testWidgets('renders joystick controls for joystick games', (tester) async {

@@ -1,12 +1,13 @@
 ---
 generated_at: 2026-07-27
-source_commit: 698131b
-source_state: clean
-verified_at: 2026-09-12
+source_commit: 1f03b4f
+source_state: dirty
+verified_at: 2026-09-14
 status: current
 related_plans:
   - docs/plan/local-persistence.md
   - docs/plan/player-ship-unlocks.md
+  - docs/plan/remove-ads-iap.md
 ---
 
 # Flow: Title
@@ -17,7 +18,7 @@ related_plans:
 
 `TitleView` é aberta quando o preload termina ou quando o usuário retorna pelo game over. Locale e áudio vêm de Cubits globais; modo de controle e nave selecionada usam Cubits próprios criados e fechados pela tela.
 
-Na inicialização, o título restaura o modo de controle, lê a melhor distância e valida a nave persistida. A interface exibe idioma, mute, hero com a nave atual, seletor de skins, seletor touch/joystick e o botão de lançamento, usando textos de `context.l10n`.
+Na inicialização, o título restaura o modo de controle, lê a melhor distância e valida a nave persistida. A top bar exibe idioma e mute; o conteúdo central traz hero com a nave atual, seletor de skins, seletor touch/joystick, botão de lançamento e o botão rotulado de remover anúncios, usando textos de `context.l10n`.
 
 Ao iniciar, `TitleStartButton` passa `GameControlMode` e `PlayerShipSkin` para `GamePage.route`. `Navigator.pushReplacement` remove a tela de título da pilha e entrega a configuração à gameplay.
 
@@ -39,13 +40,15 @@ Ao iniciar, `TitleStartButton` passa `GameControlMode` e `PlayerShipSkin` para `
    Fornece os dois Cubits locais, observa seus estados e monta backdrop, top bar e conteúdo central responsivo.
 8. **Idioma e áudio** — `lib/title/content/title_top_bar.dart` → `TitleTopBar.build`
    O menu chama `AppLocaleCubit.setLocale`; o botão de volume chama `AudioCubit.toggleVolume`.
-9. **Escolha de nave** — `lib/title/view/title_page.dart` → `_showShipSelectionSheet`
-   Abre o catálogo e envia seleções permitidas para `TitleShipSelectionCubit.setShip`.
-10. **Escolha de controle** — `lib/title/content/title_control_mode_selector.dart` → `onSelectionChanged`
+9. **Remover anúncios** — `lib/title/content/title_remove_ads_button.dart` → `TitleRemoveAdsDialog.show`
+   O botão rotulado abaixo do Lançar (oculto quando `hasRemovedAds`) abre um `AlertDialog` que lê o `RemoveAdsCubit` global, mostra o preço localizado e oferece comprar ou restaurar; a compra atualiza o entitlement na hora.
+10. **Escolha de nave** — `lib/title/view/title_page.dart` → `_showShipSelectionSheet`
+    Abre o catálogo e envia seleções permitidas para `TitleShipSelectionCubit.setShip`.
+11. **Escolha de controle** — `lib/title/content/title_control_mode_selector.dart` → `onSelectionChanged`
     Envia touch ou joystick a `TitleControlModeCubit.setControlMode`, que persiste o nome do enum.
-11. **Início da partida** — `lib/title/content/title_start_button.dart` → `onPressed`
+12. **Início da partida** — `lib/title/content/title_start_button.dart` → `onPressed`
     Substitui a rota por `GamePage.route(controlMode: ..., playerShip: ...)`.
-12. **Descarte** — `lib/title/view/title_page.dart` → `dispose`
+13. **Descarte** — `lib/title/view/title_page.dart` → `dispose`
     Fecha os Cubits locais de modo e nave; os Cubits globais permanecem sob `App`.
 
 ### Caminhos alternativos
@@ -54,6 +57,9 @@ Ao iniciar, `TitleStartButton` passa `GameControlMode` e `PlayerShipSkin` para `
 - **Nave persistida inválida ou bloqueada:** a tela mantém `defaultPlayerShipSkin`.
 - **Locale global nulo:** o texto do seletor usa o locale resolvido pelo Flutter.
 - **Tela estreita:** `TitleHero` centraliza e reduz o título; a partir de 760 px usa a composição larga.
+- **Entitlement de remoção ativo:** o botão de remover anúncios não é renderizado e o diálogo, se aberto durante a compra, esconde as ações de compra/restauração.
+- **Loja indisponível:** o diálogo mostra o aviso de indisponibilidade e mantém o botão de compra desabilitado.
+- **Restauração sem compras:** o `RemoveAdsCubit` emite `restoreNothingFound` e o diálogo mostra o aviso de nada a restaurar sem fechar.
 
 ## Arquivos Envolvidos
 
@@ -63,8 +69,11 @@ Ao iniciar, `TitleStartButton` passa `GameControlMode` e `PlayerShipSkin` para `
 | Estado | `lib/title/cubit/title_control_mode_cubit.dart` | Persiste e restaura touch/joystick. |
 | Estado | `lib/title/cubit/title_ship_selection_cubit.dart` | Persiste e valida a skin escolhida. |
 | Estado global | `lib/app/cubit/app_locale_cubit.dart` | Mantém e persiste o idioma. |
+| Estado global | `lib/app/cubit/remove_ads_cubit.dart` | Restaura o entitlement de remoção de anúncios e processa compra/restauração. |
 | Estado global | `lib/game/cubit/audio/audio_cubit.dart` | Mantém e persiste mute/volume. |
 | Apresentação | `lib/title/content/title_top_bar.dart` | Exibe idioma e volume. |
+| Apresentação | `lib/title/content/title_remove_ads_button.dart` | Exibe o CTA rotulado de remover anúncios (oculto com entitlement). |
+| Apresentação | `lib/title/content/title_remove_ads_dialog.dart` | Exibe preço, avisos e ações de comprar/restaurar. |
 | Apresentação | `lib/title/content/title_main_content.dart` | Compõe hero, seletores e início. |
 | Apresentação | `lib/title/content/title_ship_selection_sheet.dart` | Exibe catálogo e bloqueios de nave. |
 | Apresentação | `lib/title/content/title_control_mode_selector.dart` | Exibe controle segmentado. |
@@ -80,12 +89,14 @@ Ao iniciar, `TitleStartButton` passa `GameControlMode` e `PlayerShipSkin` para `
 - **Escolhas persistentes** — `lib/app/cubit/app_locale_cubit.dart`, `lib/game/cubit/audio/audio_cubit.dart`, `lib/title/cubit/`: idioma, volume, controle e nave sobrevivem a novas instâncias da tela.
 - **Naves condicionadas ao recorde** — `lib/title/cubit/title_ship_selection_cubit.dart`: a seleção só muda quando `best_distance_km` alcança `unlockKm`.
 - **Partida recebe snapshot atual** — `lib/title/content/title_start_button.dart`: modo e skin são passados como valores à nova rota.
+- **Entitlement de remoção de anúncios** — `lib/app/cubit/remove_ads_cubit.dart`: a compra não-consumível `removeranuncio` é persistida em `remove_ads_purchased`; com o entitlement ativo o botão/diálogo somem da tela de título e o banner do jogo é omitido.
 
 ## Dependências Externas
 
 - `flutter_bloc` para estados globais e locais.
-- Flutter Material para rota, bottom sheet, menu e controle segmentado.
-- `shared_preferences`, via `StorageService`, para restaurar escolhas.
+- Flutter Material para rota, bottom sheet, diálogo, menu e controle segmentado.
+- `in_app_purchase` para consultar preço, comprar e restaurar a remoção de anúncios.
+- `shared_preferences`, via `StorageService`, para restaurar escolhas e o entitlement.
 
 ## Observações
 

@@ -1,6 +1,7 @@
 import 'package:arcade_one/game/game.dart';
 import 'package:arcade_one/title/content/title_control_mode_selector.dart';
 import 'package:arcade_one/title/content/title_hero.dart';
+import 'package:arcade_one/title/content/title_remove_ads_button.dart';
 import 'package:arcade_one/title/content/title_ship_selector_button.dart';
 import 'package:arcade_one/title/content/title_start_button.dart';
 import 'package:flutter/material.dart';
@@ -43,6 +44,8 @@ class TitleMainContent extends StatelessWidget {
           controlMode: selectedControlMode,
           playerShip: selectedShip,
         ),
+        const SizedBox(height: 14),
+        const TitleRemoveAdsButton(),
       ],
     );
   }

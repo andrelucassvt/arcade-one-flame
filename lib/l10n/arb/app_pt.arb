@@ -282,6 +282,57 @@
         "description": "The distance traveled in kilometers"
       }
     }
+  },
+  "titleRemoveAdsButton": "Remover anúncios",
+  "@titleRemoveAdsButton": {
+    "description": "Label for the remove ads purchase button on the Title Page"
+  },
+  "titleRemoveAdsDialogTitle": "Remover anúncios",
+  "@titleRemoveAdsDialogTitle": {
+    "description": "Title of the remove ads purchase dialog"
+  },
+  "titleRemoveAdsDialogDescription": "Jogue sem banners. Compra única, sem assinatura.",
+  "@titleRemoveAdsDialogDescription": {
+    "description": "Description shown in the remove ads purchase dialog"
+  },
+  "titleRemoveAdsBuyButton": "Comprar por {price}",
+  "@titleRemoveAdsBuyButton": {
+    "description": "Buy button label showing the localized price of the remove ads product",
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "R$ 19,90",
+        "description": "The localized price of the remove ads product"
+      }
+    }
+  },
+  "titleRemoveAdsBuyButtonFallback": "Comprar",
+  "@titleRemoveAdsBuyButtonFallback": {
+    "description": "Buy button label used when the localized price is not available"
+  },
+  "titleRemoveAdsRestoreButton": "Restaurar compras",
+  "@titleRemoveAdsRestoreButton": {
+    "description": "Button label for restoring previous purchases in the remove ads dialog"
+  },
+  "titleRemoveAdsCloseButton": "Agora não",
+  "@titleRemoveAdsCloseButton": {
+    "description": "Button label for dismissing the remove ads dialog"
+  },
+  "titleRemoveAdsPurchaseSuccess": "Compra concluída. Anúncios removidos.",
+  "@titleRemoveAdsPurchaseSuccess": {
+    "description": "Message shown when the remove ads purchase succeeds"
+  },
+  "titleRemoveAdsPurchaseFailed": "A compra falhou. Tente novamente.",
+  "@titleRemoveAdsPurchaseFailed": {
+    "description": "Message shown when the remove ads purchase fails or is canceled"
+  },
+  "titleRemoveAdsNothingToRestore": "Nenhuma compra para restaurar.",
+  "@titleRemoveAdsNothingToRestore": {
+    "description": "Message shown when there is no previous purchase to restore"
+  },
+  "titleRemoveAdsStoreUnavailable": "Loja indisponível. Tente mais tarde.",
+  "@titleRemoveAdsStoreUnavailable": {
+    "description": "Message shown when the store is unavailable for purchases"
   }
 }
 

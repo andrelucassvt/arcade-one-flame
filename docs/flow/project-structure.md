@@ -91,7 +91,7 @@ GamePage → caches do PreloadCubit → ArcadeOne → componentes Flame
 | `bloc` | `^9.2.0` | Base de Cubit e `BlocObserver`; usado diretamente no bootstrap e no preload. |
 | `flutter_bloc` | `^9.1.1` | Providers, builders, listeners e acesso aos Cubits na interface Flutter. |
 | `flame` | `^1.37.0` | `FlameGame`, `GameWidget`, eventos, componentes e cache de imagens da partida. |
-| `audioplayers` | `^6.6.0` | Cache e reprodução do efeito de morte, música em loop e configuração global de áudio. |
+| `audioplayers` | `^6.6.0` | Cache e reprodução do efeito de morte, loop do motor da nave e configuração global de volume. |
 | `equatable` | `^2.0.8` | Igualdade dos estados de preload e áudio. |
 | `shared_preferences` | `^2.3.0` | Backend local para locale, volume, modo de controle, nave escolhida e melhor distância. |
 | `google_mobile_ads` | `^9.0.0` | Inicialização do SDK, banner com fallback e intersticial de game over em Android e iOS. |
@@ -109,7 +109,7 @@ GamePage → caches do PreloadCubit → ArcadeOne → componentes Flame
 - A revisão partiu de uma árvore Git limpa no commit `698131b`; as alterações desta regeneração ficam restritas à documentação e às instruções do projeto.
 - Os três entry points de flavor executam a mesma inicialização; `lib/bootstrap.dart` mantém o ponto indicado para configuração específica por flavor.
 - Não há router nem service locator: a navegação é manual e a composição de dependências usa providers do `flutter_bloc`.
-- `PreloadCubit` carrega antecipadamente `Assets.audio.death`, `Assets.images.unicornAnimation.path` e `gameImageAssets`; a música `assets/audio/background_2.mp3` começa no `AudioCubit` quando `GameView` entra na árvore.
+- `PreloadCubit` carrega antecipadamente `Assets.audio.death`, `Assets.audio.engineFire`, `Assets.images.unicornAnimation.path` e `gameImageAssets`; não há música de fundo — `ArcadeOne` toca `engine_fire.mp3` em loop enquanto a nave impulsiona.
 - O catálogo de naves e o catálogo de marcos espaciais compartilham os mesmos limiares de distância, de `0`/Terra até `8500` km/quasar profundo.
 - O banner possui IDs apenas para Android e iOS; em outras plataformas `AdConfig.maybeBanner` retorna `null` e a interface não reserva o espaço do anúncio.
 - A suíte em `test/` espelha `app`, `common`, `loading`, `title` e `game`, cobrindo Cubits, widgets, storage, catálogos, entidades e componentes Flame.

@@ -26,7 +26,7 @@ Quando o estado passa a completo, a tela aguarda os 300 ms da animação da barr
 2. **Planejamento das fases** — `lib/loading/cubit/preload/preload_cubit.dart` → `PreloadCubit.loadSequentially`
    Monta as fases `audio` e `images` e emite `totalCount: 2`.
 3. **Fase de áudio** — `lib/loading/cubit/preload/preload_cubit.dart` → `audio.loadAll`
-   Precarrega somente `Assets.audio.death`.
+   Precarrega `Assets.audio.death` e `Assets.audio.engineFire` (loop do motor da nave usado durante a partida).
 4. **Fase de imagens** — `lib/loading/cubit/preload/preload_cubit.dart` → `images.loadAll`
    Precarrega `Assets.images.unicornAnimation.path` e todos os caminhos de `gameImageAssets`.
 5. **Controle de duração** — `lib/loading/cubit/preload/preload_cubit.dart` → loop de fases
@@ -78,5 +78,4 @@ Quando o estado passa a completo, a tela aguarda os 300 ms da animação da barr
 ## Observações
 
 - O spritesheet `unicorn_animation.png` continua no preload, embora não tenha consumidor no gameplay atual.
-- `test/loading/cubit/preload/preload_cubit_test.dart` ainda espera `Assets.audio.engineFire` junto de `Assets.audio.death`, enquanto a implementação carrega apenas o efeito de morte; essa divergência é objetiva e pode causar falha no teste do Cubit.
-- A BGM é iniciada posteriormente pelo `AudioCubit` e não participa deste preload.
+- Não há música de fundo; o único áudio contínuo do jogo é o loop do motor, cujo `play`/`stop` fica a cargo de `ArcadeOne` conforme a nave impulsiona.

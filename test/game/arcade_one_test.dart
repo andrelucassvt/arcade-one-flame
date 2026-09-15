@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/game/game.dart';
+import 'package:arcade_one/gen/assets.gen.dart';
 import 'package:arcade_one/l10n/l10n.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flame/cache.dart';
@@ -50,6 +51,7 @@ void main() {
   group('ArcadeOne', () {
     late AppLocalizations l10n;
     late AudioPlayer deathPlayer;
+    late AudioPlayer enginePlayer;
     late StorageService storage;
     late int gameOverHapticCount;
 
@@ -67,9 +69,13 @@ void main() {
       when(() => l10n.restartHint).thenReturn('Tap to restart');
 
       deathPlayer = _MockAudioPlayer();
+      enginePlayer = _MockAudioPlayer();
       storage = _MockStorageService();
       gameOverHapticCount = 0;
       when(() => deathPlayer.play(any())).thenAnswer((_) async {});
+      when(() => enginePlayer.play(any())).thenAnswer((_) async {});
+      when(() => enginePlayer.setReleaseMode(any())).thenAnswer((_) async {});
+      when(enginePlayer.stop).thenAnswer((_) async {});
       when(() => storage.getDouble(any())).thenAnswer((_) async => null);
       when(() => storage.setDouble(any(), any())).thenAnswer((_) async {});
     });
@@ -85,6 +91,7 @@ void main() {
       final game = ArcadeOne(
         l10n: l10n,
         deathPlayer: deathPlayer,
+        enginePlayer: enginePlayer,
         triggerGameOverHaptic: () async {
           gameOverHapticCount += 1;
         },
@@ -544,6 +551,55 @@ void main() {
         game.setJoystickDirection(Vector2(1, 0));
 
         expect(game.ship!.isThrusting, isFalse);
+      },
+    );
+
+    testWithGame(
+      'engine sound loops while thrusting and stops when released',
+      () => createGame(controlMode: GameControlMode.joystick),
+      (game) async {
+        game.update(1 / 30);
+        verifyNever(() => enginePlayer.play(any()));
+
+        game.setJoystickDirection(Vector2(1, 0));
+        game.update(1 / 30);
+        game.update(1 / 30);
+
+        verify(() => enginePlayer.setReleaseMode(ReleaseMode.loop)).called(1);
+        verify(
+          () => enginePlayer.play(
+            any(
+              that: isA<AssetSource>().having(
+                (source) => source.path,
+                'path',
+                Assets.audio.engineFire,
+              ),
+            ),
+          ),
+        ).called(1);
+        verifyNever(enginePlayer.stop);
+
+        game.clearJoystick();
+        game.update(1 / 30);
+        game.update(1 / 30);
+
+        verify(enginePlayer.stop).called(1);
+        verifyNever(() => enginePlayer.play(any()));
+      },
+    );
+
+    testWithGame(
+      'engine sound stops when the run ends while thrusting',
+      () => createGame(controlMode: GameControlMode.joystick),
+      (game) async {
+        game.setJoystickDirection(Vector2(1, 0));
+        game.update(1 / 30);
+        verify(() => enginePlayer.play(any())).called(1);
+
+        game.endRun();
+        game.update(1 / 30);
+
+        verify(enginePlayer.stop).called(1);
       },
     );
 

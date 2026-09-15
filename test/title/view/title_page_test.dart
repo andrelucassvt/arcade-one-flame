@@ -84,6 +84,24 @@ void main() {
       expect(find.byIcon(Icons.volume_off), findsOneWidget);
     });
 
+    testWidgets('renders the remove ads button above the start button', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpApp(const TitleView());
+
+      final removeAdsTop = tester.getTopLeft(find.text('Remove ads')).dy;
+      final startTop = tester.getTopLeft(find.text('Launch')).dy;
+      final shipSelectorTop = tester.getTopLeft(find.text('Choose ship')).dy;
+
+      expect(removeAdsTop, lessThan(shipSelectorTop));
+      expect(removeAdsTop, lessThan(startTop));
+    });
+
     testWidgets('hides the remove ads button after the purchase', (
       tester,
     ) async {

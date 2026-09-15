@@ -34,7 +34,7 @@ void main() {
 
           audio = _MockAudioCache();
           when(
-            () => audio.loadAll([Assets.audio.death]),
+            () => audio.loadAll([Assets.audio.death, Assets.audio.engineFire]),
           ).thenAnswer(
             (invocation) async => [Uri.parse(Assets.audio.death)],
           );
@@ -64,7 +64,7 @@ void main() {
         ],
         verify: (bloc) {
           verify(
-            () => audio.loadAll([Assets.audio.death]),
+            () => audio.loadAll([Assets.audio.death, Assets.audio.engineFire]),
           ).called(1);
           verify(
             () => images.loadAll([

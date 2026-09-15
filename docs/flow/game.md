@@ -21,7 +21,7 @@ related_plans:
 
 ## Visão Geral
 
-O fluxo começa quando o usuário toca em Decolar/Launch. A rota recebe o modo de controle e a skin escolhidos; `GameView` inicia a BGM, obtém os providers globais e cria `ArcadeOne` dentro de um `GameWidget`.
+O fluxo começa quando o usuário toca em Decolar/Launch. A rota recebe o modo de controle e a skin escolhidos; `GameView` obtém os providers globais e cria `ArcadeOne` dentro de um `GameWidget`. Não há música de fundo: o único áudio contínuo é o som do motor da nave, que toca em loop enquanto o jogador impulsiona.
 
 O jogo restaura a melhor distância, carrega imagens do cache e monta fundo, nave, HUD e a primeira sequência de paredes de asteroides. A rodada nasce com um período de invulnerabilidade (a nave pisca) para dar tempo de orientação. A cada frame, distância, velocidade visual e dificuldade crescem; no modo touch a direção do thrust é recalculada continuamente a partir do alvo segurado, com dead zone e suavização, e quando não há thrust a velocidade decai por damping.
 
@@ -35,10 +35,10 @@ Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave expl
    O botão cria `GamePage.route` com `GameControlMode` e `PlayerShipSkin` atuais e usa `Navigator.pushReplacement`.
 2. **Rota do jogo** — `lib/game/view/game_page.dart` → `GamePage.route`
    Constrói uma `MaterialPageRoute<void>` que preserva as escolhas da tela anterior em `GamePage` e `GameView`.
-3. **Ciclo de áudio** — `lib/game/view/game_page.dart` → `_GameViewState.didChangeDependencies`
-   Na primeira resolução de dependências, lê o `AudioCubit` global e solicita `startBgm`; `dispose` solicita `stopBgm`.
+3. **Preload do intersticial** — `lib/game/view/game_page.dart` → `_GameViewState.didChangeDependencies`
+   Na primeira resolução de dependências, pede o preload do intersticial a `InterstitialAdService.load`.
 4. **Composição Flutter/Flame** — `lib/game/view/game_page.dart` → `GameView.build`
-   Lê `AudioCubit`, `PreloadCubit` e `StorageService`, cria `ArcadeOne` uma única vez e o entrega a `GameWidget` com o overlay de game over. Na primeira resolução de dependências, também pede o preload do intersticial a `InterstitialAdService.load`.
+   Lê `AudioCubit`, `PreloadCubit` e `StorageService`, cria `ArcadeOne` uma única vez (entregando `deathPlayer` e `enginePlayer` do `AudioCubit`) e o entrega a `GameWidget` com o overlay de game over.
 5. **Carga inicial** — `lib/game/arcade_one.dart` → `ArcadeOne.onLoad`
    Restaura `best_distance_km` e chama `_buildRun`.
 6. **Montagem da rodada** — `lib/game/arcade_one.dart` → `_buildRun`
@@ -46,7 +46,7 @@ Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave expl
 7. **Input da nave** — `lib/game/arcade_one.dart` → callbacks de toque/drag e `setJoystickDirection`
    Toque/drag gravam o alvo no mundo via `Ship.setThrustTarget`; `Ship.update` recomputa a direção a cada frame com dead zone e suavização. O joystick virtual envia direção normalizada somente em partidas `GameControlMode.joystick`.
 8. **Atualização contínua** — `lib/game/arcade_one.dart` → `update`
-   Limita `dt` por `maxGameUpdateDt`, aplica `timeScale` (câmera lenta), decai timers, avança `distanceKm` com `comboMultiplier`, deriva `scrollSpeed`, move background/obstáculos/meteoros/power-ups, registra near miss, absorve colisão com escudo, prepara a próxima sequência, aplica soft bounds e decai o screen shake.
+   Limita `dt` por `maxGameUpdateDt`, sincroniza o som do motor com `Ship.isThrusting` via `_syncEngineSound` (play em loop de `Assets.audio.engineFire` ao começar a impulsionar, `stop` ao soltar), aplica `timeScale` (câmera lenta), decai timers, avança `distanceKm` com `comboMultiplier`, deriva `scrollSpeed`, move background/obstáculos/meteoros/power-ups, registra near miss, absorve colisão com escudo, prepara a próxima sequência, aplica soft bounds e decai o screen shake.
 9. **Movimento, efeitos e HUD** — `lib/game/entities/ship/ship.dart` → `Ship.update`; `lib/game/components/drift_hud_component.dart` → `DriftHudComponent.update`
    A nave aplica aceleração, inércia com damping, giro, limite de velocidade, trilha do motor e anel de escudo; o HUD reescreve textos apenas quando os inteiros mudam e exibe o combo.
 10. **Absorção de impacto** — `lib/game/arcade_one.dart` → `_tryAbsorbHit`
@@ -61,6 +61,7 @@ Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave expl
 ### Caminhos alternativos
 
 - **Touch:** toque e drag guardam o alvo no mundo; soltar ou cancelar limpa o alvo.
+- **Som do motor:** em ambos os modos de controle, o loop de `engine_fire.mp3` segue exatamente o mesmo sinal (`Ship.isThrusting`) que anima a chama da nave; alvo dentro da dead zone, soltar o controle ou `endRun` param o som.
 - **Joystick:** `GameJoystick` normaliza o deslocamento fora da dead zone e chama `setJoystickDirection`; eventos touch do `FlameGame` são ignorados.
 - **Borda da tela:** `_applySoftBounds` fixa a posição dentro da área e reflete a velocidade com `bounceRestitution`, sem encerrar a rodada.
 - **Grace period:** colisões são ignoradas enquanto `isInvulnerable`; testes usam `invulnerabilityGraceSeconds: 0`.
@@ -82,7 +83,7 @@ Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave expl
 | Estado global | `lib/app/cubit/remove_ads_cubit.dart` | Mantém o entitlement que remove o banner do jogo. |
 | Apresentação | `lib/game/widgets/game_joystick.dart` | Converte gesto local em direção normalizada com `ValueNotifier`. |
 | Apresentação | `lib/game/widgets/game_over_popup.dart` | Exibe resultado, ações pós-morte e notifica a primeira exibição via `onShown`. |
-| Estado | `lib/game/cubit/audio/audio_cubit.dart` | Persiste volume e controla BGM e efeito de morte. |
+| Estado | `lib/game/cubit/audio/audio_cubit.dart` | Persiste o volume e o aplica aos players de morte e de motor; não inicia nem para reprodução. |
 | Orquestração | `lib/game/arcade_one.dart` | Mantém ciclo da rodada, progressão, spawn, colisões, combos, power-ups, soft bounds e morte. |
 | Entidade | `lib/game/entities/ship/ship.dart` | Implementa input contínuo, inércia com damping, escudo, trilha e renderização da nave. |
 | Componentes | `lib/game/components/asteroid_pair_component.dart` | Modela paredes com gap fixo/móvel, colisão e near miss. |
@@ -95,7 +96,7 @@ Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave expl
 | Dados | `lib/common/services/storage_service.dart` | Persiste melhor distância por contrato abstrato. |
 | Anúncios | `lib/common/services/ads/ad_config.dart` | Resolve unidades de banner principal, alternativo e intersticial por plataforma. |
 | Anúncios | `lib/common/services/ads/interstitial_ad_service.dart` | Carrega e exibe o intersticial de game over com cooldown e pré-carrega o próximo ao fechar. |
-| Testes | `test/game/arcade_one_test.dart` | Cobre montagem, progressão, spawn, controles, colisão, escudo, slow-mo, combo, clamp de dt, morte e restart. |
+| Testes | `test/game/arcade_one_test.dart` | Cobre montagem, progressão, spawn, controles, som do motor, colisão, escudo, slow-mo, combo, clamp de dt, morte e restart. |
 | Testes | `test/game/entities/ship/ship_test.dart` | Cobre alvo contínuo, dead zone, damping, escudo e limites de velocidade. |
 | Testes | `test/game/view/game_page_test.dart` | Cobre rota, parâmetros, volume, overlay, retorno, joystick, banner e intersticial suprimidos com anúncios removidos. |
 | Testes | `test/common/services/ads/interstitial_ad_service_test.dart` | Cobre exibição no game over, cooldown, cooldown customizado e descarte. |
@@ -116,19 +117,19 @@ Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave expl
 - **Morte com hit-stop** — `lib/game/arcade_one.dart`: `endRun` ativa slow motion de morte, gera explosão/shake e revela o overlay após `deathOverlayDelaySeconds`, pausando o engine em seguida.
 - **Clamp de frame** — `lib/game/arcade_one.dart`: nenhum update processa `dt` maior que `maxGameUpdateDt` (1/30), evitando teleporte de obstáculos após hitches.
 - **Recorde persistente** — `lib/game/arcade_one.dart`: `best_distance_km` só é regravado quando a distância atual supera o valor restaurado.
-- **Volume binário** — `lib/game/cubit/audio/audio_cubit.dart`: o toggle alterna exclusivamente entre `0` e `1` e persiste em `audio_volume`.
+- **Volume binário** — `lib/game/cubit/audio/audio_cubit.dart`: o toggle alterna exclusivamente entre `0` e `1`, persiste em `audio_volume` e é aplicado a `deathPlayer` e `enginePlayer`; mutar silencia o motor mesmo que o loop já esteja tocando.
 
 ## Dependências Externas
 
 - Flame para loop, input, componentes, overlays e cache de imagens.
-- `audioplayers` para BGM e efeito de morte.
+- `audioplayers` para o loop do motor da nave e o efeito de morte.
 - `shared_preferences`, acessado por `StorageService`, para recorde e preferências.
 - Google Mobile Ads para o banner e o intersticial em Android e iOS.
 
 ## Observações
 
-- A BGM `assets/audio/background_2.mp3` não faz parte da fase de áudio do `PreloadCubit`; `AudioCubit.startBgm` solicita sua reprodução ao entrar em `GameView`.
-- Se a tela do jogo for aberta enquanto o volume já está em `0`, `startBgm` retorna sem tocar; desmutar altera o volume do player, mas não chama `play` novamente.
+- `assets/audio/engine_fire.mp3` é pré-carregado na fase de áudio do `PreloadCubit` junto com o efeito de morte; `ArcadeOne` chama `play`/`stop` diretamente no `enginePlayer`, sem passar pelo `AudioCubit`.
+- Os arquivos `background.mp3`, `background_2.mp3`, `beyond_the_far_rim.mp3`, `effect.mp3` e `thrust_tap.wav` continuam em `assets/audio/`, mas nenhum é referenciado pelo código.
 - O engine é pausado junto com a revelação do overlay de game over; `restartRun` é o único caminho que retoma o loop.
 - O burst de explosão dura `particleBurstLifetime` (0,5 s) e é removido no restart para não vazar para a nova rodada.
 - O HUD de combo aparece somente com combo maior que 1 e os textos de distância/recorde só são reescritos quando o valor inteiro muda.

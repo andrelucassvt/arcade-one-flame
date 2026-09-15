@@ -23,6 +23,7 @@ class PreloadCubit extends Cubit<PreloadState> {
         'audio',
         () => audio.loadAll([
           Assets.audio.death,
+          Assets.audio.engineFire,
         ]),
       ),
       PreloadPhase(

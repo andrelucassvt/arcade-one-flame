@@ -22,6 +22,7 @@ class _ArcadeOne extends ArcadeOne {
   _ArcadeOne({
     required super.l10n,
     required super.deathPlayer,
+    required super.enginePlayer,
     required super.textStyle,
     required super.images,
     required super.storage,
@@ -54,6 +55,7 @@ void main() {
       final game = _ArcadeOne(
         l10n: l10n,
         deathPlayer: _MockAudioPlayer(),
+        enginePlayer: _MockAudioPlayer(),
         textStyle: const TextStyle(),
         images: Images(),
         storage: _MockStorageService(),

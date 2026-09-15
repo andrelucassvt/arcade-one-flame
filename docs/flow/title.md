@@ -18,7 +18,7 @@ related_plans:
 
 `TitleView` é aberta quando o preload termina ou quando o usuário retorna pelo game over. Locale e áudio vêm de Cubits globais; modo de controle e nave selecionada usam Cubits próprios criados e fechados pela tela.
 
-Na inicialização, o título restaura o modo de controle, lê a melhor distância e valida a nave persistida. A top bar exibe idioma e mute; o conteúdo central traz hero com a nave atual, seletor de skins, seletor touch/joystick, botão de lançamento e o botão rotulado de remover anúncios, usando textos de `context.l10n`.
+Na inicialização, o título restaura o modo de controle, lê a melhor distância e valida a nave persistida. A top bar exibe idioma e mute (o mute silencia o som do motor da nave durante a partida); o conteúdo central abre com o botão rotulado de remover anúncios e segue com hero com a nave atual, seletor de skins, seletor touch/joystick e botão de lançamento, usando textos de `context.l10n`.
 
 Ao iniciar, `TitleStartButton` passa `GameControlMode` e `PlayerShipSkin` para `GamePage.route`. `Navigator.pushReplacement` remove a tela de título da pilha e entrega a configuração à gameplay.
 
@@ -41,7 +41,7 @@ Ao iniciar, `TitleStartButton` passa `GameControlMode` e `PlayerShipSkin` para `
 8. **Idioma e áudio** — `lib/title/content/title_top_bar.dart` → `TitleTopBar.build`
    O menu chama `AppLocaleCubit.setLocale`; o botão de volume chama `AudioCubit.toggleVolume`.
 9. **Remover anúncios** — `lib/title/content/title_remove_ads_button.dart` → `TitleRemoveAdsDialog.show`
-   O botão rotulado abaixo do Lançar (oculto quando `hasRemovedAds`) abre um `AlertDialog` que lê o `RemoveAdsCubit` global, mostra o preço localizado e oferece comprar ou restaurar; a compra atualiza o entitlement na hora.
+   O botão rotulado no topo do conteúdo central, logo abaixo da top bar (oculto quando `hasRemovedAds`), abre um `AlertDialog` que lê o `RemoveAdsCubit` global, mostra o preço localizado e oferece comprar ou restaurar; a compra atualiza o entitlement na hora.
 10. **Escolha de nave** — `lib/title/view/title_page.dart` → `_showShipSelectionSheet`
     Abre o catálogo e envia seleções permitidas para `TitleShipSelectionCubit.setShip`.
 11. **Escolha de controle** — `lib/title/content/title_control_mode_selector.dart` → `onSelectionChanged`

@@ -49,6 +49,7 @@ class _OverlayGame extends ArcadeOne {
   _OverlayGame({
     required super.l10n,
     required super.deathPlayer,
+    required super.enginePlayer,
     required super.textStyle,
     required super.images,
     required super.storage,
@@ -172,9 +173,9 @@ void main() {
       when(() => audioCubit.state).thenReturn(AudioState());
 
       final deathPlayer = _MockAudioPlayer();
+      final enginePlayer = _MockAudioPlayer();
       when(() => audioCubit.deathPlayer).thenReturn(deathPlayer);
-      when(audioCubit.startBgm).thenAnswer((_) async {});
-      when(audioCubit.stopBgm).thenAnswer((_) async {});
+      when(() => audioCubit.enginePlayer).thenReturn(enginePlayer);
     });
 
     testWidgets('toggles mute button correctly', (tester) async {
@@ -238,6 +239,7 @@ void main() {
       final game = _OverlayGame(
         l10n: l10n,
         deathPlayer: _MockAudioPlayer(),
+        enginePlayer: _MockAudioPlayer(),
         textStyle: const TextStyle(),
         images: Images(),
         storage: _MockStorageService(),
@@ -283,6 +285,7 @@ void main() {
       final game = _OverlayGame(
         l10n: l10n,
         deathPlayer: _MockAudioPlayer(),
+        enginePlayer: _MockAudioPlayer(),
         textStyle: const TextStyle(),
         images: Images(),
         storage: _MockStorageService(),
@@ -315,6 +318,7 @@ void main() {
       final game = _OverlayGame(
         l10n: _MockAppLocalizations(),
         deathPlayer: _MockAudioPlayer(),
+        enginePlayer: _MockAudioPlayer(),
         textStyle: const TextStyle(),
         images: Images(),
         storage: _MockStorageService(),
@@ -372,6 +376,7 @@ void main() {
       final game = _OverlayGame(
         l10n: l10n,
         deathPlayer: _MockAudioPlayer(),
+        enginePlayer: _MockAudioPlayer(),
         textStyle: const TextStyle(),
         images: Images(),
         storage: _MockStorageService(),
@@ -420,6 +425,7 @@ void main() {
       final game = _OverlayGame(
         l10n: l10n,
         deathPlayer: _MockAudioPlayer(),
+        enginePlayer: _MockAudioPlayer(),
         textStyle: const TextStyle(),
         images: Images(),
         storage: _MockStorageService(),
@@ -457,6 +463,7 @@ void main() {
       final game = _OverlayGame(
         l10n: l10n,
         deathPlayer: _MockAudioPlayer(),
+        enginePlayer: _MockAudioPlayer(),
         textStyle: const TextStyle(),
         images: Images(),
         storage: _MockStorageService(),

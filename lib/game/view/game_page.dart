@@ -74,22 +74,15 @@ class GameView extends StatefulWidget {
 
 class _GameViewState extends State<GameView> {
   FlameGame? _game;
-  AudioCubit? _audioCubit;
+  bool _didLoadInterstitial = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_audioCubit == null) {
-      _audioCubit = context.read<AudioCubit>();
-      unawaited(_audioCubit!.startBgm());
+    if (!_didLoadInterstitial) {
+      _didLoadInterstitial = true;
       unawaited(context.read<InterstitialAdService>().load());
     }
-  }
-
-  @override
-  void dispose() {
-    unawaited(_audioCubit?.stopBgm());
-    super.dispose();
   }
 
   void _maybeShowGameOverInterstitial() {
@@ -116,6 +109,7 @@ class _GameViewState extends State<GameView> {
         ArcadeOne(
           l10n: context.l10n,
           deathPlayer: audioCubit.deathPlayer,
+          enginePlayer: audioCubit.enginePlayer,
           textStyle: textStyle,
           images: context.read<PreloadCubit>().images,
           storage: context.read<StorageService>(),

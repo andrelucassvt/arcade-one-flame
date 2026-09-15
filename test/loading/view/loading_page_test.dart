@@ -38,8 +38,13 @@ void main() {
       when(() => images.loadAll(any())).thenAnswer((_) async => <Image>[]);
 
       when(
-        () => audio.loadAll([Assets.audio.death]),
-      ).thenAnswer((_) async => [Uri.parse(Assets.audio.death)]);
+        () => audio.loadAll([Assets.audio.death, Assets.audio.engineFire]),
+      ).thenAnswer(
+        (_) async => [
+          Uri.parse(Assets.audio.death),
+          Uri.parse(Assets.audio.engineFire),
+        ],
+      );
     });
 
     testWidgets('basic layout', (tester) async {

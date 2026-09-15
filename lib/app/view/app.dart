@@ -62,7 +62,7 @@ class App extends StatelessWidget {
               final audioCache = ctx.read<PreloadCubit>().audio;
               final cubit = AudioCubit(
                 deathPlayer: AudioPlayer()..audioCache = audioCache,
-                bgmPlayer: AudioPlayer()..audioCache = audioCache,
+                enginePlayer: AudioPlayer()..audioCache = audioCache,
                 storage: ctx.read<StorageService>(),
               );
               unawaited(cubit.init());

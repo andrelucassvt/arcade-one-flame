@@ -28,6 +28,8 @@ class TitleMainContent extends StatelessWidget {
 
     return Column(
       children: [
+        const TitleRemoveAdsButton(),
+        const SizedBox(height: 18),
         TitleHero(isWide: isWide, selectedShip: selectedShip),
         const SizedBox(height: 18),
         TitleShipSelectorButton(
@@ -44,8 +46,6 @@ class TitleMainContent extends StatelessWidget {
           controlMode: selectedControlMode,
           playerShip: selectedShip,
         ),
-        const SizedBox(height: 14),
-        const TitleRemoveAdsButton(),
       ],
     );
   }

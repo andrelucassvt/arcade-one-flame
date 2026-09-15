@@ -1,5 +1,4 @@
 import 'package:arcade_one/common/services/storage_service.dart';
-import 'package:arcade_one/game/game_audio_assets.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,14 +8,14 @@ part 'audio_state.dart';
 class AudioCubit extends Cubit<AudioState> {
   AudioCubit({
     required this.deathPlayer,
-    required this.bgmPlayer,
+    required this.enginePlayer,
     StorageService? storage,
   }) : _storage = storage,
        super(const AudioState());
 
   AudioCubit.test({
     required this.deathPlayer,
-    required this.bgmPlayer,
+    required this.enginePlayer,
     StorageService? storage,
     double volume = 1.0,
   }) : _storage = storage,
@@ -24,7 +23,7 @@ class AudioCubit extends Cubit<AudioState> {
 
   final AudioPlayer deathPlayer;
 
-  final AudioPlayer bgmPlayer;
+  final AudioPlayer enginePlayer;
 
   final StorageService? _storage;
 
@@ -41,7 +40,7 @@ class AudioCubit extends Cubit<AudioState> {
 
   Future<void> _changeVolume(double volume) async {
     await deathPlayer.setVolume(volume);
-    await bgmPlayer.setVolume(volume);
+    await enginePlayer.setVolume(volume);
     if (!isClosed) {
       emit(state.copyWith(volume: volume));
     }
@@ -53,20 +52,10 @@ class AudioCubit extends Cubit<AudioState> {
     await _storage?.setDouble(_keyVolume, newVolume);
   }
 
-  Future<void> startBgm() async {
-    if (state.volume == 0) return;
-    await bgmPlayer.setReleaseMode(ReleaseMode.loop);
-    await bgmPlayer.play(AssetSource(bgmAudioAsset), volume: state.volume);
-  }
-
-  Future<void> stopBgm() async {
-    await bgmPlayer.stop();
-  }
-
   @override
   Future<void> close() async {
     await deathPlayer.dispose();
-    await bgmPlayer.dispose();
+    await enginePlayer.dispose();
     return super.close();
   }
 }

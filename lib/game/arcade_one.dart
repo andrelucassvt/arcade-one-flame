@@ -80,6 +80,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   ArcadeOne({
     required this.l10n,
     required this.deathPlayer,
+    required this.enginePlayer,
     required this.textStyle,
     required Images images,
     required this.storage,
@@ -101,6 +102,8 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   final AppLocalizations l10n;
 
   final AudioPlayer deathPlayer;
+
+  final AudioPlayer enginePlayer;
 
   final TriggerGameOverHaptic triggerGameOverHaptic;
 
@@ -144,6 +147,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   double _deathElapsed = 0;
   bool _deathOverlayShown = false;
   bool _isWaitingToStart;
+  bool _isEngineSoundPlaying = false;
 
   ui.Image? _asteroidTileImage;
   ui.Image? _looseMeteorImage;
@@ -200,6 +204,7 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
   @override
   void update(double dt) {
     final realDt = math.min(dt, maxGameUpdateDt);
+    _syncEngineSound();
 
     if (_isWaitingToStart) {
       return;
@@ -232,6 +237,21 @@ class ArcadeOne extends FlameGame with TapCallbacks, DragCallbacks {
     _advanceObstacleSequenceIfNeeded();
     _applySoftBounds();
     _updateShake(realDt);
+  }
+
+  void _syncEngineSound() {
+    final isThrusting = ship?.isThrusting ?? false;
+    if (isThrusting == _isEngineSoundPlaying) {
+      return;
+    }
+
+    _isEngineSoundPlaying = isThrusting;
+    if (isThrusting) {
+      unawaited(enginePlayer.setReleaseMode(ReleaseMode.loop));
+      unawaited(enginePlayer.play(AssetSource(Assets.audio.engineFire)));
+    } else {
+      unawaited(enginePlayer.stop());
+    }
   }
 
   void _updateAfterDeath(double dt) {

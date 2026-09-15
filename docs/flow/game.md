@@ -27,7 +27,7 @@ O jogo restaura a melhor distância, carrega imagens do cache e monta fundo, nav
 
 Power-ups de escudo e câmera lenta nascem sobre gaps de paredes estáticas: o escudo absorve uma colisão e a câmera lenta reduz o `timeScale` da rodada. Passar raspando em obstáculos registra um near miss que alimenta um combo, e o combo multiplica o ganho de distância. Depois de 3000 km entra a curva "deep space", que aumenta a chance de gaps móveis, a quantidade de meteoros e a velocidade base.
 
-Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave explode em partículas e a tela treme; o overlay de game over só aparece após um atraso e o engine é pausado. Um novo recorde é persistido, o dispositivo recebe feedback háptico e o efeito de morte toca. O popup Flutter permite reconstruir a rodada na mesma instância (retomando o engine) ou substituir a rota por `TitleView`. Em Android e iOS, um banner fica sobreposto na base da tela, exceto quando o entitlement de remoção de anúncios está ativo.
+Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave explode em partículas e a tela treme; o overlay de game over só aparece após um atraso e o engine é pausado. Um novo recorde é persistido, o dispositivo recebe feedback háptico e o efeito de morte toca. O popup Flutter permite reconstruir a rodada na mesma instância (retomando o engine) ou substituir a rota por `TitleView`. Em Android e iOS, um banner fica sobreposto na base da tela; ao morrer, um intersticial pré-carregado pode assumir a tela, limitado a uma exibição a cada 60 s. Ambos os formatos são omitidos quando o entitlement de remoção de anúncios está ativo.
 
 ## Passo a Passo
 
@@ -38,7 +38,7 @@ Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave expl
 3. **Ciclo de áudio** — `lib/game/view/game_page.dart` → `_GameViewState.didChangeDependencies`
    Na primeira resolução de dependências, lê o `AudioCubit` global e solicita `startBgm`; `dispose` solicita `stopBgm`.
 4. **Composição Flutter/Flame** — `lib/game/view/game_page.dart` → `GameView.build`
-   Lê `AudioCubit`, `PreloadCubit` e `StorageService`, cria `ArcadeOne` uma única vez e o entrega a `GameWidget` com o overlay de game over.
+   Lê `AudioCubit`, `PreloadCubit` e `StorageService`, cria `ArcadeOne` uma única vez e o entrega a `GameWidget` com o overlay de game over. Na primeira resolução de dependências, também pede o preload do intersticial a `InterstitialAdService.load`.
 5. **Carga inicial** — `lib/game/arcade_one.dart` → `ArcadeOne.onLoad`
    Restaura `best_distance_km` e chama `_buildRun`.
 6. **Montagem da rodada** — `lib/game/arcade_one.dart` → `_buildRun`
@@ -54,7 +54,7 @@ Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave expl
 11. **Fim da rodada** — `lib/game/arcade_one.dart` → `endRun`
     Ativa slow motion de morte, persiste recorde se superado, dispara háptico e som, explode a nave e treme a tela; o overlay só é adicionado depois de `deathOverlayDelaySeconds`, quando `pauseEngine` é chamado.
 12. **Decisão pós-morte** — `lib/game/view/game_page.dart` → `overlayBuilderMap`
-    `GameOverPopup` chama `restartRun` ou substitui a rota atual por `TitleView.route()`.
+    Quando o overlay aparece, `GameOverPopup.onShown` aciona `InterstitialAdService.showOnGameOver`, que exibe o anúncio pré-carregado se a remoção de anúncios não está ativa e o cooldown de 60 s passou. O popup chama `restartRun` ou substitui a rota atual por `TitleView.route()`.
 13. **Reinício** — `lib/game/arcade_one.dart` → `restartRun`
     Retoma o engine, remove overlay, zera rodada/combo/efeitos, limpa bursts e power-ups, reposiciona a nave, reseta o fundo, remove obstáculos antigos e inicia uma nova sequência com grace period, preservando o recorde.
 
@@ -69,17 +69,19 @@ Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave expl
 - **Sem novo recorde:** `endRun` mantém `bestDistanceKm` e não grava no storage.
 - **Imagem ausente:** nave, obstáculos e marcos usam renderização procedural/fallback prevista pelos componentes.
 - **Plataforma sem banner:** quando `AdConfig.maybeBanner` é `null`, o banner é omitido e o joystick usa apenas o espaçamento inferior padrão.
-- **Anúncios removidos:** com `hasRemovedAds` verdadeiro no `RemoveAdsCubit`, `GameView` trata `bannerAdUnitId` como `null`, omite o `AdBannerWidget` e o joystick volta ao espaçamento inferior padrão.
+- **Anúncios removidos:** com `hasRemovedAds` verdadeiro no `RemoveAdsCubit`, `GameView` trata `bannerAdUnitId` como `null`, omite o `AdBannerWidget` e o popup de game over não aciona o intersticial; o joystick volta ao espaçamento inferior padrão.
+- **Intersticial em cooldown:** com menos de 60 s desde a última exibição, `showOnGameOver` ignora o pedido sem esconder o popup.
+- **Intersticial sem preload:** sem anúncio carregado, o pedido apenas dispara um novo `load` e a rodada segue sem exibição.
 
 ## Arquivos Envolvidos
 
 | Camada | Arquivo | Responsabilidade |
 |--------|---------|------------------|
 | Entrada | `lib/title/content/title_start_button.dart` | Inicia a rota com controle e nave escolhidos. |
-| Apresentação | `lib/game/view/game_page.dart` | Integra providers, Flame, overlays, áudio, joystick e banner (oculto com anúncios removidos). |
+| Apresentação | `lib/game/view/game_page.dart` | Integra providers, Flame, overlays, áudio, joystick, banner e o gatilho do intersticial no game over (ambos ocultos com anúncios removidos). |
 | Estado global | `lib/app/cubit/remove_ads_cubit.dart` | Mantém o entitlement que remove o banner do jogo. |
 | Apresentação | `lib/game/widgets/game_joystick.dart` | Converte gesto local em direção normalizada com `ValueNotifier`. |
-| Apresentação | `lib/game/widgets/game_over_popup.dart` | Exibe resultado e ações pós-morte. |
+| Apresentação | `lib/game/widgets/game_over_popup.dart` | Exibe resultado, ações pós-morte e notifica a primeira exibição via `onShown`. |
 | Estado | `lib/game/cubit/audio/audio_cubit.dart` | Persiste volume e controla BGM e efeito de morte. |
 | Orquestração | `lib/game/arcade_one.dart` | Mantém ciclo da rodada, progressão, spawn, colisões, combos, power-ups, soft bounds e morte. |
 | Entidade | `lib/game/entities/ship/ship.dart` | Implementa input contínuo, inércia com damping, escudo, trilha e renderização da nave. |
@@ -91,10 +93,12 @@ Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave expl
 | Componentes | `lib/game/components/space_background_component.dart` | Fundo por km com starfield e marcos otimizados. |
 | Componentes | `lib/game/components/starfield_component.dart` | Estrelas em parallax desenhadas com `drawRawPoints`. |
 | Dados | `lib/common/services/storage_service.dart` | Persiste melhor distância por contrato abstrato. |
-| Anúncios | `lib/common/services/ads/ad_config.dart` | Resolve unidades de banner por plataforma. |
+| Anúncios | `lib/common/services/ads/ad_config.dart` | Resolve unidades de banner principal, alternativo e intersticial por plataforma. |
+| Anúncios | `lib/common/services/ads/interstitial_ad_service.dart` | Carrega e exibe o intersticial de game over com cooldown e pré-carrega o próximo ao fechar. |
 | Testes | `test/game/arcade_one_test.dart` | Cobre montagem, progressão, spawn, controles, colisão, escudo, slow-mo, combo, clamp de dt, morte e restart. |
 | Testes | `test/game/entities/ship/ship_test.dart` | Cobre alvo contínuo, dead zone, damping, escudo e limites de velocidade. |
-| Testes | `test/game/view/game_page_test.dart` | Cobre rota, parâmetros, volume, overlay, retorno, joystick e banner oculto com anúncios removidos. |
+| Testes | `test/game/view/game_page_test.dart` | Cobre rota, parâmetros, volume, overlay, retorno, joystick, banner e intersticial suprimidos com anúncios removidos. |
+| Testes | `test/common/services/ads/interstitial_ad_service_test.dart` | Cobre exibição no game over, cooldown, cooldown customizado e descarte. |
 | Testes | `test/game/components/` | Cobre comportamento isolado dos componentes Flame, incluindo power-up e explosão. |
 
 ## Regras de Negócio Relevantes
@@ -119,7 +123,7 @@ Colidir sem escudo encerra a rodada com hit-stop: a cena desacelera, a nave expl
 - Flame para loop, input, componentes, overlays e cache de imagens.
 - `audioplayers` para BGM e efeito de morte.
 - `shared_preferences`, acessado por `StorageService`, para recorde e preferências.
-- Google Mobile Ads para o banner em Android e iOS.
+- Google Mobile Ads para o banner e o intersticial em Android e iOS.
 
 ## Observações
 

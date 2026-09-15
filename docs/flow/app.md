@@ -18,7 +18,7 @@ O fluxo começa em um dos três entry points de flavor. Todos chamam `bootstrap`
 
 O bootstrap inicializa o binding do Flutter, tratamento e logging de erros, observação de Bloc, licença Poppins, contexto global de áudio e Google Mobile Ads. Em seguida, carrega o storage nativo e entrega a instância ao widget raiz.
 
-`App` converte `SharedPreferences` na abstração `StorageService` e fornece os Cubits globais de locale, preload e áudio. `AppView` fixa orientação retrato, reconstrói o `MaterialApp` quando o locale muda e abre `LoadingPage`, que inicia o fluxo visível do produto.
+`App` converte `SharedPreferences` na abstração `StorageService`, expõe o `InterstitialAdService` e fornece os Cubits globais de locale, preload, áudio e remoção de anúncios. `AppView` fixa orientação retrato, reconstrói o `MaterialApp` quando o locale muda e abre `LoadingPage`, que inicia o fluxo visível do produto.
 
 ## Passo a Passo
 
@@ -31,7 +31,7 @@ O bootstrap inicializa o binding do Flutter, tratamento e logging de erros, obse
 4. **Persistência e montagem** — `lib/bootstrap.dart` → `bootstrap`
    Obtém `SharedPreferences.getInstance()` e chama `runApp` com o widget retornado pelo builder.
 5. **Repository global** — `lib/app/view/app.dart` → `App.build`
-   Cria `SharedPreferencesStorageService` e o expõe como `RepositoryProvider<StorageService>`.
+   Cria `SharedPreferencesStorageService`, `SharePlusShareService` e `InterstitialAdService` e os expõe como `RepositoryProvider<StorageService>`, `RepositoryProvider<ShareService>` e `RepositoryProvider<InterstitialAdService>`.
 6. **Cubits globais** — `lib/app/view/app.dart` → `App.build`
    Cria `AppLocaleCubit`, `PreloadCubit` e `AudioCubit`; dispara `init`/`loadSequentially` sem bloquear a primeira renderização.
 7. **Shell visual** — `lib/app/view/app.dart` → `_AppViewState`
@@ -57,6 +57,7 @@ O bootstrap inicializa o binding do Flutter, tratamento e logging de erros, obse
 | Dados | `lib/common/services/storage_service.dart` | Define o contrato usado pelos consumidores persistentes. |
 | Dados | `lib/common/services/shared_preferences_storage_service.dart` | Implementa o contrato com `SharedPreferences`. |
 | Serviço | `lib/common/services/ads/ad_service.dart` | Inicializa o SDK Google Mobile Ads. |
+| Serviço | `lib/common/services/ads/interstitial_ad_service.dart` | Fornece o intersticial de game over com preload, cooldown e descarte. |
 | Testes | `test/app/view/app_test.dart` | Verifica a montagem de `AppView`. |
 | Testes | `test/app/cubit/app_locale_cubit_test.dart` | Cobre estado inicial, restauração e persistência de locale. |
 
@@ -72,7 +73,7 @@ O bootstrap inicializa o binding do Flutter, tratamento e logging de erros, obse
 - `bloc` e `flutter_bloc` para observação, providers e Cubits.
 - `shared_preferences` como backend de persistência.
 - `audioplayers` para o contexto de áudio e os players globais.
-- `google_mobile_ads` para inicialização do SDK de anúncios.
+- `google_mobile_ads` para inicialização do SDK e ciclo do anúncio intersticial.
 - `google_fonts` para aplicar Poppins ao tema.
 
 ## Observações

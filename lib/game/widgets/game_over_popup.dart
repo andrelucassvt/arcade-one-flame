@@ -17,6 +17,7 @@ class GameOverPopup extends StatefulWidget {
     this.isNewRecord = false,
     this.playerShip = defaultPlayerShipSkin,
     this.captureCard,
+    this.onShown,
     super.key,
   });
 
@@ -26,6 +27,7 @@ class GameOverPopup extends StatefulWidget {
   final bool isNewRecord;
   final PlayerShipSkin playerShip;
   final Future<Uint8List?> Function()? captureCard;
+  final VoidCallback? onShown;
   final VoidCallback onRestart;
   final VoidCallback onReturnToTitle;
 
@@ -36,6 +38,12 @@ class GameOverPopup extends StatefulWidget {
 class _GameOverPopupState extends State<GameOverPopup> {
   final GlobalKey _cardKey = GlobalKey();
   bool _isSharing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.onShown?.call();
+  }
 
   Future<void> _shareRun() async {
     if (_isSharing) {

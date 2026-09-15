@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:arcade_one/app/app.dart';
 import 'package:arcade_one/common/services/ads/ad_config.dart';
+import 'package:arcade_one/common/services/ads/interstitial_ad_service.dart';
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/common/widgets/ad_banner_widget.dart';
 import 'package:arcade_one/game/game.dart';
@@ -81,6 +82,7 @@ class _GameViewState extends State<GameView> {
     if (_audioCubit == null) {
       _audioCubit = context.read<AudioCubit>();
       unawaited(_audioCubit!.startBgm());
+      unawaited(context.read<InterstitialAdService>().load());
     }
   }
 
@@ -88,6 +90,17 @@ class _GameViewState extends State<GameView> {
   void dispose() {
     unawaited(_audioCubit?.stopBgm());
     super.dispose();
+  }
+
+  void _maybeShowGameOverInterstitial() {
+    if (!mounted) {
+      return;
+    }
+    if (context.read<RemoveAdsCubit>().state.hasRemovedAds) {
+      return;
+    }
+
+    context.read<InterstitialAdService>().showOnGameOver();
   }
 
   @override
@@ -138,6 +151,7 @@ class _GameViewState extends State<GameView> {
                   maxCombo: arcadeOne?.maxCombo ?? 0,
                   isNewRecord: arcadeOne?.isNewRecord ?? false,
                   playerShip: widget.playerShip,
+                  onShown: _maybeShowGameOverInterstitial,
                   onRestart: () {
                     if (game is ArcadeOne) {
                       unawaited(game.restartRun());

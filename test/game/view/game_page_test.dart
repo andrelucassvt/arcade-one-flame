@@ -6,6 +6,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:arcade_one/app/app.dart';
+import 'package:arcade_one/common/services/ads/interstitial_ad_service.dart';
 import 'package:arcade_one/common/services/storage_service.dart';
 import 'package:arcade_one/common/widgets/ad_banner_widget.dart';
 import 'package:arcade_one/game/game.dart';
@@ -32,6 +33,9 @@ class _MockAudioCubit extends MockCubit<AudioState> implements AudioCubit {}
 class _MockAudioPlayer extends Mock implements AudioPlayer {}
 
 class _MockImages extends Mock implements Images {}
+
+class _MockInterstitialAdService extends Mock
+    implements InterstitialAdService {}
 
 class _MockPreloadCubit extends MockCubit<PreloadState>
     implements PreloadCubit {}
@@ -352,6 +356,95 @@ void main() {
       );
 
       expect(find.byType(AdBannerWidget), findsNothing);
+    });
+
+    testWidgets('shows an interstitial when the run ends', (tester) async {
+      final interstitialAdService = _MockInterstitialAdService();
+      when(interstitialAdService.load).thenAnswer((_) async {});
+      when(interstitialAdService.showOnGameOver).thenAnswer((_) {});
+
+      final l10n = _MockAppLocalizations();
+      when(() => l10n.distanceText(any())).thenReturn('0 km');
+      when(() => l10n.bestDistanceText(any())).thenReturn('Best 0 km');
+      when(() => l10n.gameOverTitle).thenReturn('GAME OVER');
+      when(() => l10n.restartHint).thenReturn('Tap to restart');
+
+      final game = _OverlayGame(
+        l10n: l10n,
+        deathPlayer: _MockAudioPlayer(),
+        textStyle: const TextStyle(),
+        images: Images(),
+        storage: _MockStorageService(),
+      );
+
+      await tester.pumpApp(
+        BlocProvider.value(
+          value: audioCubit,
+          child: Material(child: GameView(game: game)),
+        ),
+        interstitialAdService: interstitialAdService,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      game
+        ..distanceKm = 42
+        ..isGameOver = true;
+      game.overlays.add(gameOverOverlayKey);
+      await tester.pump();
+      await tester.pump();
+
+      verify(interstitialAdService.showOnGameOver).called(1);
+    });
+
+    testWidgets('does not show an interstitial when ads were removed', (
+      tester,
+    ) async {
+      final interstitialAdService = _MockInterstitialAdService();
+      when(interstitialAdService.load).thenAnswer((_) async {});
+      when(interstitialAdService.showOnGameOver).thenAnswer((_) {});
+
+      final removeAdsCubit = _MockRemoveAdsCubit();
+      whenListen(
+        removeAdsCubit,
+        const Stream<RemoveAdsState>.empty(),
+        initialState: const RemoveAdsState(hasRemovedAds: true),
+      );
+
+      final l10n = _MockAppLocalizations();
+      when(() => l10n.distanceText(any())).thenReturn('0 km');
+      when(() => l10n.bestDistanceText(any())).thenReturn('Best 0 km');
+      when(() => l10n.gameOverTitle).thenReturn('GAME OVER');
+      when(() => l10n.restartHint).thenReturn('Tap to restart');
+
+      final game = _OverlayGame(
+        l10n: l10n,
+        deathPlayer: _MockAudioPlayer(),
+        textStyle: const TextStyle(),
+        images: Images(),
+        storage: _MockStorageService(),
+      );
+
+      await tester.pumpApp(
+        BlocProvider.value(
+          value: audioCubit,
+          child: Material(child: GameView(game: game)),
+        ),
+        removeAdsCubit: removeAdsCubit,
+        interstitialAdService: interstitialAdService,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      game
+        ..distanceKm = 42
+        ..isGameOver = true;
+      game.overlays.add(gameOverOverlayKey);
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('GAME OVER'), findsOneWidget);
+      verifyNever(interstitialAdService.showOnGameOver);
     });
 
     testWidgets('renders joystick controls for joystick games', (tester) async {

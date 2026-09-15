@@ -15,6 +15,21 @@ class AdConfig {
     return null;
   }
 
+  static String? get maybeInterstitial {
+    if (Platform.isAndroid) return 'ca-app-pub-3652623512305285/4944113526';
+    if (Platform.isIOS) return 'ca-app-pub-3652623512305285/9697746758';
+    return null;
+  }
+
+  static String get interstitial {
+    final adUnitId = maybeInterstitial;
+    if (adUnitId != null) {
+      return adUnitId;
+    }
+
+    throw UnsupportedError('Plataforma não suportada para anúncios');
+  }
+
   static String get banner {
     final adUnitId = maybeBanner;
     if (adUnitId != null) {

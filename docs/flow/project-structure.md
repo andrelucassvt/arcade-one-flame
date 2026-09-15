@@ -63,7 +63,7 @@ GamePage → caches do PreloadCubit → ArcadeOne → componentes Flame
 | Tipo | Caminho | Responsabilidade |
 |------|---------|-----------------|
 | Persistência | `lib/common/services/storage_service.dart`, `lib/common/services/shared_preferences_storage_service.dart` | Define o contrato de armazenamento e sua implementação com `SharedPreferences`. |
-| Anúncios | `lib/common/services/ads/` | Inicializa o Google Mobile Ads e resolve IDs de banner principal e alternativo por plataforma. |
+| Anúncios | `lib/common/services/ads/` | Inicializa o Google Mobile Ads, resolve IDs de banner principal, alternativo e intersticial por plataforma e gerencia o ciclo do intersticial com cooldown. |
 | Widgets compartilhados | `lib/common/widgets/` | Fornece o banner com fallback de unidade em caso de falha no carregamento. |
 | Localização | `lib/l10n/` | Mantém ARBs em inglês e português, a configuração gerada e a extensão `context.l10n`. |
 | Assets gerados | `lib/gen/` | Expõe acesso tipado aos assets declarados no `pubspec.yaml`. |
@@ -94,7 +94,7 @@ GamePage → caches do PreloadCubit → ArcadeOne → componentes Flame
 | `audioplayers` | `^6.6.0` | Cache e reprodução do efeito de morte, música em loop e configuração global de áudio. |
 | `equatable` | `^2.0.8` | Igualdade dos estados de preload e áudio. |
 | `shared_preferences` | `^2.3.0` | Backend local para locale, volume, modo de controle, nave escolhida e melhor distância. |
-| `google_mobile_ads` | `^9.0.0` | Inicialização do SDK e banner exibido na tela de jogo em Android e iOS. |
+| `google_mobile_ads` | `^9.0.0` | Inicialização do SDK, banner com fallback e intersticial de game over em Android e iOS. |
 | `google_fonts` | `^8.1.0` | Aplica Poppins ao tema do `MaterialApp`. |
 | `flutter_localizations` | SDK Flutter | Fornece os delegates usados pelas localizações geradas. |
 | `bloc_test` | `^10.0.0` | Suporte aos testes de Cubit. |

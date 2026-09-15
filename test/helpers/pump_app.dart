@@ -1,4 +1,5 @@
 import 'package:arcade_one/app/app.dart';
+import 'package:arcade_one/common/services/ads/interstitial_ad_service.dart';
 import 'package:arcade_one/common/services/in_app_purchase/in_app_purchase_service.dart';
 import 'package:arcade_one/common/services/share/share_service.dart';
 import 'package:arcade_one/common/services/storage_service.dart';
@@ -16,6 +17,9 @@ import 'helpers.dart';
 
 class _MockInAppPurchaseService extends Mock
     implements InAppPurchaseService {}
+
+class _MockInterstitialAdService extends Mock
+    implements InterstitialAdService {}
 
 class _MockStorageService extends Mock implements StorageService {}
 
@@ -57,6 +61,14 @@ InAppPurchaseService _buildMockInAppPurchaseService() {
   return service;
 }
 
+InterstitialAdService _buildMockInterstitialAdService() {
+  final service = _MockInterstitialAdService();
+  when(service.load).thenAnswer((_) async {});
+  when(service.showOnGameOver).thenAnswer((_) {});
+  when(() => service.isReady).thenReturn(false);
+  return service;
+}
+
 extension PumpApp on WidgetTester {
   Future<void> pumpApp(
     Widget widget, {
@@ -65,6 +77,7 @@ extension PumpApp on WidgetTester {
     PreloadCubit? preloadCubit,
     AudioCubit? audioCubit,
     RemoveAdsCubit? removeAdsCubit,
+    InterstitialAdService? interstitialAdService,
     StorageService? storageService,
     ShareService? shareService,
   }) {
@@ -76,6 +89,8 @@ extension PumpApp on WidgetTester {
           storage: storage,
           service: _buildMockInAppPurchaseService(),
         );
+    final resolvedInterstitialAdService =
+        interstitialAdService ?? _buildMockInterstitialAdService();
     final resolvedAudioCubit =
         audioCubit ??
         AudioCubit.test(
@@ -88,6 +103,9 @@ extension PumpApp on WidgetTester {
           RepositoryProvider<StorageService>.value(value: storage),
           RepositoryProvider<ShareService>.value(
             value: shareService ?? _buildNoopShareService(),
+          ),
+          RepositoryProvider<InterstitialAdService>.value(
+            value: resolvedInterstitialAdService,
           ),
         ],
         child: MultiBlocProvider(

@@ -29,14 +29,14 @@ class TitleMainContent extends StatelessWidget {
     return Column(
       children: [
         const TitleRemoveAdsButton(),
-        const SizedBox(height: 18),
+        const SizedBox(height: 10),
         TitleHero(isWide: isWide, selectedShip: selectedShip),
-        const SizedBox(height: 18),
+        const SizedBox(height: 10),
         TitleShipSelectorButton(
           selectedShip: selectedShip,
           onPressed: onShipSelectorPressed,
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 14),
         TitleControlModeSelector(
           selectedMode: selectedControlMode,
           onChanged: onControlModeChanged,

@@ -93,7 +93,6 @@ class _TitleViewState extends State<TitleView> {
                                     TitleTopBar(
                                       selectedLocale: selectedLocale,
                                     ),
-                                    const SizedBox(height: 32),
                                     TitleMainContent(
                                       selectedControlMode: selectedControlMode,
                                       selectedShip: selectedShip,
